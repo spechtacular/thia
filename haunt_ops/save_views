@@ -1,0 +1,102 @@
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import authenticate, login
+from django.urls import reverse_lazy, reverse
+from django.views.generic import CreateView
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from .forms import PublicSignupForm, AppUserChangeForm
+
+def signup(request):
+   if request.method == 'POST':
+       form = PublicSignupForm(request.POST)
+       if form.is_valid():
+           form.save()
+           return redirect('login')  # redirect after signup
+   else:
+      form = PublicSignupForm()
+   return render(request, 'registration/signup.html', {'form': form})
+
+
+def home(request):
+    return render(request, 'home.html')
+
+
+@login_required
+def profile_view(request):
+    if request.method == 'POST':
+        form = AppUserChangeForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            return redirect('profile')  # stay on the same page after saving
+    else:
+        form = AppUserChangeForm(instance=request.user)
+
+    return render(request, 'profile.html', 
+    return render(request, 'profile.html', 
+       {
+        'email': profile.user.email,
+        'phone1': profile.user.phone1,
+        'phone2': profile.user.phone2,
+        'date_of_birth': profile.user.date_of_birth,
+        'last_activity': profile.user.last_activity,
+        'address': profile.user.address,
+        'city': profile.user.city,
+        'state': profile.user.state,
+        'zipcode': profile.user.zipcode,
+        'ice_name': profile.user.ice_name,
+        'ice_relationship': profile.user.ice_relationship,
+        'ice_phone': profile.user.ice_phone,
+        'point_total': profile.user.point_total,
+        'tshirt_size': profile.user.tshirt_size,
+        'wear_mask': profile.user.wear_mask,
+        'waiver': profile.user.waiver,
+        'haunt_experience': profile.user.haunt_experience,
+        'referral_source': profile.user.referral_source,
+        'allergies': profile.user.allergies,
+        'email_blocked': profile.user.email_blocked,
+        'image_url': profile.user.image_url,
+       })
+
+
+
+def login_view(request):
+    if request.method == "POST":
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(request, username=username, password=password)
+        if user:
+            login(request, user)
+            return redirect(reverse('public_profile', args=[user.username]))
+        else:
+            return render(request, 'login.html', {'error': 'Invalid credentials'})
+    return render(request, 'login.html')
+
+
+def public_profile(request, username):
+    user = get_object_or_404(User, username=username)
+    profile = user.profile
+    return render(request, 'public_profile.html', 
+       {
+        'email': profile.user.email,
+        'phone1': profile.user.phone1,
+        'phone2': profile.user.phone2,
+        'date_of_birth': profile.user.date_of_birth,
+        'last_activity': profile.user.last_activity,
+        'address': profile.user.address,
+        'city': profile.user.city,
+        'state': profile.user.state,
+        'zipcode': profile.user.zipcode,
+        'ice_name': profile.user.ice_name,
+        'ice_relationship': profile.user.ice_relationship,
+        'ice_phone': profile.user.ice_phone,
+        'point_total': profile.user.point_total,
+        'tshirt_size': profile.user.tshirt_size,
+        'wear_mask': profile.user.wear_mask,
+        'waiver': profile.user.waiver,
+        'haunt_experience': profile.user.haunt_experience,
+        'referral_source': profile.user.referral_source,
+        'allergies': profile.user.allergies,
+        'email_blocked': profile.user.email_blocked,
+        'image_url': profile.user.image_url,
+       })

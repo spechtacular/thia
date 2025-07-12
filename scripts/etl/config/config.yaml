@@ -1,0 +1,83 @@
+app_name: "thia"
+version: 1.0
+debug_mode: true
+
+database:
+  host: "localhost"
+  port: 5432
+  username: "zack"
+  password: "NotHalloween"
+  name: "thia"
+
+
+
+logging:
+  level: "INFO"
+  file: "etl.log"
+
+features:
+  enable_feature_a: true
+  enable_feature_b: false
+
+
+
+
+csv_header_name_mapping: 
+  "Unnamed: 0": "id"
+  "F.Name": "first_name"
+  "L.Name" : "last_name"
+  "E-Mail" : "email"
+  "Phone 1" : "phone1"
+  "Phone 2" : "phone2"
+  "Date of Birth" : "date_of_birth"
+  "E-mail Blocked" : "email_blocked"
+  "Phone Blocked" : "phone_verified"
+  "Emergency Contact  (First Name, Last Name)": "ice_name"
+  "Emergency Contact Relation": "ice_relationship"
+  "Emergency Contact Phone Number ": "ice_phone"
+  "Postal Code": "zipcode"
+  "T-Shirt Size": "tshirt_size"
+  "State/Province": "state"
+  "Added": "start_date"
+  "Last Activity": "last_activity"
+  "Are you under 18 years of age": "under_18"
+  "Would you be able to wear a character mask" : "wear_mask"
+  "How did you hear about us" : "referral_source"
+  "Haunt Interests" : "haunt_experience"
+  "Allergies": "allergies"
+  "Notes": "notes"
+  "City": "city"
+  "Address": "address"
+  "Country": "country"
+  "Company": "company"
+  "Waiver": "waiver"
+  "Event(s)": "events"
+  "Member of Group(s)": "groups"
+
+  
+groups:
+   "Floor Manager": 3
+   "Floor Manager Assistant": 4
+   "Bungee" : 5
+   "Key Masters" : 6
+   "Line Entertainment" : 7
+   "Main Greeter/ Front Gate" : 8
+   "Ticket Booth" : 9
+   "Threshold Guardian" : 10
+   "Social Media" : 11
+   "Photographer" : 12
+   "Zipline" : 13
+   "Costumes": 14
+   "Makeup Lead": 15
+   "training": 16
+   "Scare Actor": 17
+   "Haunt Technican": 18
+   "Build Team": 19
+   "users": 0
+   "admin": 0
+
+   
+
+
+
+
