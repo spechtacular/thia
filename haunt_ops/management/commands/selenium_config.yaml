@@ -10,5 +10,5 @@ login:
   url: "https://ivolunteer.com/administrator-login/"
   org_id: "the-haunt"
   admin_email: "tedspecht@gmail.com"
-  password: "P&c$76$y"
+  password: 'ENV'
 

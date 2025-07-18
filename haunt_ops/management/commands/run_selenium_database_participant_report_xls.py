@@ -41,6 +41,10 @@ LOGIN_URL = config['login']['url']
 ORG_ID = config['login']['org_id']
 ADMIN_EMAIL = config['login']['admin_email']
 PASSWORD = config['login']['password']
+if PASSWORD == 'ENV':
+    PASSWORD = os.environ.get('IVOLUNTEER_PASSWORD')
+        
+print(f"password is {PASSWORD}")
 
 # watch for new downloaded file
 def wait_for_new_download(download_dir, timeout=30):

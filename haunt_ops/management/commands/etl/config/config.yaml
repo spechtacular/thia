@@ -6,7 +6,7 @@ database:
   host: "localhost"
   port: 5432
   username: "zack"
-  password: "NotHalloween"
+  password: "ENV"
   name: "thia"
 
 

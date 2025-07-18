@@ -122,6 +122,10 @@ if __name__ == "__main__":
         ORG_ID = config['login']['org_id']
         ADMIN_EMAIL = config['login']['admin_email']
         PASSWORD = config['login']['password']
+        if PASSWORD == 'ENV':
+            PASSWORD = os.environ.get('IVOLUNTEER_PASSWORD')
+
+        print(f"password is {PASSWORD}")
 
         run_events_scraper()
 
