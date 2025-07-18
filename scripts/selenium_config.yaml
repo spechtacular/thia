@@ -1,0 +1,14 @@
+browser_config:
+   chrome_options:
+    - "--headless=new"
+    - "--disable-gpu"
+    - "--enable-logging"
+    - "--v=1"
+   download_directory: "/Users/tedspecht/haunt-test"
+
+login:
+  url: "https://ivolunteer.com/administrator-login/"
+  org_id: "the-haunt"
+  admin_email: "tedspecht@gmail.com"
+  password: "P&c$76$y"
+

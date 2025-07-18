@@ -56,25 +56,24 @@ csv_header_name_mapping:
 
   
 groups:
-   "Floor Manager": 3
-   "Floor Manager Assistant": 4
-   "Bungee" : 5
-   "Key Masters" : 6
-   "Line Entertainment" : 7
-   "Main Greeter/ Front Gate" : 8
-   "Ticket Booth" : 9
-   "Threshold Guardian" : 10
-   "Social Media" : 11
-   "Photographer" : 12
-   "Zipline" : 13
-   "Costumes": 14
-   "Makeup Lead": 15
-   "training": 16
-   "Scare Actor": 17
-   "Haunt Technican": 18
-   "Build Team": 19
-   "users": 0
-   "admin": 0
+   "Floor Manager": 1
+   "Floor Manager Assistant": 1
+   "Bungee" : 1
+   "Key Masters" : 1
+   "Line Entertainment" : 1
+   "Main Greeter/ Front Gate" : 1
+   "Ticket Booth" : 1
+   "Threshold Guardian" : 1
+   "Social Media" : 1
+   "Photographer" : 1
+   "Zipline" : 1
+   "Costumes": 1
+   "Makeup Lead": 1
+   "training": 1
+   "Scare Actor": 1
+   "Room Actor": 1
+   "Haunt Technican": 1
+   "Build Team": 1
 
    
 

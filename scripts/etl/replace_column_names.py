@@ -1,9 +1,8 @@
+# todo: logging
 # map key names passed from ivolunteer to proper json key names
 import argparse
 import sys
 import pandas as pd
-
-
 import yaml
 
 def read_yaml_config(config_file_path):
