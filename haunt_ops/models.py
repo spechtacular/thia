@@ -92,8 +92,9 @@ class GroupVolunteers(models.Model) :
           return self.group.name or "Unnamed Group"
 
 class Events(models.Model) :
-      event_date = models.DateTimeField(null=True,blank=True)
-      event_name = models.CharField(max_length=100, blank=True)
+      event_date = models.DateField(null=True,blank=True)
+      event_name = models.CharField(max_length=500, blank=True)
+      event_status = models.TextField(max_length=50, default="TBD")
       class Meta:
             db_table = 'events'
 

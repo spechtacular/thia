@@ -7,19 +7,9 @@ import csv
 import os
 from datetime import datetime
 
-log_directory='./logs'
-os.makedirs(log_directory, exist_ok=True)
-timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-log_path = os.path.join(log_directory, f'bulk_update_users_{timestamp}.log')
 
+logger = logging.getLogger('haunt_ops')  # Uses logger config from settings.py
 
-
-# Setup logging
-logging.basicConfig(
-    filename=log_path,
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
 
 class Command(BaseCommand):
 
@@ -61,8 +51,9 @@ class Command(BaseCommand):
                         original_bd=row['date_of_birth'].strip()
                         bd=original_bd.split(' ',1)
 
-                        naive_dt = datetime.strptime(dj, '%Y-%m-%d %H:%M:%S') 
-                        aware_dj=timezone.make_aware(naive_dt, timezone=timezone.get_current_timezone())
+                        dt=row['start_date'].strip()
+                        naive_dt = datetime.strptime(dt, '%Y-%m-%d %H:%M:%S') 
+                        aware_dt=timezone.make_aware(naive_dt, timezone=timezone.get_current_timezone())
 
                         wv=False
                         if "I agree" in row['waiver'].strip() :
@@ -90,16 +81,16 @@ class Command(BaseCommand):
                             print(f"wear_mask: {row['wear_mask']}")
                             print(f"waiver: {row['waiver']}")
                             print(f"waiver after test: {wv}")
-                            print(f"naive_date_joined before tz added {dj}")
-                            print(f"aware_date_joined after tz added {aware_dj}")
+                            print(f"naive_date_joined before tz added {dt}")
+                            print(f"aware_date_joined after tz added {aware_dt}")
     
 
                         user,created = AppUser.objects.update_or_create(
-                            email=email,
+                            email=user_email,
                             defaults={
                                  'first_name':row['first_name'].strip(),
                                  'last_name':row['last_name'].strip(),
-                                 'username':row['email'].strip(),
+                                 'username':user_email,
                                  'company':row['company'].strip(),
                                  'address':row['address'].strip(),
                                  'city':row['city'].strip(),
@@ -112,11 +103,11 @@ class Command(BaseCommand):
                                  'date_of_birth':bd[0],
                                  'password':bd[0],
                                  #notes:row['notes'].strip(),
-                                 'date_joined':aware_dj,
+                                 'date_joined':aware_dt,
                                  #last_activity:row['last_activity'].strip(),
                                  'waiver':wv,
                                  'referral_source':row['referral_source'].strip(),
-                                 'haunt_experience':row['haunt_experience'].strip(),
+                                 #'haunt_experience':row['haunt_experience'].strip(),
                                  'wear_mask':wm,
                                  'tshirt_size':row['tshirt_size'].strip(),
                                  'ice_name':row['ice_name'].strip(),
@@ -124,17 +115,20 @@ class Command(BaseCommand):
                                  'ice_phone':row['ice_phone'].strip(),
                                  'allergies':row['allergies'].strip(),
                                  'email_blocked':eb,
-                                 #groups:row['groups'].strip()
-                                 #events:row['events'].strip()
                             }
                         )
+                        
+                        xmsg=f"haunt_experience: {row['haunt_experience']}"
+                        logging.debug(xmsg)
+                        emsg=f"events: {row['events']}"
+                        logging.debug(emsg)
                         if created:
                            created_count += 1
                            action = 'Created'
                         else:
                            updated_count += 1
                            action = 'Updated'
-                        message = f'{action} user: {user.id},{email}'
+                        message = f'{action} user: {user.id},{user.email}'
                     if verbose:
                         self.stdout.write(message)
                     logging.info(message)

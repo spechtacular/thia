@@ -1,10 +1,5 @@
 from django.core.management.base import BaseCommand, CommandError
-from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait, Select
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options
-from haunt_ops.models import Events
+from haunt_ops.models import Groups
 
 
 import yaml
@@ -16,14 +11,14 @@ logger = logging.getLogger('haunt_ops')  # Uses logger config from settings.py
 
 class Command(BaseCommand):
 
-    help = 'Load or update events from ivolunteers Events page, uses configuration file named ./config/selenium_config.yaml'
+    help = 'Load or update events from ivolunteers Groups page, uses configuration file named ./config/etl_config.yaml'
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--config',
             type=str,
-            default='config/selenium_config.yaml',
-            help='Path to YAML configuration file (default: config/selenium_config.yaml) \n With Custom config:\n python manage.py load_config_example --config=config/custom_config.yaml'
+            default='config/etl_config.yaml',
+            help='Path to YAML configuration file (default: config/etl_config.yaml) \n With Custom config:\n python manage.py load_config_example --config=config/custom_config.yaml'
         )
         parser.add_argument('--dry-run', action='store_true', help='Simulate updates without saving to database.')
 
@@ -45,71 +40,16 @@ class Command(BaseCommand):
                 logger.error(f"Config file {config_path} is empty or malformed.")
                 raise CommandError(f"❌ Config file {config_path} is empty or malformed.")
 
-            #  --- initialize browser options ---
-            download_directory=config['browser_config']['download_directory']
-
-            options = Options()
-            for arg in config['browser_config']['chrome_options']:
-                logger.debug(f"adding  parameter {arg} to driver options")
-                options.add_argument(arg)
-
-            # preferences used
-            prefs = {
-                "download.default_directory": download_directory,
-                "download.prompt_for_download": False,
-                "download.directory_upgrade": True,
-                "safebrowsing.enabled": True
-            }
-            options.add_experimental_option("prefs", prefs)
-
-            # initialize webdriver with options and preferences
-            driver = webdriver.Chrome(options=options)
-    
-            # optional driver specification
-            #driver = webdriver.Chrome(service=webdriver.ChromeService(executable_path='/path/to/chromedriver'), options=options)
-
-            # --- initialize login ---
-            LOGIN_URL = config['login']['url']
-            ORG_ID = config['login']['org_id']
-            ADMIN_EMAIL = config['login']['admin_email']
-            PASSWORD = config['login']['password']
-            if PASSWORD == 'ENV':
-               PASSWORD = os.environ.get('IVOLUNTEER_PASSWORD')
-    
-    
-            wait = WebDriverWait(driver, 30)
-
-            try:
-    
-                logger.info("🔐 Logging in...")
-                driver.get(LOGIN_URL)
-                wait.until(EC.presence_of_element_located((By.ID, "org_admin_login")))
-                driver.find_element(By.ID, "action0").send_keys(ORG_ID)
-                driver.find_element(By.ID, "action1").send_keys(ADMIN_EMAIL)
-                driver.find_element(By.ID, "action2").send_keys(PASSWORD)
-                driver.find_element(By.ID, "Submit").click()
-       
-                # Wait for Dashboard
-                events_menu = wait.until(
-                    EC.visibility_of_element_located((By.XPATH, "//div[@class='gwt-Label' and contains(text(), 'Events')]"))
-                )
-                events_menu.click()
-    
+            group_list = config.groups
                 created_count=0
                 updated_count=0
                 action=None 
                 total=0
-                events = []
+                groups = []
     
-                # Locate all divs with __idx attribute (event blocks)
-                event_blocks = driver.find_elements(By.XPATH, "//div[@__idx]")
-
                 # read each event in the web page
-                for block in event_blocks:
+                for block in group_list:
                     total += 1 
-                    event_name = block.find_element(By.XPATH, ".//div[@style='font-weight: bold; font-size: 12pt;']").text
-                    event_date = block.find_element(By.XPATH, ".//b[text()='Start:']/following-sibling::i[1]").text
-                    event_status = block.find_element(By.XPATH, ".//b[text()='Status:']/following-sibling::i[1]").text
     
                     logger.info(f"Event Name: {event_name}, Start: {event_date}, Status: {event_status}")
 
@@ -120,7 +60,7 @@ class Command(BaseCommand):
                     formatted_event_date = parsed_event_date.strftime('%Y-%m-%d')
 
                     if dry_run:
-                        event_exists = Events.objects.filter(event_name=event_name).exists()
+                        event_exists = Groups.objects.filter(event_name=event_name).exists()
                         if event_exists:
                            updated_count += 1
                            action='Updated'
@@ -132,7 +72,7 @@ class Command(BaseCommand):
                         logging.info(message)
 
                     else:
-                        event,created = Events.objects.update_or_create(
+                        event,created = Groups.objects.update_or_create(
                            event_date=formatted_event_date,
                            defaults={    
                                 'event_date':formatted_event_date,

@@ -11,7 +11,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import environ
 import os
+import logging
+from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
+from datetime import datetime
 
 
 
@@ -123,7 +126,55 @@ USE_I18N = True
 USE_TZ = True
 TIME_ZONE = 'America/Los_Angeles'
 
+LOG_LEVEL = os.environ.get("LOG_LEVEL", logging.INFO)
+LOG_DIR = os.path.join(BASE_DIR, 'logs') # Replace BASE_DIR with your project's base directory
 
+LOG_FILENAME = os.path.join(
+    LOG_DIR,
+     datetime.now().strftime('app_%Y-%m-%d_%H-%M-%S.log'))
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "level": LOG_LEVEL,
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+        "file": {
+            "level": "DEBUG",
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": LOG_FILENAME,
+            "when": "midnight",
+            "interval": 1,
+            "backupCount": 7,
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["file", "console"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
+        "haunt_ops": {  # Catch all for other loggers
+            "handlers": ["file", "console"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
+    },
+}
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
