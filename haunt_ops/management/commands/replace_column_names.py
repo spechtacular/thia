@@ -1,59 +1,51 @@
-# todo: logging
-# map key names passed from ivolunteer to proper json key names
-import argparse
-import sys
+from django.core.management.base import BaseCommand
+# This script replaces column names in a CSV file based on a mapping defined in a YAML configuration file.
 import pandas as pd
 import yaml
+import logging
 
-def read_yaml_config(config_file_path):
-    # Reads a YAML configuration file and returns a dictionary.
-    try:
-        with open(config_file_path, 'r') as file:
-            config = yaml.safe_load(file)
-            return config
-    except FileNotFoundError:
-        print(f"Error: Config File not found at {config_file_path}")
-        return None
-    except yaml.YAMLError as e:
-        print(f"Error parsing YAML Config file: {e}")
-        return None
+logger = logging.getLogger('haunt_ops')
 
 
-def replace_column_names(cin,name_mapping,cout):
-    try:
-        dataframe = pd.read_csv(cin,header=0,dtype=str);
-        dataframe = dataframe.rename(columns=name_mapping)
-        dataframe.to_csv(cout, index=False) # Overwrite the original CSV
-        print("Column names replaced successfully.")
-        return dataframe
-    except FileNotFoundError:
-        print(f"Error: csv file '{cin}' not found.")
-        return None
-    except Exception as e:
-        print(f"An error occurred reading csv file {cin}: {e}")
-        return None
+class Command(BaseCommand):
+    help = 'Replace ivolunteer header names with Postgresql friendly column names and save to a new CSV file.'
 
+    def add_arguments(self, parser):
+        parser.add_argument('--dry-run', action='store_true', help='Simulate conversion without saving.')
+        parser.add_argument("--cin", help="input csv file path", type=str, required=True)
+        parser.add_argument("--cout", help="output csv file path", type=str, required=True)
 
+    def handle(self, *args, **kwargs):
+        dry_run = kwargs['dry_run']
+        cin = kwargs['cin']
+        cout = kwargs['cout']   
 
+        try:
+            with open("config/etl_config.yaml") as f:
+                config = yaml.safe_load(f)
 
-# retrieve parameters from command line options
-parser = argparse.ArgumentParser("replace_header_names")
-parser.add_argument("-in", "--cin", help="input csv file path", type=str, required=True)
-parser.add_argument("-out", "--cout", help="output csv file path", type=str, required=True)
-parser.add_argument("-y", "--yaml", help="yaml configuration file path", type=str, required=True)
+            csv_header_names = config.get("csv_header_name_mapping", {})
+            logger.info(f"CSV Header Names Mapping: {csv_header_names}")  
 
-args = parser.parse_args()
+            try:
+                dataframe = pd.read_csv(cin,header=0,dtype=str);
+                dataframe = dataframe.rename(columns=csv_header_names)
+                if dry_run:
+                    message="Dry run mode: No changes will be saved."
+                else:
+                    # Save the modified dataframe to the specified output file
+                    dataframe.to_csv(cout, index=False) 
+                    message=f"Column names replaced and saved to {cout}."
+            except FileNotFoundError:
+                logger.error(f"Error: input csv file '{cin}' not found.")
+            except Exception as e:
+                logger.error(f"An error occurred reading input csv file {cin}: {e}")
+            finally:
+                logger.info(message)
 
-config_data = read_yaml_config(args.yaml)
-if config_data is None:
-    sys.exit(1)
-else:
-    # Access CSV header name key value pairs:
-    csv_header_names = config_data.get("csv_header_name_mapping", {})
-    print(f"CSV Header Names Mapping: {csv_header_names}")
-
-    # read the csv file from ivolunteer
-    dataframe = replace_column_names(args.cin, csv_header_names, args.cout)
-    if dataframe is None:
-        print(f"dataframe read of csv file {args.cin} failed")
-        sys.exit(1)
+        except FileNotFoundError:    
+            logger.error("Error: config/config.yaml file not found.")
+        except yaml.YAMLError as e:
+            logger.error(f"Error parsing YAML file: {e}")
+        except Exception as e:
+            logger.error(f"An unexpected YAML error occurred: {e}")

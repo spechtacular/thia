@@ -74,18 +74,17 @@ class Command(BaseCommand):
                             wm=False
 
 
-                        if verbose:
-                            print(f"haunt_experience: {row['haunt_experience']}")
-                            print(f"events: {row['events']}")
-                            print(f"original birth date {original_bd}")
-                            print(f"date_of_birth after split {bd[0]}")
-                            print(f"original email_blocked: {row['email_blocked']}")
-                            print(f"email_blocked after test: {eb}")
-                            print(f"wear_mask: {row['wear_mask']}")
-                            print(f"waiver: {row['waiver']}")
-                            print(f"waiver after test: {wv}")
-                            print(f"naive_date_joined before tz added {dt}")
-                            print(f"aware_date_joined after tz added {aware_dt}")
+                        logger.debug(f"haunt_experience: {row['haunt_experience']}")
+                        logger.debug(f"events: {row['events']}")
+                        logger.debug(f"original birth date {original_bd}")
+                        logger.debug(f"date_of_birth after split {bd[0]}")
+                        logger.debug(f"original email_blocked: {row['email_blocked']}")
+                        logger.debug(f"email_blocked after test: {eb}")
+                        logger.debug(f"wear_mask: {row['wear_mask']}")
+                        logger.debug(f"waiver: {row['waiver']}")
+                        logger.debug(f"waiver after test: {wv}")
+                        logger.debug(f"naive_date_joined before tz added {dt}")
+                        logger.debug(f"aware_date_joined after tz added {aware_dt}")
     
 
                         user,created = AppUser.objects.update_or_create(
