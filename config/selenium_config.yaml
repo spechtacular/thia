@@ -1,9 +1,9 @@
 browser_config:
    chrome_options:
-    - "--headless=new"
     - "--disable-gpu"
     - "--enable-logging"
     - "--v=1"
+    - "--headless=new"
    download_directory: "/Users/tedspecht/haunt-test"
 
 login:

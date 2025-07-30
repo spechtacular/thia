@@ -1,0 +1,11 @@
+secret variable values are stored in .env file in the project root directory
+
+if the email exists
+   if the user has volunteered for an event(s)
+      for each event
+         get the event id
+            add the user id and time to the event_volunteers table
+      
+   if the user has volunteered for a group
+      get the group id
+   

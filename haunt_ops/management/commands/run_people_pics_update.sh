@@ -26,4 +26,4 @@
 #python3 manage.py update_user_profile nakiawheeler@gmail.com --image_directory static/people_pics --image_url yes
 #python3 manage.py update_user_profile smorristriforce@gmail.com --image_directory static/people_pics --image_url yes
 # sandi Andersen-Tarica
-python3 manage.py update_user_profile dolphin@tarica.net --image_directory static/people_pics --image_url yes
+#python3 manage.py update_user_profile dolphin@tarica.net --image_directory static/people_pics --image_url yes

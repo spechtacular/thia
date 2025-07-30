@@ -166,7 +166,7 @@ LOGGING = {
         "django": {
             "handlers": ["file", "console"],
             "level": "DEBUG",
-            "propagate": True,
+            'propagate': False,  # prevents logging from bubbling up to root
         },
         "haunt_ops": {  # Catch all for other loggers
             "handlers": ["file", "console"],

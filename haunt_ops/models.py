@@ -101,18 +101,25 @@ class Events(models.Model) :
       def __str__(self):
           return f"{self.event_name or 'Unnamed Event'} on {self.event_date.date() if self.event_date else 'TBD'}"
 
-class EventVolunteers(models.Model) :
-      volunteer = models.ForeignKey(settings.AUTH_USER_MODEL,
-                  on_delete=models.CASCADE)
-      group = models.ForeignKey(Groups, 
-              on_delete=models.CASCADE)
-      event = models.ForeignKey(Events, 
-              on_delete=models.CASCADE)
-      start_time = models.DateTimeField(blank=True,null=True)
-      end_time = models.DateTimeField(blank=True,null=True)
+class EventVolunteers(models.Model):
+      id = models.BigAutoField(primary_key=True)
+      start_time = models.DateTimeField(blank=True, null=True)
+      end_time = models.DateTimeField(blank=True, null=True)
+      volunteer = models.ForeignKey(AppUser, models.DO_NOTHING)
+      task = models.TextField()
+      slot_column = models.TextField(blank=True, null=True)
+      slot_row = models.TextField(blank=True, null=True)
+      signed_in = models.BooleanField(blank=True, null=True)
+      conflict = models.BooleanField(blank=True, null=True)
+      confirmed = models.BooleanField(blank=True, null=True)
+      waitlist = models.BooleanField(blank=True, null=True)
+      points = models.FloatField(blank=True, null=True)
+      event_name = models.TextField()
+      event = models.ForeignKey('Events', models.DO_NOTHING)
 
       class Meta:
-            db_table = 'event_volunteers'
+          managed = False
+          db_table = 'event_volunteers'
 
       def __str__(self):
           return f"{self.volunteer.email} - {self.event.event_name} - {self.group_name}"

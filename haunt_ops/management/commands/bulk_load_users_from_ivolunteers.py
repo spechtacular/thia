@@ -1,30 +1,42 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
+from django.conf import settings
 from datetime import datetime
 from haunt_ops.models import AppUser
+from haunt_ops.models import Groups
+from haunt_ops.models import GroupVolunteers
+from haunt_ops.utils.logging_utils import configure_rotating_logger
+
+
 import logging
 import csv
 import os
 from datetime import datetime
 
 
-logger = logging.getLogger('haunt_ops')  # Uses logger config from settings.py
-
-
 class Command(BaseCommand):
 
-    help = 'Load or update users from a CSV file with optional dry-run and verbose logging.'
+    help = 'Load or update users from a CSV file with optional dry-run feature.'
 
     def add_arguments(self, parser):
         parser.add_argument('csv_file', type=str, help='Path to the CSV file.')
         parser.add_argument('--dry-run', action='store_true', help='Simulate updates without saving to database.')
-        parser.add_argument('--verbose', action='store_true', help='Print detailed info for each row.')
+        parser.add_argument( '--log-level', type=str, default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+            help='Set the log level (default: INFO)'
+        )
 
 
     def handle(self, *args, **kwargs):
         file_path = kwargs['csv_file']
         dry_run = kwargs['dry_run']
-        verbose = kwargs['verbose']
+        log_level = kwargs['log_level']
+
+        # Get a unique log file using __file__
+        logger = configure_rotating_logger(__file__, log_dir=settings.LOG_DIR, log_level=log_level)
+
+
+        logger.info("Started load_groups command.")
+
         try:
             with open(file_path, newline='') as csvfile:
                 reader = csv.DictReader(csvfile)
@@ -32,13 +44,13 @@ class Command(BaseCommand):
                 total = 0
                 created_count = 0
                 updated_count = 0
+                message=''
                 for row in reader:
                     total += 1
                     user_email = row['email'].strip()
                     if not user_email:
                         message = f"Skipping row {total}: missing email."
-                        if verbose:
-                            self.stdout.write(message)
+                        self.stdout.write(message)
                         logging.warning(message)
                         continue
 
@@ -46,7 +58,7 @@ class Command(BaseCommand):
                     if dry_run:
                         user_exists = AppUser.objects.filter(email=user_email).exists()
                         action = 'Would create' if not user_exists else 'Would update'
-                        message = f'{action} user: {user_email}'
+                        logger.info(f'{action} user: {user_email}')
                     else:
                         original_bd=row['date_of_birth'].strip()
                         bd=original_bd.split(' ',1)
@@ -73,16 +85,18 @@ class Command(BaseCommand):
                         else:
                             wm=False
 
-                        if verbose:
-                            print(f"original birth date {original_bd}")
-                            print(f"date_of_birth after split {bd[0]}")
-                            print(f"original email_blocked: {row['email_blocked']}")
-                            print(f"email_blocked after test: {eb}")
-                            print(f"wear_mask: {row['wear_mask']}")
-                            print(f"waiver: {row['waiver']}")
-                            print(f"waiver after test: {wv}")
-                            print(f"naive_date_joined before tz added {dt}")
-                            print(f"aware_date_joined after tz added {aware_dt}")
+
+                        logger.debug(f"haunt_experience: {row['haunt_experience']}")
+                        logger.debug(f"events: {row['events']}")
+                        logger.debug(f"original birth date {original_bd}")
+                        logger.debug(f"date_of_birth after split {bd[0]}")
+                        logger.debug(f"original email_blocked: {row['email_blocked']}")
+                        logger.debug(f"email_blocked after test: {eb}")
+                        logger.debug(f"wear_mask: {row['wear_mask']}")
+                        logger.debug(f"waiver: {row['waiver']}")
+                        logger.debug(f"waiver after test: {wv}")
+                        logger.debug(f"naive_date_joined before tz added {dt}")
+                        logger.debug(f"aware_date_joined after tz added {aware_dt}")
     
 
                         user,created = AppUser.objects.update_or_create(
@@ -118,10 +132,6 @@ class Command(BaseCommand):
                             }
                         )
                         
-                        xmsg=f"haunt_experience: {row['haunt_experience']}"
-                        logging.debug(xmsg)
-                        emsg=f"events: {row['events']}"
-                        logging.debug(emsg)
                         if created:
                            created_count += 1
                            action = 'Created'
@@ -129,10 +139,31 @@ class Command(BaseCommand):
                            updated_count += 1
                            action = 'Updated'
                         message = f'{action} user: {user.id},{user.email}'
-                    if verbose:
-                        self.stdout.write(message)
+
+                        # process haunt_experience and groups
+                        haunt_experience = row['haunt_experience'].split(';')
+                        for experience in haunt_experience:
+                            experience = experience.strip()
+                            if experience:
+                                try:
+                                    group = Groups.objects.get(group_name=experience)
+                                    self.stdout.write(f"Group ID: {group.id}, Name: {group.group_name} for user {user_email}")
+                                    gv,created = GroupVolunteers.objects.update_or_create(
+                                        group_id=group.id,
+                                        volunteer_id=user.id,
+                                        defaults={
+                                        }
+                                    )
+                                    if created:
+                                        message += f" | Added to group: {group.group_name} and created GroupVolunteers entry {gv.id}."
+                                    else:
+                                        message += f" | Already in group: {group.group_name} and GroupVolunteers entry exists {gv.id}."   
+
+                                except Groups.DoesNotExist:
+                                    raise CommandError(f"❌ No group found with name {group_name} for user {user_email}.")
+                                
                     logging.info(message)
-            summary = f"Processed: {total}, Created: {created_count}, Updated: {updated_count}"
+            summary = f"Processed: {total} users, Created: {created_count} users, Updated: {updated_count} users"
             self.stdout.write(self.style.SUCCESS(summary))
             logging.info(summary)
             self.stdout.write(self.style.SUCCESS('CSV import complete.'))

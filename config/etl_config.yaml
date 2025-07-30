@@ -53,6 +53,20 @@ csv_header_name_mapping:
   "Waiver": "waiver"
   "Event(s)": "events"
   "Member of Group(s)": "groups"
+  "Hours": "hours"
+  "Points": "points"
+  "Event": "event_name"
+  "S.Time": "start_time"
+  "E.Time": "end_time"
+  "Task": "task"
+  "Date": "date"
+  "Slot Column": "slot_column"
+  "Slot Row": "slot_row"
+  "Signed In": "signed_in"
+  "Conflict": "conflict"
+  "Confirmed": "confirmed"
+  "Waitlist": "waitlist"
+
 
   
 groups:
