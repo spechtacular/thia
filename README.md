@@ -1,6 +1,6 @@
-- secret project values are stored in .env file in the project root directory, this file is not in tht repo for security reasons.
-- requirements.txt contains the pip modules used by the project.
-- setup_venv.py script will create a local .venv in the project root directory to be used for a local development environment.
+- Secret project values are stored in a .env file in the project root directory, this file is not in the repo for security reasons.
+- requirements.txt : file contains the pip modules to be installed for the Django  project.
+- setup_venv.py : script will create a local .venv in the project root directory to be used for a local development environment.
 - This is the sequence of events used to clear and reload the local Django postgresql database.
    1. To clear the project related database tables:
       1. clear_haunt_data.py clears all project tables except for admin and test accounts, there is a --dry-run option to run the script without deleting any project data from postgresql.
