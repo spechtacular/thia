@@ -1,11 +1,94 @@
-.DS_Store
-*.pyc
-.vscode/*
-*.log
-*.sqlite
-.env
-.venv
-env/
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtualenv
 venv/
-ENV/
+.env/
+.env.bak/
+*.env
+# Env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+
+# Django stuff
+*.log
+*.pot
+*.pyc
+db.sqlite3
+media/
+staticfiles/
+static/
 logs/
+
+# Django migrations
+*/migrations/*.py
+*/migrations/*.pyc
+*/migrations/__pycache__/
+
+# Secrets
+config/*.yaml
+*.secret
+*.key
+
+# VSCode or IDE
+.vscode/
+.idea/
+*.swp
+
+# Frontend (optional if using React/webpack)
+node_modules/
+frontend/dist/
+frontend/build/
+webpack-stats.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Postgresql
+.psqlrc
+.pgdata
+
+# Docker
+.dockerignore
+*.pid
+
+# Node dependencies
+node_modules/
+
+# Production builds
+/build/
+dist/
+
+# Cache & logs
+.npm/
+.yarn/
+.cache/
+
+# Testing
+coverage/
+.vitest/
+*.tsbuildinfo
+
+# Editor files
+*.swp
+.vscode/
+.idea/
+
+
+webpack-stats.json  # generated for django-webpack-loader
+
+# React frontend build and node modules
+/frontend/node_modules/
+/frontend/dist/
+/frontend/build/
+/frontend/.env*
+/frontend/webpack-stats.json
