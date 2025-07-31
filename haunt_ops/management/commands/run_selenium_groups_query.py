@@ -49,15 +49,15 @@ class Command(BaseCommand):
         dry_run = kwargs['dry_run']
 
         if not os.path.exists(config_path):
-            logger.error(f"config file not found {config_path}")
+            logger.error("config file not found %s", config_path)
             raise CommandError(f"❌ Config file not found: {config_path}")
 
         try:
-            with open(config_path, 'r') as file:
+            with open(config_path, 'r', encoding="UTF-8") as file:
                 config = yaml.safe_load(file)
 
             if not config:
-                logger.error(f"Config file {config_path} is empty or malformed.")
+                logger.error("Config file %s is empty or malformed.", config_path)
                 raise CommandError(f"❌ Config file {config_path} is empty or malformed.")
 
             #  --- initialize browser options ---
@@ -65,7 +65,7 @@ class Command(BaseCommand):
 
             options = Options()
             for arg in config['browser_config']['chrome_options']:
-                logger.debug(f"adding  parameter {arg} to driver options")
+                logger.debug("adding  parameter %s to driver options", arg)
                 options.add_argument(arg)
 
             # preferences used
@@ -133,14 +133,14 @@ class Command(BaseCommand):
                 # variables used to report the group results
                 created_count=0
                 updated_count=0
-                action=None 
+                action=None
                 total=0
-                groups = []
-   
+
                 # Find all divs under the container that might be items
                 container = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "GKEPJM3CCEB")))
                 item_divs = container.find_elements(By.XPATH, ".//div[contains(@class, 'GKEPJM3C')]")
-                
+
+
                 # Filter down to only visible leaf nodes with text
                 group_names = [
                     div.text.strip()
@@ -152,10 +152,10 @@ class Command(BaseCommand):
                     print(group_name)
                     total += 1 
     
-                    logger.info(f"Group Name: {group_name}")
+                    logger.info("Group Name: %s",  group_name)
 
                     if dry_run:
-                        group_exists = Groups.objects.filter(group_name=group_name).exists()
+                        group_exists = Groups.objects.filter(group_name=group_name).exists() #  Check if group exists 
                         if group_exists:
                            updated_count += 1
                            action='Updated'
@@ -184,18 +184,18 @@ class Command(BaseCommand):
                         message = f'{action} event: {group.id},{group_name}'
                         logging.info(message)
                 summary = f"Processed: {total}, Created: {created_count}, Updated: {updated_count}"
-                logger.info(f"{summary}")
+                logger.info("%s",summary)
                 logger.info('group import from ivolunteer complete.')
                 if dry_run:
-                    logger.info(f"Dry-run mode enabled: no changes were saved.")
+                    logger.info("Dry-run mode enabled: no changes were saved.")
 
 
             except Exception as e:
-                logger.error(f"Exception occurred: {e}")
-                raise CommandError(f"Exception occurred:{str(e)}")
+                logger.error("Exception occurred: %s", str(e))
+                raise CommandError(f"Exception occurred: {e} ") from e
             finally:
                 driver.quit()
         except yaml.YAMLError as e:
-            logger.error(f"YAML parsing error: {str(e)}")
-            raise CommandError(f"❌ Failed to parse YAML config: {str(e)}")
+            logger.error("YAML parsing error: %s", str(e))
+            raise CommandError(f"❌ Failed to parse YAML config: {e}") from e)
 
