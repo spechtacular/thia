@@ -1,10 +1,22 @@
+"""
+This file contains forms for the AppUser model.
+It includes forms for creating and changing user profiles, as well as a public signup form.
+"""
 from django import forms
 from django.utils import timezone
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from .models import AppUser
 
 class AppUserCreationForm(UserCreationForm):
+    """
+    Form for creating a new AppUser.
+    It includes fields for email, username, and personal information.
+    """
     class Meta:
+        """
+        Meta class for AppUserCreationForm.
+        It specifies the model and fields to be included in the form.
+        """
         model = AppUser
         fields = ( 'email', 'username', 'image_url', 'date_of_birth', 'address', 'tshirt_size', 
                    'city', 'state', 'phone1', 'phone2', 'ice_name', 'ice_phone', 'company','country',
@@ -12,7 +24,15 @@ class AppUserCreationForm(UserCreationForm):
                    'allergies', 'zipcode', 'first_name', 'last_name', 'waiver')
 
 class AppUserChangeForm(UserChangeForm):
+    """
+    Form for changing an existing AppUser.
+    It includes fields for email, username, and personal information.
+    """
     class Meta:
+        """
+        Meta class for AppUserChangeForm.
+        It specifies the model and fields to be included in the form.
+        """
         model = AppUser
         fields = ( 'email', 'username', 'image_url', 'date_of_birth', 'address', 'tshirt_size', 
                    'city', 'state', 'phone1', 'phone2', 'ice_name', 'ice_phone', 'company','country',
@@ -23,6 +43,15 @@ class AppUserChangeForm(UserChangeForm):
         }
 
 class PublicSignupForm(UserCreationForm):
+    """
+    Public signup form for creating a new AppUser.
+    It includes fields for email, username, and personal information.
+    """
     class Meta:
+        """
+        Meta class for PublicSignupForm.
+        It specifies the model and fields to be included in the form.
+        """
+        
         model = AppUser
         fields = ('username', 'email', 'password1', 'password2')

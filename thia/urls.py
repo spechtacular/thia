@@ -16,7 +16,6 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from django.views.generic.base import TemplateView  # new
 from haunt_ops.views import public_profile
 urlpatterns = [
     path('admin/', admin.site.urls),

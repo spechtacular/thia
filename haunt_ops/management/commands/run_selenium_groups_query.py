@@ -1,20 +1,35 @@
+"""
+haunt_ops/management/commands/run_selenium_groups_query.py
+Command to load or update groups from ivolunteers Groups page using Selenium.
+This command uses a configuration file named ./config/selenium_config.yaml.
+It supports dry-run mode to simulate updates without saving to the database.
+"""
+import os
+import logging
+import yaml
 from django.core.management.base import BaseCommand, CommandError
 from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait, Select
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from haunt_ops.models import Groups
 
 
-import yaml
-import os
-import logging
-import time # sleep for debugging
+
 
 logger = logging.getLogger('haunt_ops')  # Uses logger config from settings.py
 
 class Command(BaseCommand):
+    """
+        start command
+            python manage.py run_selenium_groups_query --config=config/selenium_config.yaml --dry-run
+        or with custom config
+            python manage.py run_selenium_groups_query --config=config/custom_config.yaml --dry-run
+        or without dry-run
+            python manage.py run_selenium_groups_query --config=config/selenium_config.yaml
+    """
+    
 
     help = 'Load or update groups from ivolunteers Groups page, uses configuration file named ./config/selenium_config.yaml'
 

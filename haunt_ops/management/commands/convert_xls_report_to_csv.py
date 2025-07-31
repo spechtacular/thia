@@ -1,10 +1,19 @@
-
-import os
+"""
+Command to convert an Excel file to a CSV file.
+This command reads an Excel file and writes its content to a CSV file.
+It supports specifying the sheet to convert and handles both .xlsx and .xls formats.
+"""
 import pandas as pd
 from django.core.management.base import BaseCommand, CommandError
 
 
 class Command(BaseCommand):
+    """    
+    start command
+        python manage.py convert_xls_report_to_csv --rin=path/to/input.xlsx --cout=path/to/output.csv --sheet=Sheet1
+    or with sheet index
+        python manage.py convert_xls_report_to_csv --rin=path/to/input.xlsx --cout=path/to/output.csv --sheet=0
+    """
     help = "Converts an Excel file to a CSV file."
 
     def add_arguments(self, parser):
@@ -42,8 +51,8 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(
                 f"✅ Successfully converted '{input_path}' to '{output_path}'"
             ))
-        except FileNotFoundError:
-            raise CommandError(f"❌ File not found: {input_path}")
+        except FileNotFoundError as exc:
+            raise CommandError(f"❌ File not found: {input_path}") from exc
         except Exception as e:
-            raise CommandError(f"❌ Error: {e}")
+            raise CommandError(f"❌ Error: {e}") from e
 

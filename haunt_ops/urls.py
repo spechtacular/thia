@@ -1,3 +1,7 @@
+"""
+This file contains URL patterns for the HauntOps application.
+It maps URLs to views for user profiles, signup, and the home page.
+"""
 from django.urls import path
 from haunt_ops.views import public_profile
 from . import views

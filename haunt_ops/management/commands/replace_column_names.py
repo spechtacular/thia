@@ -1,3 +1,10 @@
+""" 
+haunt_ops/management/commands/replace_column_names.py
+Command to replace ivolunteer header names with Postgresql friendly column names and 
+save to a new CSV file.
+This command reads a configuration file for the mapping of old column names to new ones.
+It supports dry-run mode to simulate changes without saving.
+"""
 from django.core.management.base import BaseCommand
 # This script replaces column names in a CSV file based on a mapping defined in a YAML configuration file.
 import pandas as pd
@@ -8,6 +15,14 @@ logger = logging.getLogger('haunt_ops')
 
 
 class Command(BaseCommand):
+    """        
+        start command
+            python manage.py replace_column_names --dry-run --cin=path/to/input.csv --cout=path/to/output.csv
+        or without dry-run
+            python manage.py replace_column_names --cin=path/to/input.csv --cout=path/to/output.csv
+        This command replaces ivolunteer header names with Postgresql friendly column names and saves to a new CSV file.
+    """
+    # Define the help text for the command
     help = 'Replace ivolunteer header names with Postgresql friendly column names and save to a new CSV file.'
 
     def add_arguments(self, parser):
@@ -21,12 +36,13 @@ class Command(BaseCommand):
         cout = kwargs['cout']   
 
         try:
-            with open("config/etl_config.yaml") as f:
+            with open("config/etl_config.yaml", encoding="utf-8") as f:
                 config = yaml.safe_load(f)
 
             csv_header_names = config.get("csv_header_name_mapping", {})
-            logger.info(f"CSV Header Names Mapping: {csv_header_names}")  
+            logger.info("CSV Header Names Mapping: %s", csv_header_names)  
 
+            message = ""
             try:
                 dataframe = pd.read_csv(cin,header=0,dtype=str);
                 dataframe = dataframe.rename(columns=csv_header_names)
@@ -37,15 +53,22 @@ class Command(BaseCommand):
                     dataframe.to_csv(cout, index=False) 
                     message=f"Column names replaced and saved to {cout}."
             except FileNotFoundError:
-                logger.error(f"Error: input csv file '{cin}' not found.")
-            except Exception as e:
-                logger.error(f"An error occurred reading input csv file {cin}: {e}")
+                logger.error("Error: input csv file '%s' not found.", cin)
+                message = f"Error: input csv file '{cin}' not found."
+            except pd.errors.ParserError as e:
+                logger.error("Parser error reading input csv file %s: %s", cin, e)
+                message = f"Parser error reading input csv file {cin}: {e}"
+            except UnicodeDecodeError as e:
+                logger.error("Unicode decode error reading input csv file %s: %s", cin, e)
+                message = f"Unicode decode error reading input csv file {cin}: {e}"
             finally:
                 logger.info(message)
 
         except FileNotFoundError:    
             logger.error("Error: config/config.yaml file not found.")
         except yaml.YAMLError as e:
-            logger.error(f"Error parsing YAML file: {e}")
+            logger.error("Error parsing YAML file: %s", e)
+        except (OSError, IOError) as e:
+            logger.error("File operation error occurred: %s", e)
         except Exception as e:
-            logger.error(f"An unexpected YAML error occurred: {e}")
+            logger.error("An unexpected error occurred: %s", e)

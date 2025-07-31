@@ -1,19 +1,33 @@
+"""
+This command uses a configuration file named ./config/selenium_config.yaml.
+It supports dry-run mode to simulate updates without saving to the database.
+"""
+import os
+from datetime import datetime
+import logging
+import yaml
 from django.core.management.base import BaseCommand
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
-import time
-import os
-import yaml
-import logging
-from datetime import datetime
+
 
 logger = logging.getLogger('haunt_ops')
 
 class Command(BaseCommand):
-    help = 'Query db users from iVolunteer and download Excel report.'
+    """
+    start command
+        python manage.py run_selenium_users_query --dry-run
+    or with custom config
+        python manage.py run_selenium_users_query --config=config/custom_config.yaml --dry-run
+    or without dry-run
+        python manage.py run_selenium_users_query
+    """
+    
+    help = 'Run Selenium query for user data from iVolunteer.'
+
 
     def add_arguments(self, parser):
         parser.add_argument('--dry-run', action='store_true', help='Simulate actions without saving excel file.')

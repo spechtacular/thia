@@ -1,17 +1,30 @@
+"""
+Command to load or update users from a CSV file.
+Uses the AppUser model and allows for dry-run and verbose logging.
+Uses the configuration file named ./config/selenium_config.yaml
+"""
+from datetime import datetime
+import csv
+import logging
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from datetime import datetime
 from haunt_ops.models import AppUser
-import logging
-import csv
-import os
-from datetime import datetime
+
 
 
 logger = logging.getLogger('haunt_ops')  # Uses logger config from settings.py
 
 
+
 class Command(BaseCommand):
+    """
+        start command
+           python manage.py load_users_from_csv --csv_file=path/to/users.csv --dry-run --verbose
+        or with custom config
+           python manage.py load_users_from_csv --csv_file=path/to/custom_users.csv --dry-run --verbose
+        or without dry-run
+           python manage.py load_users_from_csv --csv_file=path/to/users.csv
+    """
 
     help = 'Load or update users from a CSV file with optional dry-run and verbose logging.'
 
@@ -74,17 +87,17 @@ class Command(BaseCommand):
                             wm=False
 
 
-                        logger.debug(f"haunt_experience: {row['haunt_experience']}")
-                        logger.debug(f"events: {row['events']}")
-                        logger.debug(f"original birth date {original_bd}")
-                        logger.debug(f"date_of_birth after split {bd[0]}")
-                        logger.debug(f"original email_blocked: {row['email_blocked']}")
-                        logger.debug(f"email_blocked after test: {eb}")
-                        logger.debug(f"wear_mask: {row['wear_mask']}")
-                        logger.debug(f"waiver: {row['waiver']}")
-                        logger.debug(f"waiver after test: {wv}")
-                        logger.debug(f"naive_date_joined before tz added {dt}")
-                        logger.debug(f"aware_date_joined after tz added {aware_dt}")
+                        logger.debug("haunt_experience: %s", row['haunt_experience'])
+                        logger.debug("events: %s", row['events'])
+                        logger.debug("original birth date %s", original_bd)
+                        logger.debug("date_of_birth after split %s", bd[0])
+                        logger.debug("original email_blocked: %s", row['email_blocked'])
+                        logger.debug("email_blocked after test: %s", eb)
+                        logger.debug("wear_mask: %s", row['wear_mask'])
+                        logger.debug("waiver: %s", row['waiver'])
+                        logger.debug("waiver after test: %s", wv)
+                        logger.debug("naive_date_joined before tz added %s", dt)
+                        logger.debug("aware_date_joined after tz added %s", aware_dt)
     
 
                         user,created = AppUser.objects.update_or_create(
@@ -131,11 +144,11 @@ class Command(BaseCommand):
                         self.stdout.write(message)
                     logging.info(message)
             summary = f"Processed: {total}, Created: {created_count}, Updated: {updated_count}"
-            self.stdout.write(self.style.SUCCESS(summary))
+            self.stdout.write(summary)
             logging.info(summary)
-            self.stdout.write(self.style.SUCCESS('CSV import complete.'))
+            self.stdout.write('CSV import complete.')
             if dry_run:
-                self.stdout.write(self.style.WARNING("Dry-run mode enabled: no changes were saved."))
+                self.stdout.write("Dry-run mode enabled: no changes were saved.")
 
 
         except FileNotFoundError:

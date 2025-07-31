@@ -1,21 +1,30 @@
-from django.core.management.base import BaseCommand
+"""
+Command to load or update users from a CSV file.
+Uses the AppUser model and allows for dry-run and verbose logging.
+Uses the configuration file named ./config/selenium_config.yaml
+"""
+import logging
+import csv
+from datetime import datetime
+from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from django.conf import settings
-from datetime import datetime
 from haunt_ops.models import AppUser
 from haunt_ops.models import Groups
 from haunt_ops.models import GroupVolunteers
 from haunt_ops.utils.logging_utils import configure_rotating_logger
 
 
-import logging
-import csv
-import os
-from datetime import datetime
-
 
 class Command(BaseCommand):
-
+    """
+        start command
+            python manage.py load_users_from_csv --csv_file=path/to/users.csv --dry-run --verbose
+        or with custom config
+            python manage.py load_users_from_csv --csv_file=path/to/custom_users.csv --dry-run --verbose
+        or without dry-run
+            python manage.py load_users_from_csv --csv_file=path/to/users.csv
+    """
     help = 'Load or update users from a CSV file with optional dry-run feature.'
 
     def add_arguments(self, parser):
@@ -38,7 +47,7 @@ class Command(BaseCommand):
         logger.info("Started load_groups command.")
 
         try:
-            with open(file_path, newline='') as csvfile:
+            with open(file_path, newline='', encoding='utf-8') as csvfile:
                 reader = csv.DictReader(csvfile)
                 user_email=''
                 total = 0
@@ -58,7 +67,7 @@ class Command(BaseCommand):
                     if dry_run:
                         user_exists = AppUser.objects.filter(email=user_email).exists()
                         action = 'Would create' if not user_exists else 'Would update'
-                        logger.info(f'{action} user: {user_email}')
+                        logger.info('%s user: %s', action, user_email)
                     else:
                         original_bd=row['date_of_birth'].strip()
                         bd=original_bd.split(' ',1)
@@ -86,17 +95,17 @@ class Command(BaseCommand):
                             wm=False
 
 
-                        logger.debug(f"haunt_experience: {row['haunt_experience']}")
-                        logger.debug(f"events: {row['events']}")
-                        logger.debug(f"original birth date {original_bd}")
-                        logger.debug(f"date_of_birth after split {bd[0]}")
-                        logger.debug(f"original email_blocked: {row['email_blocked']}")
-                        logger.debug(f"email_blocked after test: {eb}")
-                        logger.debug(f"wear_mask: {row['wear_mask']}")
-                        logger.debug(f"waiver: {row['waiver']}")
-                        logger.debug(f"waiver after test: {wv}")
-                        logger.debug(f"naive_date_joined before tz added {dt}")
-                        logger.debug(f"aware_date_joined after tz added {aware_dt}")
+                        logger.debug("haunt_experience: %s", row['haunt_experience'])
+                        logger.debug("events: %s", row['events'])
+                        logger.debug("original birth date %s", original_bd)
+                        logger.debug("date_of_birth after split %s", bd[0])
+                        logger.debug("original email_blocked: %s", row['email_blocked'])
+                        logger.debug("email_blocked after test: %s", eb)
+                        logger.debug("wear_mask: %s", row['wear_mask'])
+                        logger.debug("waiver: %s", row['waiver'])
+                        logger.debug("waiver after test: %s", wv)
+                        logger.debug("naive_date_joined before tz added %s", dt)
+                        logger.debug("aware_date_joined after tz added %s", aware_dt)
     
 
                         user,created = AppUser.objects.update_or_create(
@@ -159,8 +168,8 @@ class Command(BaseCommand):
                                     else:
                                         message += f" | Already in group: {group.group_name} and GroupVolunteers entry exists {gv.id}."   
 
-                                except Groups.DoesNotExist:
-                                    raise CommandError(f"❌ No group found with name {group_name} for user {user_email}.")
+                                except Groups.objects.model.DoesNotExist as exc:
+                                    raise CommandError(f"❌ No group found with name {experience} for user {user_email}.") from exc
                                 
                     logging.info(message)
             summary = f"Processed: {total} users, Created: {created_count} users, Updated: {updated_count} users"

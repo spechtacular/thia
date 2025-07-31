@@ -1,3 +1,8 @@
+"""
+logging_utils.py
+Utility functions for configuring logging in the haunt_ops application.
+This module provides a function to set up a rotating logger for each script.
+"""
 import os
 import logging
 from datetime import datetime
@@ -44,7 +49,7 @@ def configure_rotating_logger(script_file: str,
 
     logger.addHandler(handler)
 
-    logger.debug(f"Logging to: {log_path}")
+    logger.debug("Logging to: %s", log_path)
 
     return logger
 

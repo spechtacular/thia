@@ -1,3 +1,12 @@
+"""
+This command uses a configuration file named ./config/selenium_config.yaml.
+It supports dry-run mode to simulate updates without saving to the database.
+"""
+import os
+import time
+import logging
+import yaml
+
 from django.core.management.base import BaseCommand
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -5,16 +14,20 @@ from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 
-from datetime import datetime
-import time
-import os
-import yaml
-import logging
 
 logger = logging.getLogger('haunt_ops')
 
 
 class Command(BaseCommand):
+    """    
+    start command
+        python manage.py run_selenium_participation_query --dry-run
+    or with custom config
+        python manage.py run_selenium_participation_query --config=config/custom_config.yaml --dry-run
+    or without dry-run
+        python manage.py run_selenium_participation_query
+    """
+    help = 'Run Selenium query for participation data from iVolunteer.'
     help = 'Query participants from iVolunteer and optionally download Excel report.'
 
     def add_arguments(self, parser):

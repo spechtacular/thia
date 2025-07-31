@@ -1,3 +1,7 @@
+"""
+This file contains the admin configuration for the AppUser model.
+It customizes the admin interface for managing user profiles.
+"""
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin 
 from .forms import AppUserCreationForm, AppUserChangeForm
@@ -6,6 +10,10 @@ from .models import AppUser
 # Register your models here.
 
 class AppUserAdmin(UserAdmin):
+    """    
+    Custom admin interface for AppUser model.
+    Uses AppUserCreationForm for adding new users and AppUserChangeForm for changing existing users.
+    """
     add_form = AppUserCreationForm
     form = AppUserChangeForm
     model = AppUser

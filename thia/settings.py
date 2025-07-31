@@ -9,12 +9,12 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-import environ
 import os
 import logging
-from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 from datetime import datetime
+import environ
+
 
 
 
@@ -85,7 +85,6 @@ WSGI_APPLICATION = 'thia.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'thia',
         'USER': 'zack',

@@ -1,13 +1,21 @@
-from django.core.management.base import BaseCommand
+"""
+This command updates a user profile by email address.
+It allows updating fields like first name, last name, phone numbers, 
+and optionally assigns an image based on files in a specified directory.
+"""
 import os
-from django.utils import timezone
+from django.core.management.base import BaseCommand
 from haunt_ops.models import AppUser
 
 class Command(BaseCommand):
+    """
+    start command
+        python manage.py update_user_profile_pic 
+    """  
+
     help = 'Update a user profile by email address'
 
     def add_arguments(self, parser):
-        help = "Update user profile fields and optionally assign image based on directory files."
 
         parser.add_argument('email', type=str, 
                               help='Email address of the user')
