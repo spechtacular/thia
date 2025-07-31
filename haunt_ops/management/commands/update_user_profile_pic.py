@@ -1,5 +1,5 @@
 """
-This command updates a user profile by email address.
+This command updates a user profile based on users email address.
 It allows updating fields like first name, last name, phone numbers, 
 and optionally assigns an image based on files in a specified directory.
 """
@@ -32,6 +32,36 @@ class Command(BaseCommand):
 
         parser.add_argument('--dry-run', action='store_true',
                             help='Preview changes without saving them')
+        
+
+    def process_file_name(self, imagefile, user):
+        """
+        Process the image file name to match user first and last names.
+        Returns the image file name if it matches the user's first and last names.
+        """
+        filename, ext = os.path.splitext(imagefile)
+        self.stdout.write(f'Processing people_pics file: {imagefile}')
+        allowed_extensions = {'.jpg', '.jpeg', '.png'}
+        # Add your custom logic here, e.g.,
+        # - Parse information from the filename
+        # - Perform database operations based on the filename
+        # - Rename the file
+        # - etc.
+        fname = user.first_name.lower().replace("'","").replace('"', '')
+        lname = user.last_name.lower().replace("'","_").replace('"', '')
+        ifile = imagefile.lower()
+
+        self.stdout.write(f'Processing people_pics file: {ifile},{fname},{lname}')
+        if (fname in ifile and lname in ifile):
+            name, ext = os.path.splitext(ifile)
+
+            if ext not in allowed_extensions:
+                self.stdout.write(f"Skipping unsupported file type: {filename}")
+                return None
+            else:
+                return imagefile
+        else:
+            return None
 
 
     def handle(self, *args, **options):
@@ -91,31 +121,4 @@ class Command(BaseCommand):
             self.stdout.write("No fields provided to update.")
 
 
-    def process_file_name(self, imagefile, user):
-        """
-        Process the image file name to match user first and last names.
-        Returns the image file name if it matches the user's first and last names.
-        """
-        filename, ext = os.path.splitext(imagefile)
-        self.stdout.write(f'Processing people_pics file: {imagefile}')
-        allowed_extensions = {'.jpg', '.jpeg', '.png'}
-        # Add your custom logic here, e.g.,
-        # - Parse information from the filename
-        # - Perform database operations based on the filename
-        # - Rename the file
-        # - etc.
-        fname = user.first_name.lower().replace("'","").replace('"', '')
-        lname = user.last_name.lower().replace("'","_").replace('"', '')
-        ifile = imagefile.lower()
-
-        self.stdout.write(f'Processing people_pics file: {ifile},{fname},{lname}')
-        if (fname in ifile and lname in ifile):
-            name, ext = os.path.splitext(ifile)
-
-            if ext not in allowed_extensions:
-            self.stdout.write(f"Skipping unsupported file type: {filename}")
-            return None
-            else:
-            return imagefile
-        else:
-            return None
+   
