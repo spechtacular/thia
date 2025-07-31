@@ -1,5 +1,6 @@
 """
-This command uses a configuration file named ./config/selenium_config.yaml.
+This command uses selenium to query the ivolunteer participation report page.
+It uses a configuration file named ./config/selenium_config.yaml.
 It supports dry-run mode to simulate updates without saving to the database.
 """
 import os
@@ -7,13 +8,14 @@ import time
 import logging
 import yaml
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 
+# pylint: disable=no-member
 
 logger = logging.getLogger('haunt_ops')
 
@@ -28,16 +30,40 @@ class Command(BaseCommand):
         python manage.py run_selenium_participation_query
     """
     help = 'Run Selenium query for participation data from iVolunteer.'
-    help = 'Query participants from iVolunteer and optionally download Excel report.'
 
     def add_arguments(self, parser):
         parser.add_argument('--dry-run', action='store_true', help='Simulate actions without saving.')
+
+    def wait_for_new_download(self, download_dir, timeout=30):
+        """
+        Wait for a new file to be downloaded in the specified directory.
+        Args:
+            download_dir (str): Directory to watch for new files.
+            timeout (int): Maximum time to wait in seconds.
+        Returns:
+            str: Path of the newly downloaded file.
+        Raises:
+            TimeoutError: If no new file is detected within the timeout period.
+        """
+        existing_files = set(os.listdir(download_dir))
+        elapsed = 0
+        while elapsed < timeout:
+            current_files = set(os.listdir(download_dir))
+            new_files = current_files - existing_files
+            completed = [f for f in new_files if not f.endswith('.crdownload')]
+            if completed:
+                return os.path.join(download_dir, completed[0])
+            time.sleep(1)
+            elapsed += 1
+        raise CommandError("❌ No new file detected within timeout.")
+    
+
 
     def handle(self, *args, **kwargs):
         dry_run = kwargs['dry_run']
 
         try:
-            with open("config/selenium_config.yaml") as f:
+            with open("config/selenium_config.yaml", "r", encoding="utf-8") as f:
                 config = yaml.safe_load(f)
 
             # Browser config
@@ -80,13 +106,12 @@ class Command(BaseCommand):
                 wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'GKEPJM3CLLB')))
                 dropdowns = driver.find_elements(By.CLASS_NAME, 'GKEPJM3CLLB')
                 if len(dropdowns) < 5:
-                    raise Exception("Expected at least 5 dropdowns, found: " + str(len(dropdowns)))
+                    raise ValueError("Expected at least 5 dropdowns, found: " + str(len(dropdowns)))
 
                 report_dropdown_elem = dropdowns[4]
                 report_dropdown = Select(report_dropdown_elem)
 
                 # Find the option you want
-                target_option = None
                 for i in range(10):  # retry for up to 10 seconds
                     for option in report_dropdown.options:
                         if option.get_attribute("value") == "DbParticipationReport":
@@ -102,7 +127,7 @@ class Command(BaseCommand):
 
                     
                 else:
-                    raise Exception("❌ 'DbParticipationReport' never became enabled.")
+                    raise RuntimeError("❌ 'DbParticipationReport' never became enabled.")
 
                 # Sort/Group
                 sort_group_dropdown = driver.find_element(By.XPATH, "//span[text()='Sort/Group:']/following::select[1]")
@@ -149,27 +174,23 @@ class Command(BaseCommand):
                 run_button.click()
 
                 # Wait for download
-                downloaded_file = self.wait_for_new_download(download_directory, timeout=60)
-                self.stdout.write(self.style.SUCCESS(f"✅ File downloaded: {downloaded_file}"))
+                if not dry_run:
+                    downloaded_file = self.wait_for_new_download(download_directory, timeout=60)
+                    self.stdout.write(self.style.SUCCESS(f"✅ File downloaded: {downloaded_file}")) 
+                else:
+                    self.stdout.write(self.style.WARNING("Dry run enabled — no file downloaded."))
 
             except Exception as e:
-                logger.error(f"❌ Error during Selenium execution: {e}")
+                logger.error("❌ Error during Selenium execution: %s", e)
                 raise
             finally:
                 driver.quit()
 
         except Exception as e:
-            raise Exception(f"Failed during command execution: {str(e)}")
+            raise RuntimeError(f"Failed during command execution: {e}") from e
+        finally:
+            if 'driver' in locals():
+                driver.quit()
+            self.stdout.write(self.style.SUCCESS("✅ Selenium participation query completed successfully."))
 
-    def wait_for_new_download(self, download_dir, timeout=30):
-        existing_files = set(os.listdir(download_dir))
-        elapsed = 0
-        while elapsed < timeout:
-            current_files = set(os.listdir(download_dir))
-            new_files = current_files - existing_files
-            completed = [f for f in new_files if not f.endswith('.crdownload')]
-            if completed:
-                return os.path.join(download_dir, completed[0])
-            time.sleep(1)
-            elapsed += 1
-        raise TimeoutError("❌ No new file detected within timeout.")
+       

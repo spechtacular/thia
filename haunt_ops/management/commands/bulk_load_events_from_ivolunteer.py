@@ -1,5 +1,5 @@
 """
-Command to load or update users from a CSV file.
+Command to load or update event participation from a CSV file.
 Uses the AppUser model and allows for dry-run and verbose logging.
 Uses the configuration file named ./config/selenium_config.yaml
 """
@@ -19,11 +19,11 @@ logger = logging.getLogger('haunt_ops')  # Uses logger config from settings.py
 class Command(BaseCommand):
     """
         start command
-           python manage.py load_users_from_csv --csv_file=path/to/users.csv --dry-run --verbose
+           python manage.py bulk_load_events_from_ivolunteer --csv_file=path/to/users.csv --dry-run --verbose
         or with custom config
-           python manage.py load_users_from_csv --csv_file=path/to/custom_users.csv --dry-run --verbose
+           python manage.py bulk_load_events_from_ivolunteer --csv_file=path/to/custom_users.csv --dry-run --verbose
         or without dry-run
-           python manage.py load_users_from_csv --csv_file=path/to/users.csv
+           python manage.py bulk_load_events_from_ivolunteer --csv_file=path/to/users.csv
     """
 
     help = 'Load or update users from a CSV file with optional dry-run and verbose logging.'
@@ -39,7 +39,7 @@ class Command(BaseCommand):
         dry_run = kwargs['dry_run']
         verbose = kwargs['verbose']
         try:
-            with open(file_path, newline='') as csvfile:
+            with open(file_path, newline='', encoding="utf-8") as csvfile:
                 reader = csv.DictReader(csvfile)
                 user_email=''
                 total = 0

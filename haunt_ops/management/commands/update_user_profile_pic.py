@@ -4,7 +4,7 @@ It allows updating fields like first name, last name, phone numbers,
 and optionally assigns an image based on files in a specified directory.
 """
 import os
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from haunt_ops.models import AppUser
 
 class Command(BaseCommand):
@@ -40,8 +40,8 @@ class Command(BaseCommand):
 
         try:
             user = AppUser.objects.get(email=email)
-        except AppUser.DoesNotExist:
-            self.stderr.write(self.style.ERROR(f"User with email {email} not found."))
+        except AppUser.DoesNotExist: # pylint: disable=no-member
+            self.stderr.write(self.style.ERROR(f"User with email {email} not found.")) # pylint: disable=no-member
             return
 
         # Print user ID
@@ -53,20 +53,20 @@ class Command(BaseCommand):
             new_value = options.get(field)
            
             if new_value is not None:
-                self.stderr.write(self.style.SUCCESS(f"User with email {email} updating {field}"))
+                self.stderr.write(self.style.SUCCESS(f"User with email {email} updating {field}")) # pylint: disable=no-member
                 if field == 'image_url':
                    image_path = options['image_directory']
                    if not os.path.isdir(image_path):
-                      raise CommandError(f'Directory "{image_path}" does not exist.')
+                      raise CommandError(f'Directory "{image_path}" does not exist.') # pylint: disable=no-member
                    else:
-                      self.stdout.write(self.style.SUCCESS(f'Processing files in: {image_path}'))
+                      self.stdout.write(self.style.SUCCESS(f'Processing files in: {image_path}')) # pylint: disable=no-member
 
                       for filename in os.listdir(image_path):
                          file_path = os.path.join(image_path, filename)
                          if os.path.isfile(file_path):
                              pic_file_found = self.process_file_name(filename, user)
-                             if (pic_file_found != None) :
-                                 self.stdout.write(self.style.SUCCESS(f'found image_url {pic_file_found} for {email} .'))
+                             if (pic_file_found is not None) :
+                                 self.stdout.write(self.style.SUCCESS(f'found image_url {pic_file_found} for {email} .')) # pylint: disable=no-member
                                  setattr(user, 'image_url', pic_file_found)
                                  fields_updated = True
                                  break
@@ -74,7 +74,7 @@ class Command(BaseCommand):
                       if (fields_updated):
                           self.stdout.write(self.style.SUCCESS(f'File processing for user {email} complete.'))
                       else:
-                          self.stdout.write(self.style.ERROR(f'no matching image for user {email}".'))
+                          self.stdout.write(self.style.ERROR(f'no matching image for user {email}".')) # pylint: disable=no-member
 
                 else:
                    # not updating the image_url fields
@@ -92,25 +92,30 @@ class Command(BaseCommand):
 
 
     def process_file_name(self, imagefile, user):
-          self.stdout.write(f'Processing people_pics file: {imagefile}')
-          allowed_extensions = {'.jpg', '.jpeg', '.png'}
-          # Add your custom logic here, e.g.,
-          # - Parse information from the filename
-          # - Perform database operations based on the filename
-          # - Rename the file
-          # - etc.
-          fname = user.first_name.lower().replace("'","").replace('"', '')
-          lname = user.last_name.lower().replace("'","_").replace('"', '')
-          ifile = imagefile.lower()
+        """
+        Process the image file name to match user first and last names.
+        Returns the image file name if it matches the user's first and last names.
+        """
+        filename, ext = os.path.splitext(imagefile)
+        self.stdout.write(f'Processing people_pics file: {imagefile}')
+        allowed_extensions = {'.jpg', '.jpeg', '.png'}
+        # Add your custom logic here, e.g.,
+        # - Parse information from the filename
+        # - Perform database operations based on the filename
+        # - Rename the file
+        # - etc.
+        fname = user.first_name.lower().replace("'","").replace('"', '')
+        lname = user.last_name.lower().replace("'","_").replace('"', '')
+        ifile = imagefile.lower()
 
-          self.stdout.write(f'Processing people_pics file: {ifile},{fname},{lname}')
-          if (fname in ifile and lname in ifile):
-             name, ext = os.path.splitext(ifile)
+        self.stdout.write(f'Processing people_pics file: {ifile},{fname},{lname}')
+        if (fname in ifile and lname in ifile):
+            name, ext = os.path.splitext(ifile)
 
-             if ext not in allowed_extensions:
-                self.stdout.write(f"Skipping unsupported file type: {filename}")
-                return None
-             else:
-                return imagefile
-          else:
-             return None
+            if ext not in allowed_extensions:
+            self.stdout.write(f"Skipping unsupported file type: {filename}")
+            return None
+            else:
+            return imagefile
+        else:
+            return None
