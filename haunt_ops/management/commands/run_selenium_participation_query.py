@@ -4,10 +4,9 @@ It uses a configuration file named ./config/selenium_config.yaml.
 It supports dry-run mode to simulate updates without saving to the database.
 """
 
-import os
-import time
-import logging
-import yaml
+import os, sys, time, shutil
+from datetime import datetime
+import re, logging, yaml
 
 from django.core.management.base import BaseCommand, CommandError
 from selenium import webdriver
@@ -38,28 +37,68 @@ class Command(BaseCommand):
             "--dry-run", action="store_true", help="Simulate actions without saving."
         )
 
-    def wait_for_new_download(self, download_dir, timeout=30):
+
+
+
+    def wait_for_new_download(self, download_dir, timeout=60, stable_secs=2):
         """
-        Wait for a new file to be downloaded in the specified directory.
-        Args:
-            download_dir (str): Directory to watch for new files.
-            timeout (int): Maximum time to wait in seconds.
-        Returns:
-            str: Path of the newly downloaded file.
-        Raises:
-            TimeoutError: If no new file is detected within the timeout period.
+        Waits for a new file to appear in download_dir and for its size to stabilize.
+        Renames it to <scriptname>-<YYYYmmdd-HHMMSS><ext> and returns the new path.
         """
-        existing_files = set(os.listdir(download_dir))
-        elapsed = 0
-        while elapsed < timeout:
-            current_files = set(os.listdir(download_dir))
-            new_files = current_files - existing_files
-            completed = [f for f in new_files if not f.endswith(".crdownload")]
-            if completed:
-                return os.path.join(download_dir, completed[0])
-            time.sleep(1)
-            elapsed += 1
-        raise CommandError("❌ No new file detected within timeout.")
+        existing = set(os.listdir(download_dir))
+        tmp_suffixes = (".crdownload", ".part", ".tmp")  # Chrome, Firefox, generic
+
+        logger.info("⏳ Waiting for new file to download...")
+
+        start = time.time()
+        while time.time() - start < timeout:
+            current = set(os.listdir(download_dir))
+            new_files = current - existing
+            if new_files:
+                # Exclude temp/incomplete files
+                candidates = [f for f in new_files if not f.endswith(tmp_suffixes)]
+                if candidates:
+                    # Most recently modified
+                    paths = [os.path.join(download_dir, f) for f in candidates]
+                    newest = max(paths, key=os.path.getmtime)
+
+                    # Ensure fully written: wait until size is stable
+                    last_size = -1
+                    stable_start = time.time()
+                    while time.time() - stable_start < stable_secs:
+                        size = os.path.getsize(newest)
+                        if size == last_size:
+                            # ✅ Stable → rename and return
+                            base_script = sys.argv[1]
+                            # safe script name
+                            ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+                            ext = os.path.splitext(newest)[1]  # keep original extension
+                            new_name = f"{base_script}-{ts}{ext}"
+                            new_path = os.path.join(download_dir, new_name)
+
+                            # avoid collisions just in case
+                            counter = 1
+                            while os.path.exists(new_path):
+                                new_name = f"{base_script}-{ts}-{counter}{ext}"
+                                new_path = os.path.join(download_dir, new_name)
+                                counter += 1
+
+                            try:
+                                # shutil.move works across filesystems and if file is still locked briefly
+                                shutil.move(newest, new_path)
+                            except Exception as e:
+                                logger.warning("Rename failed (%s), returning original: %s", e, newest)
+                                return newest
+
+                            logger.info("✅ New file downloaded: %s", os.path.basename(new_path))
+                            return new_path
+
+                        last_size = size
+                        time.sleep(0.5)
+            time.sleep(0.5)
+
+        raise TimeoutError(f"❌ No completed download detected within {timeout} seconds.")
+
 
     def handle(self, *args, **kwargs):
         dry_run = kwargs["dry_run"]
@@ -230,8 +269,4 @@ class Command(BaseCommand):
         finally:
             if "driver" in locals():
                 driver.quit()
-            self.stdout.write(
-                self.style.SUCCESS(
-                    "✅ Selenium participation query completed successfully."
-                )
-            )
+            logger.info( "✅ Selenium participation query completed successfully.")
