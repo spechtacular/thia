@@ -18,14 +18,14 @@
          1. python manage.py replace_column_names --cin=path/to/input.csv --cout=path/to/output.csv
       6. **bulk_load_users_from_ivolunteers.py** : inserts report data from the converted csv file into the postgresql app_user table.
          1. python manage.py load_users_from_csv --csv_file=path/to/users.csv
-      7. **update_user_profile_pic.py** : matches volunteer images to database users and create the users image url. This script only processes one user at a time, it is faster to create a bash script using this Django script to load multiple image links. 
+      7. **update_user_profile_pic.py** : matches volunteer images to database users and create the users profile image url. This script only processes one user at a time, it is faster to create a bash script using this Django script to load multiple image links. 
          1. All of the user image files must follow these requirements:
             1. The image file name should be in the following format "first_last_pic.ext"
             2. There must be an underscore between the first and last name. 
             3. there must be an underscore after the last name before the word pic.
             4. The first name and last name must match the names used in the database, some people give formal first names etc.
             5. The file extension must be png, jpg, or jpeg.
-         2. The script to label the user images are in the utils folder:
+         2. The script to label the user images is in the utils folder:
             1. **label_people_pics.py** adds the name used int he image file name to the actual image.
       8. **run_selenium_participation_query.py** : runs the event participation iVoulnteer database report.
          1. python manage.py run_selenium_participation_query
@@ -44,14 +44,14 @@
       1. python manage.py replace_column_names --cin=path/to/input.csv --cout=path/to/output.csv
    4. **bulk_load_users_from_ivolunteers.py** : inserts or updates new report data from the converted csv file into the postgresql app_user table.
       1. python manage.py load_users_from_csv --csv_file=path/to/users.csv
-   5.  **update_user_profile_pic.py** : matches volunteer images to database users and create the users image url. This script only processes one user at a time, it is faster to create a bash script using this Django script to load multiple image links. 
+   5.  **update_user_profile_pic.py** : matches volunteer images to database users and create the users profile image url. This script only processes one user at a time, it is faster to create a bash script using this Django script to load multiple image links. 
          1. All of the user image files must follow these requirements:
             1. The image file name should be in the following format "first_last_pic.ext"
             2. There must be an underscore between the first and last name. 
             3. there must be an underscore after the last name before the word pic.
             4. The first name and last name must match the names used in the database, some people give formal first names etc.
             5. The file extension must be png, jpg, or jpeg.
-         2. The script to label the user images are in the utils folder:
+         2. The script to label the user images is in the utils folder:
             1. **label_people_pics.py** adds the name used int he image file name to the actual image.
    6. **run_selenium_participation_query.py** : runs the event participation iVoulnteer database report.
       1. python manage.py run_selenium_participation_query

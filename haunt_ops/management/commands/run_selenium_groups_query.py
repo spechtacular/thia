@@ -47,7 +47,7 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         config_path = kwargs['config']
         dry_run = kwargs['dry_run']
-
+        print(f"config_path {config_path}")
         if not os.path.exists(config_path):
             logger.error("config file not found %s", config_path)
             raise CommandError(f"❌ Config file not found: {config_path}")
@@ -140,13 +140,21 @@ class Command(BaseCommand):
                 container = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "GKEPJM3CCEB")))
                 item_divs = container.find_elements(By.XPATH, ".//div[contains(@class, 'GKEPJM3C')]")
 
+                logger.info("found the div class GKEPJM3CCEB")
 
                 # Filter down to only visible leaf nodes with text
-                group_names = [
-                    div.text.strip()
-                    for div in item_divs
-                    if div.is_displayed() and div.text.strip() != ""
-                ]
+                #group_names = [
+                #    div.text.strip()
+                #    for div in item_divs
+                #    if div.is_displayed() and div.text.strip() != ""
+                #]
+
+                # 1) If you're already on the Groups tab, collect all visible __idx items
+                els = driver.find_elements(
+                    By.XPATH,
+                    "//div[@__idx and normalize-space(.) != '' and not(ancestor-or-self::*[@aria-hidden='true'])]"
+                )
+                group_names = [el.text.strip() for el in els if el.is_displayed()]
 
                 for group_name in group_names:
                     print(group_name)
@@ -197,5 +205,5 @@ class Command(BaseCommand):
                 driver.quit()
         except yaml.YAMLError as e:
             logger.error("YAML parsing error: %s", str(e))
-            raise CommandError(f"❌ Failed to parse YAML config: {e}") from e)
+            raise CommandError(f"❌ Failed to parse YAML config: {e}") from e
 

@@ -22,6 +22,11 @@ class AppUserCreationForm(UserCreationForm):
                    'city', 'state', 'phone1', 'phone2', 'ice_name', 'ice_phone', 'company','country',
                    'ice_relationship', 'wear_mask', 'referral_source', 'haunt_experience', 
                    'allergies', 'zipcode', 'first_name', 'last_name', 'waiver')
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Ensure the password field is not present
+        self.fields.pop('password', None)
+
 
 class AppUserChangeForm(UserChangeForm):
     """
@@ -54,4 +59,13 @@ class PublicSignupForm(UserCreationForm):
         """
         
         model = AppUser
-        fields = ('username', 'email', 'password1', 'password2')
+        fields = ( 'email', 'password1', 'password2')
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        if not user.username:
+            # rely on manager normally, but ensure here too
+            user.username = user.email
+        if commit:
+            user.save()
+        return user

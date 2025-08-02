@@ -5,9 +5,9 @@ It customizes the admin interface for managing user profiles.
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin 
 from .forms import AppUserCreationForm, AppUserChangeForm
+# Register your models here.
 from .models import AppUser
 
-# Register your models here.
 
 class AppUserAdmin(UserAdmin):
     """    
@@ -19,12 +19,12 @@ class AppUserAdmin(UserAdmin):
     model = AppUser
     list_display = ["email", "is_staff", "is_superuser"]
     list_filter = ("is_staff", "is_superuser", "is_active", "phone1", "ice_phone","date_of_birth")
-    search_fields = ["email", "username", "first_name", "last_name"]
+    search_fields = ["email", "first_name", "last_name"]
     ordering = ["email"]
     list_display_links = ["email"]
 
     fieldsets = (
-        (None, {'fields':  ('email', 'password',)}),
+        (None, {'fields':  ('email', )}),
         ('Personal Info', {
                   'fields': ('first_name','last_name','image_url', 'date_of_birth', 'address', 'tshirt_size', 'city', 
                      'state', 'phone1', 'phone2', 'ice_name', 'ice_phone', 'ice_relationship', 'wear_mask',

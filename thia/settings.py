@@ -156,9 +156,10 @@ LOGGING = {
             "class": "logging.handlers.TimedRotatingFileHandler",
             "filename": LOG_FILENAME,
             "when": "midnight",
-            "interval": 1,
             "backupCount": 7,
             "formatter": "verbose",
+            "encoding": "utf-8",
+            "utc": False,   
         },
     },
     "loggers": {
