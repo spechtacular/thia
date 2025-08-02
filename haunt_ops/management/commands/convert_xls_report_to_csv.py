@@ -12,9 +12,11 @@ from django.core.management.base import BaseCommand, CommandError
 class Command(BaseCommand):
     """
     start command
-        python manage.py convert_xls_report_to_csv --rin=path/to/input.xlsx --cout=path/to/output.csv --sheet=Sheet1
+        python manage.py convert_xls_report_to_csv --rin=path/to/input.xlsx  
+    or with optional sheet name or index
+        python manage.py convert_xls_report_to_csv --rin=path/to/input.xlsx --sheet=Sheet1
     or with sheet index
-        python manage.py convert_xls_report_to_csv --rin=path/to/input.xlsx --cout=path/to/output.csv --sheet=0
+        python manage.py convert_xls_report_to_csv --rin=path/to/input.xlsx --cout=path/to/output.csv --sheet=Sheet1
     """
 
     help = "Converts an Excel file to a CSV file."
