@@ -1,6 +1,7 @@
 """
 This file contains the models for the HauntOps application.
-It includes the AppUser model, Groups model, and related models for managing user profiles and groups.
+It includes the AppUser model, Groups model, and related models 
+  for managing user profiles and groups.
 """
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.base_user import BaseUserManager
@@ -27,8 +28,7 @@ class AppUserManager(BaseUserManager):
         extra_fields.setdefault('username',email)
         extra_fields.setdefault('is_active', True)
         extra_fields.setdefault("is_staff", False)
-        extra_fields.setdefault("is_superuser", False)
-              
+        extra_fields.setdefault("is_superuser", False)    
         user = self.model(email=email, **extra_fields)
         if password:
             user.set_password(password)
@@ -45,7 +45,7 @@ class AppUserManager(BaseUserManager):
         extra_fields.setdefault("username", email)
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
-        extra_fields.setdefault("is_active", True)      
+        extra_fields.setdefault("is_active", True)    
         return self.create_user(email=email, password=password, **extra_fields)
 
 class AppUser(AbstractUser):
@@ -167,6 +167,12 @@ class Events(models.Model) :
     event_status = models.TextField(max_length=50, default="TBD")
     class Meta:
         """
+        Meta class for Events.
+        It specifies the database table name for the model.
+        This model is not managed by Django migrations, 
+            meaning it is expected to be created and managed by the database directly.
+        This is useful for legacy tables or when the 
+            table structure is controlled outside of Django.
         """
         db_table = 'events'
 
@@ -197,14 +203,16 @@ class EventVolunteers(models.Model):
     class Meta:
         """
         Meta class for EventVolunteers.
-        It specifies the database table name and that this model is not managed by Django migrations.
+        It specifies the database table name 
+            and that this model is not managed by Django migrations.
         """
         # This model is managed by the database, not Django migrations
         # This means that Django will not create or modify the table for this model
         # It is typically used for legacy tables or when the table is managed by another system
         # or when you want to prevent Django from making changes to the table structure.
         # This is useful when you have a pre-existing table that you want to use with Django models.
-        # It allows you to define a model that maps to an existing table without Django trying to manage it.
+        # It allows you to define a model that maps to an existing table without Django 
+        # trying to manage it.
         #
         managed = False
         db_table = 'event_volunteers'
@@ -233,7 +241,8 @@ class EventChecklist(models.Model) :
     class Meta:
         """ 
         Meta class for EventChecklist.
-        It specifies the database table name and that this model is not managed by Django migrations.
+        It specifies the database table name and that this model 
+            is not managed by Django migrations.
         """
         managed = False
         # This model is managed by the database, not Django migrations
@@ -241,7 +250,8 @@ class EventChecklist(models.Model) :
         # It is typically used for legacy tables or when the table is managed by another system
         # or when you want to prevent Django from making changes to the table structure.
         # This is useful when you have a pre-existing table that you want to use with Django models.
-        # It allows you to define a model that maps to an existing table without Django trying to manage it.
+        # It allows you to define a model that maps to an existing table without Django 
+        #   trying to manage it.
         #
         db_table = 'event_checklist'
 

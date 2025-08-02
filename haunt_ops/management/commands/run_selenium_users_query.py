@@ -5,7 +5,7 @@ It supports dry-run mode to simulate updates without saving to the local postgre
 """
 import os, sys, time, shutil
 from datetime import datetime
-import logging, yaml, re
+import logging, yaml
 from django.core.management.base import BaseCommand
 from selenium import webdriver
 from selenium.webdriver.common.by import By

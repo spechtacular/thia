@@ -1,9 +1,10 @@
 """
 Command to convert an Excel file to a CSV file.
-This command reads an Excel file and writes its content to a CSV file.
+This command reads an Excel file and writes its 
+    content to a file of the same name with a csv extension.
 It supports specifying the sheet to convert and handles both .xlsx and .xls formats.
 """
-
+from pathlib import Path
 import pandas as pd
 from django.core.management.base import BaseCommand, CommandError
 
@@ -26,16 +27,13 @@ class Command(BaseCommand):
             required=True,
             help="Input Excel file path (.xlsx or .xls)",
         )
-        parser.add_argument(
-            "--cout", "-out", type=str, required=True, help="Output CSV file path"
-        )
+        
         parser.add_argument(
             "--sheet", type=str, default="0", help="Sheet name or index (default: 0)"
         )
 
     def handle(self, *args, **options):
         input_path = options["rin"]
-        output_path = options["cout"]
         sheet_name = options["sheet"]
 
         # Convert sheet_name to int if it's digit
@@ -44,6 +42,7 @@ class Command(BaseCommand):
 
         try:
             df = pd.read_excel(input_path, sheet_name=sheet_name)
+            output_path = Path(input_path).with_suffix(".csv")
             df.to_csv(output_path, index=False, encoding="utf-8")
             self.stdout.write(
                 self.style.SUCCESS(
