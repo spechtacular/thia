@@ -136,6 +136,9 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
+        "verbose_with_scriptname": {
+            "format": "%(asctime)s [%(filename)s] %(levelname)s %(name)s: %(message)s"
+        },
         "verbose": {
             "format": "{levelname} {asctime} {module} {message}",
             "style": "{",
@@ -157,7 +160,7 @@ LOGGING = {
             "filename": LOG_FILENAME,
             "when": "midnight",
             "backupCount": 7,
-            "formatter": "verbose",
+            "formatter": "verbose_with_scriptname",
             "encoding": "utf-8",
             "utc": False,   
         },

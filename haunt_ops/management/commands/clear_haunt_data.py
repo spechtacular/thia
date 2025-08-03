@@ -1,7 +1,9 @@
 """
 Command to clear haunt-related operational data.
-Deletes data from key tables like AppUser, Events, Groups, EventChecklist, GroupVolunteers, and EventVolunteers.
-Can be run in dry-run mode to preview deletions without actually removing data.
+Deletes data from key tables like AppUser, Events, Groups, 
+    EventChecklist, GroupVolunteers, and EventVolunteers.
+Can be run in dry-run mode to preview deletions without actually 
+    removing data.
 """
 
 import logging
@@ -56,9 +58,9 @@ class Command(BaseCommand):
         # dont delete these accounts, these are used as sysadmin and test accounts
         keep_ids = [2, 3]
         logger.info("🔍 Checking for AppUser deletions...")
-        User = get_user_model()
+        user = get_user_model()
 
-        to_delete = User.objects.exclude(id__in=keep_ids)
+        to_delete = user.objects.exclude(id__in=keep_ids)
         user_count = to_delete.count()
 
         if user_count == 0:

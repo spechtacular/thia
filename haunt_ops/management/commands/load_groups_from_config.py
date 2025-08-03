@@ -4,18 +4,13 @@ Command to load or update groups from a configuration file.
 Uses the Groups model and allows for dry-run and verbose logging.
 Uses the configuration file named ./config/etl_config.yaml
 """
+import os, logging, yaml
 
 from django.core.management.base import BaseCommand, CommandError
 from haunt_ops.models import Groups
 
 
-import yaml
-import os
-from datetime import datetime
-import logging
-
 logger = logging.getLogger("haunt_ops")  # Uses logger config from settings.py
-
 
 class Command(BaseCommand):
     """
@@ -34,7 +29,8 @@ class Command(BaseCommand):
             "--config",
             type=str,
             default="config/etl_config.yaml",
-            help="Path to YAML configuration file (default: config/etl_config.yaml) \n With Custom config:\n python manage.py load_config_example --config=config/custom_config.yaml",
+            help="Path to YAML configuration file (default: config/etl_config.yaml) \n" \
+            " With Custom config:\n --config=config/custom_config.yaml",
         )
         parser.add_argument(
             "--dry-run",
@@ -47,61 +43,52 @@ class Command(BaseCommand):
         dry_run = kwargs["dry_run"]
 
         if not os.path.exists(config_path):
-            logger.error(f"config file not found {config_path}")
+            logger.error("config file not found %s", config_path)
             raise CommandError(f"❌ Config file not found: {config_path}")
 
         try:
-            with open(config_path, "r") as file:
+            with open(config_path, "r", encoding= "UTF-8") as file:
                 config = yaml.safe_load(file)
 
             if not config:
-                logger.error(f"Config file {config_path} is empty or malformed.")
+                logger.error("Config file %s is empty or malformed.")
                 raise CommandError(
                     f"❌ Config file {config_path} is empty or malformed."
                 )
 
-            group_list = config.groups
+            groups_dict = config.get("groups",{})
+            # Now split into two lists:
+            group_names  = list(groups_dict.keys())
             created_count = 0
             updated_count = 0
             action = None
             total = 0
-            groups = []
 
             # read each event in the web page
-            for block in group_list:
+            for group in group_names:
                 total += 1
 
                 logger.info(
-                    f"Event Name: {event_name}, Start: {event_date}, Status: {event_status}"
-                )
-
-                # Parse postgresql date format
-                parsed_event_date = datetime.strptime(event_date, "%m/%d/%Y")
-
-                # Reformat to django YYYY-MM-DD
-                formatted_event_date = parsed_event_date.strftime("%Y-%m-%d")
-
+                    "Group Name: %s", group.strip() if group else "No Name")
                 if dry_run:
-                    event_exists = Groups.objects.filter(event_name=event_name).exists()
-                    if event_exists:
+                    group_exists = Groups.objects.filter(group_name=group).exists()
+                    if group_exists:
                         updated_count += 1
                         action = "Updated"
                     else:
-                        created_count += 1
+                        group_count += 1
                         action = "Created"
                     dry_run_action = (
-                        "Would create" if not event_exists else "Would update"
+                        "Would create" if not group_exists else "Would update"
                     )
-                    message = f"{dry_run_action} event: {event_name}"
+                    message = f"{dry_run_action} group: {group}"
                     logging.info(message)
 
                 else:
-                    event, created = Groups.objects.update_or_create(
-                        event_date=formatted_event_date,
+                    group_name, created = Groups.objects.update_or_create(
+                        group_name=group,
                         defaults={
-                            "event_date": formatted_event_date,
-                            "event_name": event_name.strip(),
-                            "event_status": event_status.strip(),
+                            "group_name": group.strip(),
                         },
                     )
                     if created:
@@ -111,15 +98,15 @@ class Command(BaseCommand):
                         updated_count += 1
                         action = "Updated"
 
-                    message = f"{action} event: {event.id},{formatted_event_date}"
+                    message = f"{action} group: {group_name.id},{group_name}"
                     logging.info(message)
-                summary = "Processed: %d, Created: %d, Updated: %d" % (
+                summary = "Processed: %d, Created: %d, Updated: %d" , (
                     total,
                     created_count,
                     updated_count,
                 )
                 logger.info("%s", summary)
-                logger.info("event import form ivolunteer complete.")
+                logger.info("group import from config file %s complete.", config_path)
                 if dry_run:
                     logger.info("Dry-run mode enabled: no changes were saved.")
 
