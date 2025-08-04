@@ -29,18 +29,21 @@ csv_header_name_mapping:
   "E-Mail" : "email"
   "Phone 1" : "phone1"
   "Phone 2" : "phone2"
+  "Primary Phone" : "phone1"
   "Date of Birth" : "date_of_birth"
   "E-mail Blocked" : "email_blocked"
   "Phone Blocked" : "phone_verified"
+  "Emergency Contact (First Name, Last Name)": "ice_name"
   "Emergency Contact  (First Name, Last Name)": "ice_name"
   "Emergency Contact Relation": "ice_relationship"
+  "Emergency Contact Phone Number": "ice_phone"
   "Emergency Contact Phone Number ": "ice_phone"
   "Postal Code": "zipcode"
   "T-Shirt Size": "tshirt_size"
   "State/Province": "state"
   "Added": "start_date"
   "Last Activity": "last_activity"
-  "Are you under 18 years of age": "under_18"
+  "Are you under 18 years of age?": "under_18"
   "Would you be able to wear a character mask" : "wear_mask"
   "How did you hear about us" : "referral_source"
   "Haunt Interests" : "haunt_experience"
@@ -77,16 +80,19 @@ groups:
   "Event Signup": 1
   "Floor Manager": 1
   "Floor Manager Assistant": 1
+  "Front of the House/Ticket Booth": 1
   "Haunt Technician": 1
   "Key Masters" : 1
   "Line Entertainment" : 1
   "Main Greeter/ Front Gate" : 1
   "Makeup": 1
+  "Make-up": 1
   "Makeup Lead": 1
   "Photographer" : 1
   "Room Actors": 1
   "Scare Actor": 1
   "Social Media": 1
+  "social Media": 1
   "Threshold Guardian" : 1
   "Ticket Booth" : 1
   "Ticket Taker/Door Control" : 1

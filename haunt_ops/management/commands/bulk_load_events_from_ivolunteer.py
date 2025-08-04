@@ -1,10 +1,11 @@
 """
 Command to load or update event participation from a CSV file.
-Uses the AppUser model and allows for dry-run and verbose logging.
-Uses the configuration file named ./config/selenium_config.yaml
+Uses the AppUser model.
+Provides a dry-run option.
 """
 
 from datetime import datetime
+from datetime import date
 import csv
 import logging
 from django.core.management.base import BaseCommand
@@ -17,29 +18,28 @@ logger = logging.getLogger("haunt_ops")  # Uses logger config from settings.py
 
 class Command(BaseCommand):
     """
-    start command
-       python manage.py bulk_load_events_from_ivolunteer --csv_file=path/to/users.csv --dry-run --verbose
-    or with custom config
-       python manage.py bulk_load_events_from_ivolunteer --csv_file=path/to/custom_users.csv --dry-run --verbose
-    or without dry-run
-       python manage.py bulk_load_events_from_ivolunteer --csv_file=path/to/users.csv
+    run command
+       python manage.py bulk_load_events_from_ivolunteer 
+                --csv=path/to/users.csv 
+    or with dry-run option
+       python manage.py bulk_load_events_from_ivolunteer 
+                --csv=path/to/users.csv --dry-run
+    
     """
 
-    help = "Load or update users from a CSV file with optional dry-run and verbose logging."
+    help = "Load or update ivolunteer users from a CSV file with optional dry-run and verbose logging."
 
     def add_arguments(self, parser):
-        parser.add_argument("csv_file", type=str, help="Path to the CSV file.")
+        parser.add_argument("--csv", type=str, help="Path to the CSV file.")
         parser.add_argument(
             "--dry-run",
             action="store_true",
             help="Simulate updates without saving to database.",
         )
-        parser.add_argument(
-            "--verbose", action="store_true", help="Print detailed info for each row."
-        )
+       
 
     def handle(self, *args, **kwargs):
-        file_path = kwargs["csv_file"]
+        file_path = kwargs["csv"]
         dry_run = kwargs["dry_run"]
         verbose = kwargs["verbose"]
         try:
@@ -90,6 +90,14 @@ class Command(BaseCommand):
                             wm = True
                         else:
                             wm = False
+
+                        # todays date
+                        today = date.today()
+                        age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+                        # use date_of_birth to determine if user is over 18
+
+
+                        # use date_of_birth to determine if user is over 16
 
                         logger.debug("haunt_experience: %s", row["haunt_experience"])
                         logger.debug("events: %s", row["events"])

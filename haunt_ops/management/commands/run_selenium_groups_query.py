@@ -23,11 +23,11 @@ logger = logging.getLogger('haunt_ops')  # Uses logger config from settings.py
 class Command(BaseCommand):
     """
         start command
-            python manage.py run_selenium_groups_query --config=config/selenium_config.yaml --dry-run
+            python manage.py run_selenium_groups_query 
         or with custom config
-            python manage.py run_selenium_groups_query --config=config/custom_config.yaml --dry-run
-        or without dry-run
-            python manage.py run_selenium_groups_query --config=config/selenium_config.yaml
+            python manage.py run_selenium_groups_query --config=config/custom_config.yaml 
+        or with dry-run
+            python manage.py run_selenium_groups_query --config=config/selenium_config.yaml --dry-run
     """
     
 

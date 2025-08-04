@@ -3,9 +3,13 @@ This command uses selenium to query the ivolunteer database user report.
 It uses configuration data from a configuration file named ./config/selenium_config.yaml.
 It supports dry-run mode to simulate updates without saving to the local postgresql database.
 """
-import os, sys, time, shutil
+import os
+import sys
+import time
+import shutil
 from datetime import datetime
-import logging, yaml
+import logging
+import yaml
 from django.core.management.base import BaseCommand
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -20,11 +24,11 @@ logger = logging.getLogger("haunt_ops")
 class Command(BaseCommand):
     """
     start command
-        python manage.py run_selenium_users_query --dry-run
-    or with custom config
-        python manage.py run_selenium_users_query --config=config/custom_config.yaml --dry-run
-    or without dry-run
         python manage.py run_selenium_users_query
+    or with custom config
+        python manage.py run_selenium_users_query --config=config/custom_config.yaml
+    or with dry-run
+        python manage.py run_selenium_users_query --dry-run
     """
 
     help = "Run Selenium query for user data from iVolunteer."
@@ -107,7 +111,7 @@ class Command(BaseCommand):
             logger.info("Running in DRY RUN mode. No files will be downloaded.")
 
         # Load configuration from YAML file
-        with open("config/selenium_config.yaml") as f:
+        with open("config/selenium_config.yaml", encoding="UTF-8") as f:
             config = yaml.safe_load(f)
 
         #  --- browser options ---
@@ -164,8 +168,8 @@ class Command(BaseCommand):
             database_menu.click()
 
             menu_items = driver.find_elements(By.XPATH, "//div[@class='gwt-Label']")
-            #for item in menu_items:
-            #    logger.info("Dashboard MENU ITEM: %s", item.text)
+            for item in menu_items:
+                logger.debug("Dashboard MENU ITEM: %s", item.text)
 
             logger.info("📂 Navigating to Reports...")
 
@@ -286,7 +290,7 @@ class Command(BaseCommand):
             logger.info("📤 Submitting report form...")
             new_file_path = self.wait_for_new_download(
                 download_directory, timeout=60
-            )  # Adjust this keyword
+            )  # Wait for the file to download
 
             logger.info("File downloaded to: %s", new_file_path)
         except Exception as e:

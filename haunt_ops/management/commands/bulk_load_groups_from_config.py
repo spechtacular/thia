@@ -4,7 +4,9 @@ Command to load or update groups from a configuration file.
 Uses the Groups model and allows for dry-run and verbose logging.
 Uses the configuration file named ./config/etl_config.yaml
 """
-import os, logging, yaml
+import os
+import logging
+import yaml
 
 from django.core.management.base import BaseCommand, CommandError
 from haunt_ops.models import Groups
@@ -15,10 +17,10 @@ logger = logging.getLogger("haunt_ops")  # Uses logger config from settings.py
 class Command(BaseCommand):
     """
     start command
-        python manage.py load_groups_from_config --config=config/etl_config.yaml --dry-run
-    or with custom config
+        python manage.py load_groups_from_config 
+    or with custom config and dry-run
         python manage.py load_groups_from_config --config=config/custom_config.yaml --dry-run
-    or without dry-run
+    or with  custom config
         python manage.py load_groups_from_config --config=config/etl_config.yaml
     """
 
@@ -100,15 +102,11 @@ class Command(BaseCommand):
 
                     message = f"{action} group: {group_name.id},{group_name}"
                     logging.info(message)
-                summary = "Processed: %d, Created: %d, Updated: %d" , (
-                    total,
-                    created_count,
-                    updated_count,
-                )
-                logger.info("%s", summary)
-                logger.info("group import from config file %s complete.", config_path)
-                if dry_run:
-                    logger.info("Dry-run mode enabled: no changes were saved.")
+            summary = f"Processed: {total}, Created: {created_count}, Updated: {updated_count}" 
+            logger.info("%s", summary)
+            logger.info("group import from config file %s complete.", config_path)
+            if dry_run:
+                logger.info("Dry-run mode enabled: no changes were saved.")
 
         except yaml.YAMLError as e:
             logger.error("YAML parsing error: %s", str(e))

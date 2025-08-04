@@ -8,7 +8,7 @@ import os, sys, time, shutil
 from datetime import datetime
 import logging, yaml
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
@@ -23,11 +23,11 @@ logger = logging.getLogger("haunt_ops")
 class Command(BaseCommand):
     """
     start command
-        python manage.py run_selenium_participation_query --dry-run
+        python manage.py run_selenium_participation_query 
     or with custom config
-        python manage.py run_selenium_participation_query --config=config/custom_config.yaml --dry-run
-    or without dry-run
-        python manage.py run_selenium_participation_query
+        python manage.py run_selenium_participation_query --config=config/custom_config.yaml 
+    or with dry-run
+        python manage.py run_selenium_participation_query --dry-run
     """
 
     help = "Run Selenium query for participation data from iVolunteer."

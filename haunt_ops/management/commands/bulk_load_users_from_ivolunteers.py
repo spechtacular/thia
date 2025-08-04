@@ -1,7 +1,7 @@
 """
 Command to load or update users from a CSV file.
-Uses the AppUser model and allows for dry-run and verbose logging.
-Uses the configuration file named ./config/selenium_config.yaml
+Uses the AppUser model.
+Allows for dry-run and variable logging level options.
 """
 
 import logging
@@ -19,17 +19,17 @@ from haunt_ops.utils.logging_utils import configure_rotating_logger
 class Command(BaseCommand):
     """
     start command
-        python manage.py load_users_from_csv --csv_file=path/to/users.csv --dry-run --verbose
-    or with custom config
-        python manage.py load_users_from_csv --csv_file=path/to/custom_users.csv --dry-run --verbose
-    or without dry-run
-        python manage.py load_users_from_csv --csv_file=path/to/users.csv
+        python manage.py bulk_load_users_from_ivolunteers --csv path/to/users.csv 
+    or with dry-run
+        python manage.py bulk_load_users_from_ivolunteers --csv path/to/users.csv --dry-run 
+    or with log-level
+        python manage.py bulk_load_users_from_ivolunteers --csv path/to/users.csv --log-level DEBUG
     """
 
-    help = "Load or update users from a CSV file with optional dry-run feature."
+    help = "Insert or update ivolunteer users from a CSV file with optional dry-run feature."
 
     def add_arguments(self, parser):
-        parser.add_argument("csv_file", type=str, help="Path to the CSV file.")
+        parser.add_argument("--csv", type=str, help="Path to the CSV file.")
         parser.add_argument(
             "--dry-run",
             action="store_true",
@@ -44,7 +44,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **kwargs):
-        file_path = kwargs["csv_file"]
+        file_path = kwargs["csv"]
         dry_run = kwargs["dry_run"]
         log_level = kwargs["log_level"]
 
@@ -158,14 +158,16 @@ class Command(BaseCommand):
                         message = f"{action} user: {user.id},{user.email}"
 
                         # process haunt_experience and groups
-                        haunt_experience = row["haunt_experience"].split(";")
+                        haunt_experience = row["haunt_experience"].split(",")
                         for experience in haunt_experience:
                             experience = experience.strip()
                             if experience:
+                                gmsg=""
                                 try:
                                     group = Groups.objects.get(group_name=experience)
-                                    self.stdout.write(
-                                        f"Group ID: {group.id}, Name: {group.group_name} for user {user_email}"
+                                    logging.info(
+                                        "Group ID: %d, Name: %s for user %s",
+                                        group.id, group.group_name, user_email
                                     )
                                     gv, created = (
                                         GroupVolunteers.objects.update_or_create(
@@ -175,16 +177,15 @@ class Command(BaseCommand):
                                         )
                                     )
                                     if created:
-                                        message += f" | Added to group: {group.group_name} and created GroupVolunteers entry {gv.id}."
+                                        gmsg = f" | Added to group: {group.group_name} and created GroupVolunteers entry {gv.id}."
                                     else:
-                                        message += f" | Already in group: {group.group_name} and GroupVolunteers entry exists {gv.id}."
+                                        gmsg = f" | Already in group: {group.group_name} and GroupVolunteers entry exists {gv.id}."
 
                                 except Groups.objects.model.DoesNotExist as exc:
-                                    raise CommandError(
-                                        f"❌ No group found with name {experience} for user {user_email}."
-                                    ) from exc
-
-                    logging.info(message)
+                                    gmsg ="❌ No group found with name %s for user %s.", experience, user_email
+                                finally:
+                                    logging.info(gmsg)
+                        logging.info(message)
             summary = f"Processed: {total} users, Created: {created_count} users, Updated: {updated_count} users"
             self.stdout.write(self.style.SUCCESS(summary))
             logging.info(summary)

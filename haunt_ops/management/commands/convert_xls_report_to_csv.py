@@ -16,19 +16,19 @@ logger = logging.getLogger("haunt_ops")  # Uses logger config from settings.py
 class Command(BaseCommand):
     """
     start command
-        python manage.py convert_xls_report_to_csv --cin=path/to/input.xlsx  
+        python manage.py convert_xls_report_to_csv --xls=path/to/input.xlsx  
     or with optional sheet name 
-        python manage.py convert_xls_report_to_csv --cin=path/to/input.xlsx --sheet=Sheet1
+        python manage.py convert_xls_report_to_csv --xls=path/to/input.xlsx --sheet=Sheet1
     or with sheet index
-        python manage.py convert_xls_report_to_csv --cin=path/to/input.xlsx --sheet=0
+        python manage.py convert_xls_report_to_csv --xls=path/to/input.xlsx --sheet=0
     """
 
     help = "Converts an Excel file to a CSV file."
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--cin",
-            "-in",
+            "--xls",
+            "-x",
             type=str,
             required=True,
             help="Input Excel file path (.xlsx or .xls)",
@@ -39,7 +39,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        input_path = options["cin"]
+        input_path = options["xls"]
         sheet_name = options["sheet"]
 
         # Convert sheet_name to int if it's digit
