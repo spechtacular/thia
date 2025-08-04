@@ -5,7 +5,7 @@
    1. **clear_haunt_data.py** clears all project tables except for admin and test accounts, there is a --dry-run option to run the script without deleting any project data from postgresql.
       1. python manage.py clear_haunt_data 
    2. After clearing the project database the local Django project postgresql database tables must be restored from the iVolunteer database. Here are the steps:
-      1. **load_groups_from_config.py** : this loads group labels from a project config file instead of scraping the iVolunteer web page. There are options to use a custom configuration file and a dry-run.
+      1. **bulk_load_groups_from_config.py** : this loads group labels from a project config file instead of scraping the iVolunteer web page. There are options to use a custom configuration file and a dry-run.
          1. python manage.py load_groups_from_config
       2. **run_selenium_events_query.py** : scrapes all iVolunteer event labels and stores them in the postgresql events table.
          1. python manage.py run_selenium_events_query --config=config/selenium_config.yaml
