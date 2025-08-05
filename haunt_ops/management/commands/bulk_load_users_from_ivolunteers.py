@@ -7,7 +7,7 @@ Allows for dry-run and variable logging level options.
 import logging
 import csv
 from datetime import datetime
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.conf import settings
 from haunt_ops.models import AppUser
@@ -182,25 +182,24 @@ class Command(BaseCommand):
                                         gmsg = f" | Already in group: {group.group_name} and GroupVolunteers entry exists {gv.id}."
 
                                 except Groups.objects.model.DoesNotExist as exc:
-                                    gmsg ="❌ No group found with name %s for user %s.", experience, user_email
+                                    gmsg =f"❌ No group found with name {experience} for user {user_email}." 
                                 finally:
                                     logging.info(gmsg)
                         logging.info(message)
-            summary = f"Processed: {total} users, Created: {created_count} users, Updated: {updated_count} users"
+            summary = f"✅Processed: {total} users, Created: {created_count} users, Updated: {updated_count} users"
             self.stdout.write(self.style.SUCCESS(summary))
             logging.info(summary)
-            self.stdout.write(self.style.SUCCESS("CSV import complete."))
+            logger.info("✅CSV import complete.")
             if dry_run:
-                self.stdout.write(
-                    self.style.WARNING("Dry-run mode enabled: no changes were saved.")
+                logger.info("✅Dry-run mode enabled: no changes were saved.")
                 )
 
         except FileNotFoundError:
-            error_msg = f"File not found: {file_path}"
+            error_msg = f"❌File not found: {file_path}"
             self.stderr.write(self.style.ERROR(error_msg))
             logging.error(error_msg)
 
         except Exception as e:
-            error_msg = f"Error processing file: {str(e)}"
+            error_msg = f"❌Error processing file: {str(e)}"
             self.stderr.write(self.style.ERROR(error_msg))
             logging.error(error_msg)

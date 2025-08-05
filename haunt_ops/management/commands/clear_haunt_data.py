@@ -56,7 +56,7 @@ class Command(BaseCommand):
 
         # dont clear required accounts
         # dont delete these accounts, these are used as sysadmin and test accounts
-        keep_ids = [2, 3]
+        keep_ids = [614]
         logger.info("🔍 Checking for AppUser deletions...")
         user = get_user_model()
 

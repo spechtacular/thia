@@ -125,7 +125,7 @@ USE_I18N = True
 USE_TZ = True
 TIME_ZONE = 'America/Los_Angeles'
 
-LOG_LEVEL = os.environ.get("LOG_LEVEL", logging.INFO)
+LOG_LEVEL = os.environ.get("LOG_LEVEL", logging.DEBUG)
 LOG_DIR = os.path.join(BASE_DIR, 'logs') # Replace BASE_DIR with your project's base directory
 
 LOG_FILENAME = os.path.join(

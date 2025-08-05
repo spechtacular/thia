@@ -32,6 +32,7 @@ csv_header_name_mapping:
   "Primary Phone" : "phone1"
   "Date of Birth" : "date_of_birth"
   "E-mail Blocked" : "email_blocked"
+  "E-Mail Blocked" : "email_blocked"
   "Phone Blocked" : "phone_verified"
   "Emergency Contact (First Name, Last Name)": "ice_name"
   "Emergency Contact  (First Name, Last Name)": "ice_name"
@@ -69,6 +70,8 @@ csv_header_name_mapping:
   "Conflict": "conflict"
   "Confirmed": "confirmed"
   "Waitlist": "waitlist"
+  "Full Address": "full_address"
+
 
 
   

@@ -11,13 +11,11 @@
          1. python manage.py run_selenium_events_query --config=config/selenium_config.yaml
       3. **run_selenium_users_query.py** : runs the iVolunteer DB users XLS formatted report.
          1. python manage.py run_selenium_users_query
-      4. **convert_xls_report_to_csv.py** :  converts iVolunteer xls report file to csv format.
-         1. python manage.py convert_xls_report_to_csv --rin=path/to/input.xlsx --cout=path/to/output.csv
-      5. **replace_column_names.py** : converts iVoulnteer report column labels to postgresql column names.
-         1. python manage.py replace_column_names --cin=path/to/input.csv --cout=path/to/output.csv
-      6. **bulk_load_users_from_ivolunteers.py** : inserts report data from the converted csv file into the postgresql app_user table.
-         1. python manage.py load_users_from_csv --csv_file=path/to/users.csv
-      7. **update_user_profile_pic.py** : matches volunteer images to database users and create the users profile image url. This script only processes one user at a time, it is faster to create a bash script using this Django script to load multiple image links. 
+      4. **replace_column_names.py** : converts iVoulnteer report column labels to postgresql column names.
+         1. python manage.py replace_column_names --csv path/to/input.csv 
+      5. **bulk_load_users_from_ivolunteers.py** : inserts report data from the converted csv file into the postgresql app_user table.
+         1. python manage.py load_users_from_csv --csv path/to/users.csv
+      6. **update_user_profile_pic.py** : matches volunteer images to database users and create the users profile image url. This script only processes one user at a time, it is faster to create a bash script using this Django script to load multiple image links. 
          1. All of the user image files must follow these requirements:
             1. The image file name should be in the following format "first_last_pic.ext"
             2. There must be an underscore between the first and last name. 
@@ -26,24 +24,20 @@
             5. The file extension must be png, jpg, or jpeg.
          2. The script to label the user images is in the utils folder:
             1. **label_people_pics.py** adds the name used int he image file name to the actual image.
-      8. **run_selenium_participation_query.py** : runs the event participation iVoulnteer database report.
+      7. **run_selenium_participation_query.py** : runs the event participation iVoulnteer database report.
          1. python manage.py run_selenium_participation_query
-      9. **convert_xls_report_to_csv.py** : converts the xls participation report file to csv format.
-         1. python manage.py convert_xls_report_to_csv --rin=path/to/input.xlsx --cout=path/to/output.csv
-      10. **replace_column_names.py** : converts iVoulnteer report column labels to postgresql column names.
-         1. python manage.py replace_column_names --cin=path/to/input.csv --cout=path/to/output.csv
-      11. **bulk_load_events_from_ivolunteer.py** : inserts new report data from the converted csv report file into the postgresql event_volunteers table.
-         1. python manage.py bulk_load_events_from_ivolunteer --csv_file=path/to/users.csv
+      8. **replace_column_names.py** : converts iVoulnteer report column labels to postgresql column names.
+         1. python manage.py replace_column_names --csv path/to/input.csv 
+      9. **bulk_load_events_from_ivolunteer.py** : inserts new report data from the converted csv report file into the postgresql event_volunteers table.
+         1. python manage.py bulk_load_events_from_ivolunteer --csv path/to/users.csv
 - This is the sequence used to update the existing Django postgresql database contents. 
    1. **run_selenium_users_query.py** : runs the iVolunteer DB users XLS formatted report.
       1. python manage.py run_selenium_users_query
-   2. **convert_xls_report_to_csv.py** :  converts iVolunteer xls report file to csv format.
-      1. python manage.py convert_xls_report_to_csv --rin=path/to/input.xlsx --cout=path/to/output.csv
-   3. **replace_column_names.py** : converts iVoulnteer report column labels to postgresql column names.
-      1. python manage.py replace_column_names --cin=path/to/input.csv --cout=path/to/output.csv
-   4. **bulk_load_users_from_ivolunteers.py** : inserts or updates new report data from the converted csv file into the postgresql app_user table.
-      1. python manage.py load_users_from_csv --csv_file=path/to/users.csv
-   5.  **update_user_profile_pic.py** : matches volunteer images to database users and create the users profile image url. This script only processes one user at a time, it is faster to create a bash script using this Django script to load multiple image links. 
+   2. **replace_column_names.py** : converts iVoulnteer report column labels to postgresql column names.
+      1. python manage.py replace_column_names --csv path/to/input.csv 
+   3. **bulk_load_users_from_ivolunteers.py** : inserts or updates new report data from the converted csv file into the postgresql app_user table.
+      1. python manage.py load_users_from_csv --csv path/to/users.csv
+   4.  **update_user_profile_pic.py** : matches volunteer images to database users and create the users profile image url. This script only processes one user at a time, it is faster to create a bash script using this Django script to load multiple image links. 
          1. All of the user image files must follow these requirements:
             1. The image file name should be in the following format "first_last_pic.ext"
             2. There must be an underscore between the first and last name. 
@@ -52,12 +46,10 @@
             5. The file extension must be png, jpg, or jpeg.
          2. The script to label the user images is in the utils folder:
             1. **label_people_pics.py** adds the name used int he image file name to the actual image.
-   6. **run_selenium_participation_query.py** : runs the event participation iVoulnteer database report.
+   5. **run_selenium_participation_query.py** : runs the event participation iVoulnteer database report.
       1. python manage.py run_selenium_participation_query
-   7. **convert_xls_report_to_csv.py** : converts the xls participation report file to csv format.
-      1. python manage.py convert_xls_report_to_csv --rin=path/to/input.xlsx --cout=path/to/output.csv
-   8. **replace_column_names.py** : converts iVoulnteer report column labels to postgresql column names.
-      1. python manage.py replace_column_names --cin=path/to/input.csv --cout=path/to/output.csv
-   9. **bulk_load_events_from_ivolunteer.py** : inserts or updates new report data from the converted csv report file into the postgresql event_volunteers table.
+   6. **replace_column_names.py** : converts iVoulnteer report column labels to postgresql column names.
+      1. python manage.py replace_column_names --csv path/to/input.csv 
+   7. **bulk_load_events_from_ivolunteer.py** : inserts or updates new report data from the converted csv report file into the postgresql event_volunteers table.
       1. python manage.py bulk_load_events_from_ivolunteer --csv_file=path/to/users.csv
 

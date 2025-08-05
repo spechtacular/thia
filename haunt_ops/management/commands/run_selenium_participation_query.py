@@ -4,11 +4,18 @@ It uses a configuration file named ./config/selenium_config.yaml.
 It supports dry-run mode to simulate updates without saving to the database.
 """
 
-import os, sys, time, shutil
-from datetime import datetime
-import logging, yaml
+import os
+import sys
+import time
+import shutil
+from pathlib import Path
 
-from django.core.management.base import BaseCommand
+from datetime import datetime
+import logging
+import yaml
+import pandas as pd
+
+from django.core.management.base import BaseCommand, CommandError
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
@@ -38,6 +45,32 @@ class Command(BaseCommand):
         )
 
 
+    def convert_xls_to_csv(self,input_path):
+        """ 
+        Converts an Excel file to a CSV file.
+        This command reads an Excel file and writes its content to a file of the 
+            same name with a csv extension.
+        It supports specifying the sheet to convert and handles both .xlsx and .xls
+        """
+        sheet_name = 0
+
+        # Convert sheet_name to int if it's digit
+        if sheet_name.isdigit():
+            sheet_name = int(sheet_name)
+
+        try:
+            df = pd.read_excel(input_path, sheet_name=sheet_name)
+            output_path = Path(input_path).with_suffix(".csv")
+            df.to_csv(output_path, index=False, encoding="utf-8")
+            logger.info(
+                    "✅ Successfully converted xls file: %s to csv file: %s ", 
+                        input_path, output_path.name
+            )
+            
+        except FileNotFoundError as exc:
+            raise CommandError(f"❌ File not found: {input_path}") from exc
+        except Exception as e:
+            raise CommandError(f"❌ Error: {e}") from e
 
 
     def wait_for_new_download(self, download_dir, timeout=60, stable_secs=2):
@@ -250,12 +283,12 @@ class Command(BaseCommand):
                     downloaded_file = self.wait_for_new_download(
                         download_directory, timeout=60
                     )
-                    self.stdout.write(
-                        self.style.SUCCESS(f"✅ File downloaded: {downloaded_file}")
-                    )
+                    logging.info("✅ File downloaded: %s", downloaded_file)
+                    # Convert to CSV
+                    self.convert_xls_to_csv(downloaded_file)
                 else:
-                    self.stdout.write(
-                        self.style.WARNING("Dry run enabled — no file downloaded.")
+                    logging.info(
+                        "ℹ️ Dry run mode enabled. No file will be downloaded."
                     )
 
             except Exception as e:

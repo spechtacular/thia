@@ -8,15 +8,19 @@ import sys
 import time
 import shutil
 from datetime import datetime
+from pathlib import Path
+
 import logging
 import yaml
-from django.core.management.base import BaseCommand
+import pandas as pd
+from django.core.management.base import BaseCommand, CommandError
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 
+# pylint: disable=no-member
 
 logger = logging.getLogger("haunt_ops")
 
@@ -40,6 +44,32 @@ class Command(BaseCommand):
             help="Simulate actions without saving excel file.",
         )
 
+    def convert_xls_to_csv(self,input_path):
+        """ 
+        Converts an Excel file to a CSV file.
+        This command reads an Excel file and writes its content to a file of the 
+            same name with a csv extension.
+        It supports specifying the sheet to convert and handles both .xlsx and .xls
+        """
+        sheet_name = 0
+
+        # Convert sheet_name to int if it's digit
+        if sheet_name.isdigit():
+            sheet_name = int(sheet_name)
+
+        try:
+            df = pd.read_excel(input_path, sheet_name=sheet_name)
+            output_path = Path(input_path).with_suffix(".csv")
+            df.to_csv(output_path, index=False, encoding="utf-8")
+            logger.info(
+                    "✅ Successfully converted xls file: %s to csv file: %s ", 
+                        input_path, output_path.name
+            )
+            
+        except FileNotFoundError as exc:
+            raise CommandError(f"❌ File not found: {input_path}") from exc
+        except Exception as e:
+            raise CommandError(f"❌ Error: {e}") from e
 
 
 
@@ -134,7 +164,8 @@ class Command(BaseCommand):
         driver = webdriver.Chrome(options=options)
 
         # optional driver specification
-        # driver = webdriver.Chrome(service=webdriver.ChromeService(executable_path='/path/to/chromedriver'), options=options)
+        # driver = webdriver.Chrome(service=webdriver.ChromeService(
+        #   executable_path='/path/to/chromedriver'), options=options)
 
         # --- login ---
         LOGIN_URL = config["login"]["url"]
@@ -211,7 +242,8 @@ class Command(BaseCommand):
                     if option.get_attribute("value") == "DbParticipantReportExcel":
                         if option.is_enabled():
                             report_dropdown.select_by_value("DbParticipantReportExcel")
-                            logger.info("✅ Successfully selected DbParticipantReportExcel after wait")
+                            logger.info(
+                                "✅ Successfully selected DbParticipantReportExcel after wait")
                             break
                 else:
                     time.sleep(1)
@@ -231,7 +263,8 @@ class Command(BaseCommand):
 
             logger.info("📑 Selecting page size option")
 
-            # After selecting Report & Sort/Group, re-query the dropdowns becaujse the options may have changed
+            # After selecting Report & Sort/Group, re-query the dropdowns 
+            # because the options may have changed
             wait.until(
                 EC.presence_of_element_located(
                     (By.XPATH, "//option[contains(text(), 'Infinitely Wide & Tall')]")
@@ -266,7 +299,8 @@ class Command(BaseCommand):
             # Select "All Database Participants"
             logger.info("Selected all database participants")
 
-            # XPath Finds the <label> with that exact text. Then targets the radio <input> before the label
+            # XPath Finds the <label> with that exact text. 
+            # Then targets the radio <input> before the label
             radio_button = driver.find_element(
                 By.XPATH,
                 "//label[text()='All Database Participants']/preceding-sibling::input[@type='radio']",
@@ -292,7 +326,8 @@ class Command(BaseCommand):
                 download_directory, timeout=60
             )  # Wait for the file to download
 
-            logger.info("File downloaded to: %s", new_file_path)
+            logging.info("✅ File downloaded: %s", new_file_path)
+
         except Exception as e:
             logger.error("❌ Error occurred: %s ", str(e))
         finally:
