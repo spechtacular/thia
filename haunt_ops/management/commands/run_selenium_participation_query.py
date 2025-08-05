@@ -32,23 +32,26 @@ class Command(BaseUtilsCommand):
         python manage.py run_selenium_participation_query 
     or with custom config
         python manage.py run_selenium_participation_query --config=config/custom_config.yaml 
-    or with dry-run
-        python manage.py run_selenium_participation_query --dry-run
+    
     """
 
     help = "Run Selenium query for participation data from iVolunteer."
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--dry-run", action="store_true", help="Simulate actions without saving."
+            '--config',
+            type=str,
+            default='config/selenium_config.yaml',
+            help='Path to YAML configuration file (default: config/selenium_config.yaml) \n With Custom config:\n python manage.py load_config_example --config=config/custom_config.yaml'
         )
+        
 
 
     def handle(self, *args, **kwargs):
-        dry_run = kwargs["dry_run"]
+        config_file = kwargs.get("config", "config/selenium_config.yaml")
 
         try:
-            with open("config/selenium_config.yaml", "r", encoding="utf-8") as f:
+            with open(config_file, "r", encoding="utf-8") as f:
                 config = yaml.safe_load(f)
 
             # Browser config
@@ -192,19 +195,13 @@ class Command(BaseUtilsCommand):
                 logger.info("Selected Run Report option")
 
                 # Wait for download
-                if not dry_run:
-                    downloaded_file = self.wait_for_new_download(
+                downloaded_file = self.wait_for_new_download(
                         download_directory, timeout=60
-                    )
-                    logging.info("✅ File downloaded: %s", downloaded_file)
-                    # Convert to CSV
-                    self.convert_xls_to_csv(downloaded_file)
-                    logger.info("✅ Selenium participation report completed successfully.")
-
-                else:
-                    logging.info(
-                        "ℹ️ Dry run mode enabled. No file will be downloaded."
-                    )
+                )
+                logging.info("✅ Report File downloaded: %s", downloaded_file)
+                # Convert to CSV and replace ivolunteer column names with postgresql column names
+                self.convert_xls_to_csv(downloaded_file)
+                logger.info("✅ ivolunteer participation report completed successfully.")
 
             except Exception as e:
                 logger.error("❌ Error during Selenium execution: %s", str(e))

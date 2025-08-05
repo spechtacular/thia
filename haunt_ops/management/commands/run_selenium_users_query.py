@@ -1,19 +1,12 @@
 """
 This command uses selenium to query the ivolunteer database user report.
 It uses configuration data from a configuration file named ./config/selenium_config.yaml.
-It supports dry-run mode to simulate updates without saving to the local postgresql database.
 """
 import os
-import sys
 import time
-import shutil
-from datetime import datetime
-from pathlib import Path
 
 import logging
 import yaml
-import pandas as pd
-from django.core.management.base import BaseCommand, CommandError
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
@@ -32,28 +25,26 @@ class Command(BaseUtilsCommand):
         python manage.py run_selenium_users_query
     or with custom config
         python manage.py run_selenium_users_query --config=config/custom_config.yaml
-    or with dry-run
-        python manage.py run_selenium_users_query --dry-run
+    
     """
 
     help = "Run Selenium query for user data from iVolunteer."
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--dry-run",
-            action="store_true",
-            help="Simulate actions without saving excel file.",
+            '--config',
+            type=str,
+            default='config/selenium_config.yaml',
+            help='Path to selenium configuration file (default: config/selenium_config.yaml) \n With Custom config:\n python manage.py load_config_example --config=config/custom_config.yaml'
         )
+        
 
 
     def handle(self, *args, **kwargs):
-        dry_run = kwargs["dry_run"]
-
-        if dry_run:
-            logger.info("Running in DRY RUN mode. No files will be downloaded.")
-
+        config_file = kwargs.get("config", "config/selenium_config.yaml")
+    
         # Load configuration from YAML file
-        with open("config/selenium_config.yaml", encoding="UTF-8") as f:
+        with open(config_file, encoding="UTF-8") as f:
             config = yaml.safe_load(f)
 
         #  --- browser options ---
@@ -237,11 +228,15 @@ class Command(BaseUtilsCommand):
                 download_directory, timeout=60
             )  # Wait for the file to download
 
-            logging.info("✅ File downloaded: %s", new_file_path)
+            logging.info("✅ Report File downloaded: %s", new_file_path)
+
+            # Convert the downloaded file to CSV
+            # and replace ivolunteer column names with postgresql column names
+            self.convert_xls_to_csv(new_file_path)  
+            logger.info( "✅ ivolunteer users report completed successfully.")
 
         except Exception as e:
             logger.error("❌ Error occurred: %s ", str(e))
         finally:
             driver.quit()
-            logger.info( "✅ Selenium users query completed successfully.")
 

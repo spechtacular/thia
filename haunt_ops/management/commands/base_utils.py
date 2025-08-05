@@ -12,6 +12,8 @@ import pandas as pd
 import yaml
 from django.core.management.base import BaseCommand, CommandError
 
+# pylint: disable=no-member
+
 logger = logging.getLogger('haunt_ops')
 
 

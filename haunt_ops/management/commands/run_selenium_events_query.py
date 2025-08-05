@@ -18,6 +18,7 @@ from selenium.webdriver.chrome.options import Options
 import yaml
 from haunt_ops.models import Events
 
+# pylint: disable=no-member
 
 logger = logging.getLogger("haunt_ops")  # Uses logger config from settings.py
 
@@ -88,25 +89,24 @@ class Command(BaseCommand):
             # optional driver specification
             # driver = webdriver.Chrome(service=webdriver.ChromeService(executable_path='/path/to/chromedriver'), options=options)
 
-            # --- initialize login ---
-            LOGIN_URL = config["login"]["url"]
-            ORG_ID = config["login"]["org_id"]
-            ADMIN_EMAIL = config["login"]["admin_email"]
-            PASSWORD = config["login"]["password"]
-            if PASSWORD == "ENV":
-                PASSWORD = os.environ.get("IVOLUNTEER_PASSWORD")
+            iv_password = config["login"]["password"]
+            if iv_password == "ENV":
+                iv_password = os.environ.get("IVOLUNTEER_PASSWORD")
 
             wait = WebDriverWait(driver, 30)
 
             try:
 
                 logger.info("🔐 Logging in...")
-                driver.get(LOGIN_URL)
+                driver.get(config["login"]["url"])
                 wait.until(EC.presence_of_element_located((By.ID, "org_admin_login")))
-                driver.find_element(By.ID, "action0").send_keys(ORG_ID)
-                driver.find_element(By.ID, "action1").send_keys(ADMIN_EMAIL)
-                driver.find_element(By.ID, "action2").send_keys(PASSWORD)
+                driver.find_element(By.ID, "action0").send_keys(config["login"]["org_id"])
+                driver.find_element(By.ID, "action1").send_keys(config["login"]["admin_email"])
+                driver.find_element(By.ID, "action2").send_keys(iv_password)
                 driver.find_element(By.ID, "Submit").click()
+
+                logger.info("✅ Successfully logged in as %s ", config["login"]["admin_email"])
+
 
                 # Wait for Dashboard
                 events_menu = wait.until(
@@ -123,7 +123,6 @@ class Command(BaseCommand):
                 updated_count = 0
                 action = None
                 total = 0
-                events = []
 
                 # Locate all divs with __idx attribute (event blocks)
                 event_blocks = driver.find_elements(By.XPATH, "//div[@__idx]")
@@ -188,21 +187,18 @@ class Command(BaseCommand):
 
                         message = f"{action} event: {event.id},{formatted_event_date}"
                         logging.info(message)
-                summary = "Processed: %d, Created: %d, Updated: %d" % (
-                    total,
-                    created_count,
-                    updated_count,
-                )
+                summary = f"✅Processed: {total}, Created: {created_count}, Updated: {updated_count}" 
+
                 logger.info("%s", summary)
-                logger.info("event import form ivolunteer complete.")
+                logger.info("✅event import form ivolunteer complete.")
                 if dry_run:
-                    logger.info("Dry-run mode enabled: no changes were saved.")
+                    logger.info("✅Dry-run mode enabled: no changes were saved.")
 
             except Exception as e:
-                logger.error("Exception occurred: %s", e)
-                raise CommandError(f"Exception occurred:{str(e)}") from e
+                logger.error("❌Exception occurred: %s", e)
+                raise CommandError(f"❌Exception occurred:{str(e)}") from e
             finally:
                 driver.quit()
         except yaml.YAMLError as e:
-            logger.error(f"YAML parsing error: {str(e)}")
+            logger.error(f"❌YAML parsing error: {str(e)}")
             raise CommandError(f"❌ Failed to parse YAML config: {str(e)}")

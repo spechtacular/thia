@@ -11,6 +11,7 @@ import yaml
 from django.core.management.base import BaseCommand, CommandError
 from haunt_ops.models import Groups
 
+# pylint: disable=no-member
 
 logger = logging.getLogger("haunt_ops")  # Uses logger config from settings.py
 

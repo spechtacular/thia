@@ -8,6 +8,7 @@ import os
 from django.core.management.base import BaseCommand, CommandError
 from haunt_ops.models import AppUser
 
+# pylint: disable=no-member
 
 class Command(BaseCommand):
     """

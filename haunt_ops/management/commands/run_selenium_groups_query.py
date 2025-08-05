@@ -17,6 +17,7 @@ from haunt_ops.models import Groups
 
 
 
+# pylint: disable=no-member
 
 logger = logging.getLogger('haunt_ops')  # Uses logger config from settings.py
 
@@ -47,7 +48,7 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         config_path = kwargs['config']
         dry_run = kwargs['dry_run']
-        print(f"config_path {config_path}")
+
         if not os.path.exists(config_path):
             logger.error("config file not found %s", config_path)
             raise CommandError(f"❌ Config file not found: {config_path}")
@@ -82,14 +83,9 @@ class Command(BaseCommand):
     
             # optional driver specification
             #driver = webdriver.Chrome(service=webdriver.ChromeService(executable_path='/path/to/chromedriver'), options=options)
-
-            # --- initialize login ---
-            LOGIN_URL = config['login']['url']
-            ORG_ID = config['login']['org_id']
-            ADMIN_EMAIL = config['login']['admin_email']
-            PASSWORD = config['login']['password']
-            if PASSWORD == 'ENV':
-               PASSWORD = os.environ.get('IVOLUNTEER_PASSWORD')
+            iv_password = config['login']['password']
+            if iv_password == 'ENV':
+               iv_password = os.environ.get('IVOLUNTEER_PASSWORD')
     
     
             wait = WebDriverWait(driver, 30)
@@ -97,14 +93,14 @@ class Command(BaseCommand):
             try:
     
                 logger.info("🔐 Logging in...")
-                driver.get(LOGIN_URL)
+                driver.get(config['login']['url'])
                 wait.until(EC.presence_of_element_located((By.ID, "org_admin_login")))
-                driver.find_element(By.ID, "action0").send_keys(ORG_ID)
-                driver.find_element(By.ID, "action1").send_keys(ADMIN_EMAIL)
-                driver.find_element(By.ID, "action2").send_keys(PASSWORD)
+                driver.find_element(By.ID, "action0").send_keys(config['login']['org_id'])
+                driver.find_element(By.ID, "action1").send_keys(config['login']['admin_email'])
+                driver.find_element(By.ID, "action2").send_keys(iv_password)
                 driver.find_element(By.ID, "Submit").click()
 
-                logger.info("logged in to the dashboard")       
+                logger.info("✅ Successfully logged in as %s ", config["login"]["admin_email"])
                 # Wait for Dashboard, Database option
                 database_menu = wait.until(
                     EC.visibility_of_element_located((By.XPATH, "//div[@class='gwt-Label' and contains(text(), 'Database')]"))
@@ -158,7 +154,7 @@ class Command(BaseCommand):
 
                 for group_name in group_names:
                     print(group_name)
-                    total += 1 
+                    total += 1
     
                     logger.info("Group Name: %s",  group_name)
 
@@ -199,10 +195,8 @@ class Command(BaseCommand):
 
 
             except Exception as e:
-                logger.error("Exception occurred: %s", str(e))
-                raise CommandError(f"Exception occurred: {e} ") from e
-            finally:
-                driver.quit()
+                logger.error("Selenium Exception occurred: %s", str(e))
+                raise CommandError(f"❌ Selenium Exception error: {e}") from e
         except yaml.YAMLError as e:
             logger.error("YAML parsing error: %s", str(e))
             raise CommandError(f"❌ Failed to parse YAML config: {e}") from e
