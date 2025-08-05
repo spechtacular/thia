@@ -15,6 +15,8 @@ from haunt_ops.models import Groups
 from haunt_ops.models import GroupVolunteers
 from haunt_ops.utils.logging_utils import configure_rotating_logger
 
+# pylint: disable=no-member
+
 
 class Command(BaseCommand):
     """
@@ -192,7 +194,7 @@ class Command(BaseCommand):
             logger.info("✅CSV import complete.")
             if dry_run:
                 logger.info("✅Dry-run mode enabled: no changes were saved.")
-                )
+                
 
         except FileNotFoundError:
             error_msg = f"❌File not found: {file_path}"

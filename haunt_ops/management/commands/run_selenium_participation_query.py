@@ -5,29 +5,28 @@ It supports dry-run mode to simulate updates without saving to the database.
 """
 
 import os
-import sys
 import time
-import shutil
-from pathlib import Path
+import traceback
 
-from datetime import datetime
+
 import logging
 import yaml
-import pandas as pd
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import CommandError
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from haunt_ops.management.commands.base_utils import BaseUtilsCommand
 
 # pylint: disable=no-member
 
 logger = logging.getLogger("haunt_ops")
 
 
-class Command(BaseCommand):
+
+class Command(BaseUtilsCommand):
     """
     start command
         python manage.py run_selenium_participation_query 
@@ -43,94 +42,6 @@ class Command(BaseCommand):
         parser.add_argument(
             "--dry-run", action="store_true", help="Simulate actions without saving."
         )
-
-
-    def convert_xls_to_csv(self,input_path):
-        """ 
-        Converts an Excel file to a CSV file.
-        This command reads an Excel file and writes its content to a file of the 
-            same name with a csv extension.
-        It supports specifying the sheet to convert and handles both .xlsx and .xls
-        """
-        sheet_name = 0
-
-        # Convert sheet_name to int if it's digit
-        if sheet_name.isdigit():
-            sheet_name = int(sheet_name)
-
-        try:
-            df = pd.read_excel(input_path, sheet_name=sheet_name)
-            output_path = Path(input_path).with_suffix(".csv")
-            df.to_csv(output_path, index=False, encoding="utf-8")
-            logger.info(
-                    "✅ Successfully converted xls file: %s to csv file: %s ", 
-                        input_path, output_path.name
-            )
-            
-        except FileNotFoundError as exc:
-            raise CommandError(f"❌ File not found: {input_path}") from exc
-        except Exception as e:
-            raise CommandError(f"❌ Error: {e}") from e
-
-
-    def wait_for_new_download(self, download_dir, timeout=60, stable_secs=2):
-        """
-        Waits for a new file to appear in download_dir and for its size to stabilize.
-        Renames it to <scriptname>-<YYYYmmdd-HHMMSS><ext> and returns the new path.
-        """
-        existing = set(os.listdir(download_dir))
-        tmp_suffixes = (".crdownload", ".part", ".tmp")  # Chrome, Firefox, generic
-
-        logger.info("⏳ Waiting for new file to download...")
-
-        start = time.time()
-        while time.time() - start < timeout:
-            current = set(os.listdir(download_dir))
-            new_files = current - existing
-            if new_files:
-                # Exclude temp/incomplete files
-                candidates = [f for f in new_files if not f.endswith(tmp_suffixes)]
-                if candidates:
-                    # Most recently modified
-                    paths = [os.path.join(download_dir, f) for f in candidates]
-                    newest = max(paths, key=os.path.getmtime)
-
-                    # Ensure fully written: wait until size is stable
-                    last_size = -1
-                    stable_start = time.time()
-                    while time.time() - stable_start < stable_secs:
-                        size = os.path.getsize(newest)
-                        if size == last_size:
-                            # ✅ Stable → rename and return
-                            base_script = sys.argv[1]
-                            # safe script name
-                            ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-                            ext = os.path.splitext(newest)[1]  # keep original extension
-                            new_name = f"{base_script}-{ts}{ext}"
-                            new_path = os.path.join(download_dir, new_name)
-
-                            # avoid collisions just in case
-                            counter = 1
-                            while os.path.exists(new_path):
-                                new_name = f"{base_script}-{ts}-{counter}{ext}"
-                                new_path = os.path.join(download_dir, new_name)
-                                counter += 1
-
-                            try:
-                                # shutil.move works across filesystems and if file is still locked briefly
-                                shutil.move(newest, new_path)
-                            except Exception as e:
-                                logger.warning("Rename failed (%s), returning original: %s", e, newest)
-                                return newest
-
-                            logger.info("✅ New file downloaded: %s", os.path.basename(new_path))
-                            return new_path
-
-                        last_size = size
-                        time.sleep(0.5)
-            time.sleep(0.5)
-
-        raise TimeoutError(f"❌ No completed download detected within {timeout} seconds.")
 
 
     def handle(self, *args, **kwargs):
@@ -157,20 +68,20 @@ class Command(BaseCommand):
 
             try:
                 # Login
-                LOGIN_URL = config["login"]["url"]
-                ORG_ID = config["login"]["org_id"]
-                ADMIN_EMAIL = config["login"]["admin_email"]
-                PASSWORD = config["login"]["password"]
-                if PASSWORD == "ENV":
-                    PASSWORD = os.environ.get("IVOLUNTEER_PASSWORD")
+                iv_password = config["login"]["password"]
+                if iv_password == "ENV":
+                    iv_password = os.environ.get("IVOLUNTEER_PASSWORD")
 
                 wait = WebDriverWait(driver, 30)
-                driver.get(LOGIN_URL)
+                driver.get(config["login"]["url"])
                 wait.until(EC.presence_of_element_located((By.ID, "org_admin_login")))
-                driver.find_element(By.ID, "action0").send_keys(ORG_ID)
-                driver.find_element(By.ID, "action1").send_keys(ADMIN_EMAIL)
-                driver.find_element(By.ID, "action2").send_keys(PASSWORD)
+                driver.find_element(By.ID, "action0").send_keys(config["login"]["org_id"])
+                driver.find_element(By.ID, "action1").send_keys(config["login"]["admin_email"])
+                driver.find_element(By.ID, "action2").send_keys(iv_password)
                 driver.find_element(By.ID, "Submit").click()
+
+                logger.info("✅ Successfully logged in as %s ", config["login"]["admin_email"])
+
 
                 # Navigate
                 wait.until(
@@ -198,6 +109,7 @@ class Command(BaseCommand):
                 report_dropdown_elem = dropdowns[4]
                 report_dropdown = Select(report_dropdown_elem)
 
+                
                 # Find the option you want
                 for i in range(10):  # retry for up to 10 seconds
                     for option in report_dropdown.options:
@@ -215,7 +127,8 @@ class Command(BaseCommand):
                     raise RuntimeError(
                         "❌ 'DbParticipationReport' never became enabled."
                     )
-
+            
+            
                 # Sort/Group
                 sort_group_dropdown = driver.find_element(
                     By.XPATH, "//span[text()='Sort/Group:']/following::select[1]"
@@ -286,6 +199,8 @@ class Command(BaseCommand):
                     logging.info("✅ File downloaded: %s", downloaded_file)
                     # Convert to CSV
                     self.convert_xls_to_csv(downloaded_file)
+                    logger.info("✅ Selenium participation report completed successfully.")
+
                 else:
                     logging.info(
                         "ℹ️ Dry run mode enabled. No file will be downloaded."
@@ -298,8 +213,9 @@ class Command(BaseCommand):
                 driver.quit()
 
         except Exception as e:
-            raise RuntimeError(f"Failed during command execution: {e}") from e
-        finally:
-            if "driver" in locals():
-                driver.quit()
-            logger.info( "✅ Selenium participation query completed successfully.")
+            tb = traceback.format_exc()
+            # Write the traceback to stderr
+            self.stderr.write(self.style.ERROR(tb))
+            # Then raise a CommandError with the original message
+            raise CommandError(f"❌ Execution failed: {e}") from e
+        

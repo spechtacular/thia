@@ -8,9 +8,9 @@ from datetime import datetime
 from datetime import date
 import csv
 import logging
-from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.management.base import BaseCommand
 from haunt_ops.models import AppUser
 from haunt_ops.models import EventVolunteers
 from haunt_ops.models import Events
@@ -242,7 +242,6 @@ class Command(BaseCommand):
                     logging.info(message)
             summary = f"✅Processed: {total}, Created: {created_count}, Updated: {updated_count}"
             logging.info(summary)
-            logging.info+("✅CSV import complete.")
             if dry_run:
                 logging.info("✅Dry-run mode enabled: no changes were saved.")
 
