@@ -133,30 +133,31 @@ class Command(BaseUtilsCommand):
                         "❌ 'DbParticipationReport' never became enabled."
                     )
 
-                # Sort/Group
+                # select report Sort/Group
                 sort_group_dropdown = driver.find_element(
                     By.XPATH, "//span[text()='Sort/Group:']/following::select[1]"
                 )
                 Select(sort_group_dropdown).select_by_value("EMAIL")
                 logger.info("Selected EMAIL sort option")
 
-                # Format
+                # select report Format
                 format_select = driver.find_element(
                     By.XPATH,
-                    "//span[contains(text()",
-                    "'Format:')]/ancestor::tr/following-sibling::tr[1]//select",
+                    "//span[contains(text(),'Format:')]/ancestor::tr/following-sibling::tr[1]//select"
                 )
+
+                # Wait for the format select to be present
                 Select(format_select).select_by_value("EXCEL")
                 logger.info("Selected EXCEL format option")
 
-                # Page Size (safe fallback)
+                # Select Page Size (safe fallback)
                 page_size_dropdown = driver.find_element(
                     By.XPATH, "//select[@class='GKEPJM3CLLB'][option[@value='LTR']]"
                 )
                 Select(page_size_dropdown).select_by_value("LTR")
                 logger.info("Selected LTR page size")
 
-                # Date Range
+                # Select Date Range
                 date_range_select = driver.find_element(
                     By.XPATH,
                     "//span[text()='Date Range:']/ancestor::tr/following-sibling::tr[1]//select",
@@ -164,7 +165,7 @@ class Command(BaseUtilsCommand):
                 Select(date_range_select).select_by_visible_text("All Dates")
                 logger.info("Selected All Dates option")
 
-                # Check options
+                # Select report options
                 labels = driver.find_elements(
                     By.XPATH, "//span[contains(@class,'gwt-CheckBox')]"
                 )
@@ -179,7 +180,7 @@ class Command(BaseUtilsCommand):
                         checkbox.click()
                 logger.info("Selected signed in participants option")
 
-                # All Database Participants
+                # Select All Database Participants
                 radio = driver.find_element(
                     By.XPATH,
                     "//label[text()="
@@ -198,12 +199,13 @@ class Command(BaseUtilsCommand):
                 run_button.click()
                 logger.info("Selected Run Report option")
 
-                # Wait for download
+                # Wait for report results to download
                 downloaded_file = self.wait_for_new_download(
                     download_directory, timeout=60
                 )
                 logging.info("✅ ivolunteer Report File downloaded: %s", downloaded_file)
-                # Convert to CSV and replace ivolunteer column names with postgresql column names
+                # Convert XLS to CSV and
+                # replace ivolunteer column names with postgresql column names
                 self.convert_xls_to_csv(downloaded_file)
                 logger.info(
                     "✅ ivolunteer participation report completed successfully."

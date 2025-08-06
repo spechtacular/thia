@@ -6,13 +6,13 @@
       1. python manage.py clear_haunt_data
    2. After clearing the project database the local Django project postgresql database tables must be restored from the iVolunteer database. Here are the steps:
       1. **bulk_load_groups_from_config.py** : this loads group labels from a project config file instead of scraping the iVolunteer web page. There are options to use a custom configuration file and a dry-run.
-         1. python manage.py load_groups_from_config
+         1. python manage.py bulk_load_groups_from_config
       2. **run_selenium_events_query.py** : scrapes all iVolunteer event labels and stores them in the postgresql events table.
          1. python manage.py run_selenium_events_query
       3. **run_selenium_users_query.py** : runs the iVolunteer DB users XLS formatted report.
          1. python manage.py run_selenium_users_query
       4. **bulk_load_users_from_ivolunteers.py** : inserts report data from the converted csv file into the postgresql app_user table.
-         1. python manage.py load_users_from_csv --csv path/to/users.csv
+         1. python manage.py bulk_load_users_from_ivolunteers --csv replaced_users.csv
       5. **update_user_profile_pic.py** : matches volunteer images to database users and create the users profile image url. This script only processes one user at a time, it is faster to create a bash script using this Django script to load multiple image links.
          1. All of the user image files must follow these requirements:
             1. The image file name should be in the following format "first_last_pic.ext"
@@ -30,7 +30,7 @@
    1. **run_selenium_users_query.py** : runs the iVolunteer DB users XLS formatted report.
       1. python manage.py run_selenium_users_query
    2. **bulk_load_users_from_ivolunteers.py** : inserts or updates new report data from the converted csv file into the postgresql app_user table.
-      1. python manage.py load_users_from_csv --csv path/to/users.csv
+      1. python manage.py bulk_load_users_from_ivolunteers --csv path/to/users.csv
    3.  **update_user_profile_pic.py** : matches volunteer images to database users and create the users profile image url. This script only processes one user at a time, it is faster to create a bash script using this Django script to load multiple image links.
          1. All of the user image files must follow these requirements:
             1. The image file name should be in the following format "first_last_pic.ext"
@@ -43,5 +43,5 @@
    4. **run_selenium_participation_query.py** : runs the event participation iVoulnteer database report.
       1. python manage.py run_selenium_participation_query
    5. **bulk_load_events_from_ivolunteer.py** : inserts or updates new report data from the converted csv report file into the postgresql event_volunteers table.
-      1. python manage.py bulk_load_events_from_ivolunteer --csv_file=path/to/users.csv
+      1. python manage.py bulk_load_events_from_ivolunteer --csv path/to/replaced_users.csv
 
