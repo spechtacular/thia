@@ -18,9 +18,9 @@ class AppUserCreationForm(UserCreationForm):
         It specifies the model and fields to be included in the form.
         """
         model = AppUser
-        fields = ( 'email', 'username', 'image_url', 'date_of_birth', 'address', 'tshirt_size', 
+        fields = ( 'email', 'username', 'image_url', 'date_of_birth', 'address', 'tshirt_size',
                    'city', 'state', 'phone1', 'phone2', 'ice_name', 'ice_phone', 'company','country',
-                   'ice_relationship', 'wear_mask', 'referral_source', 'haunt_experience', 
+                   'ice_relationship', 'wear_mask', 'referral_source', 'haunt_experience',
                    'allergies', 'zipcode', 'first_name', 'last_name', 'waiver')
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -39,13 +39,18 @@ class AppUserChangeForm(UserChangeForm):
         It specifies the model and fields to be included in the form.
         """
         model = AppUser
-        fields = ( 'email', 'username', 'image_url', 'date_of_birth', 'address', 'tshirt_size', 
+        fields = ( 'email', 'username', 'image_url', 'date_of_birth', 'address', 'tshirt_size',
                    'city', 'state', 'phone1', 'phone2', 'ice_name', 'ice_phone', 'company','country',
-                   'ice_relationship', 'wear_mask', 'referral_source', 'haunt_experience', 
-                   'allergies', 'zipcode', 'first_name', 'last_name', 'waiver') 
+                   'ice_relationship', 'wear_mask', 'referral_source', 'haunt_experience',
+                   'allergies', 'zipcode', 'first_name', 'last_name', 'waiver')
         widgets = {
             'date_of_birth': forms.SelectDateWidget(years=range(1900, timezone.now().year+1)),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for fld in self.fields.values():
+            fld.widget.attrs.update({'class': 'form-control'})
 
 class PublicSignupForm(UserCreationForm):
     """
@@ -57,7 +62,7 @@ class PublicSignupForm(UserCreationForm):
         Meta class for PublicSignupForm.
         It specifies the model and fields to be included in the form.
         """
-        
+
         model = AppUser
         fields = ( 'email', 'password1', 'password2')
 
@@ -69,6 +74,12 @@ class PublicSignupForm(UserCreationForm):
         if commit:
             user.save()
         return user
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for fld in self.fields.values():
+            # Password fields already render as <input type="password">
+            fld.widget.attrs.update({'class': 'form-control'})
 
 class ProfileForm(UserChangeForm):
     class Meta:

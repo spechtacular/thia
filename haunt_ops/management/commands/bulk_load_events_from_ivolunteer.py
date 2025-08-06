@@ -9,11 +9,14 @@ from datetime import date
 import csv
 import logging
 from django.utils import timezone
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.management.base import BaseCommand
 from haunt_ops.models import AppUser
 from haunt_ops.models import EventVolunteers
 from haunt_ops.models import Events
+from haunt_ops.utils.logging_utils import configure_rotating_logger
+
 
 # pylint: disable=no-member
 logger = logging.getLogger("haunt_ops")  # Uses logger config from settings.py
@@ -27,6 +30,12 @@ class Command(BaseCommand):
     or with dry-run option
        python manage.py bulk_load_events_from_ivolunteer
                 --csv=path/to/users.csv --dry-run
+    or with custom log level
+       python manage.py bulk_load_events_from_ivolunteer
+                --csv=path/to/users.csv --log DEBUG
+    or with custom log level and dry-run option
+       python manage.py bulk_load_events_from_ivolunteer
+                --csv=path/to/users.csv --dry-run --log DEBUG
 
     """
 
@@ -40,9 +49,26 @@ class Command(BaseCommand):
             help="Simulate updates without saving to database.",
         )
 
+        parser.add_argument(
+            "--log",
+            type=str,
+            default="INFO",
+            choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+            help="Set the log level (default: INFO)",
+        )
+
     def handle(self, *args, **kwargs):
         file_path = kwargs["csv"]
         dry_run = kwargs["dry_run"]
+        log_level = kwargs["log"].upper()
+
+        # Get a unique log file using __file__
+        logger = configure_rotating_logger(
+            __file__, log_dir=settings.LOG_DIR, log_level=log_level
+        )
+
+        logger.info("Starting load events command.")
+
 
         try:
             with open(file_path, newline="", encoding="utf-8") as csvfile:
@@ -105,6 +131,8 @@ class Command(BaseCommand):
                         else:
                             updated_count += 1
                     else:
+                        # Process the row data
+                        logger.debug("Processing row %s", total)
                         original_bd = row["date_of_birth"].strip()
                         if not original_bd:
                             obd = user.date_of_birth
@@ -120,23 +148,22 @@ class Command(BaseCommand):
                         logger.debug("2original_bd: %s", original_bd)
                         dob = datetime.strptime(original_bd, "%m/%d/%Y")
 
+                        logger.debug("dob: %s", dob)
                         dt = row["start_time"].strip()
                         naive_dt = datetime.strptime(dt, "%Y-%m-%d %H:%M:%S")
                         aware_st = timezone.make_aware(
                             naive_dt, timezone=timezone.get_current_timezone()
                         )
 
+                        logger.debug("aware_st: %s", aware_st)
                         dt = row["end_time"].strip()
                         naive_dt = datetime.strptime(dt, "%Y-%m-%d %H:%M:%S")
                         aware_et = timezone.make_aware(
                             naive_dt, timezone=timezone.get_current_timezone()
                         )
+                        logger.debug("aware_et: %s", aware_et)
 
-                        wv = False
-                        if "I agree" in row["waiver"].strip():
-                            wv = True
-                        else:
-                            wv = False
+                        wv = "I agree" in row["waiver"].strip()
 
                         eb = "true" in row["email_blocked"].strip().lower()
 
@@ -149,10 +176,15 @@ class Command(BaseCommand):
                             - dob.year
                             - ((today.month, today.day) < (dob.month, dob.day))
                         )
+
                         # use date_of_birth to determine if user is over 16
                         under_16 = age < 16
                         # use date_of_birth to determine if user is over 18
                         under_18 = age < 18
+
+                        logger.debug("under_16 %s", under_16)
+                        logger.debug("under_18 %s", under_18)
+                        logger.debug("age %s", age)
 
                         signed_in = row["signed_in"] == "Yes"
 
@@ -162,15 +194,35 @@ class Command(BaseCommand):
 
                         conflict = row["conflict"] == "Yes"
 
+                        logger.debug("signed_in: %s", signed_in)
+                        logger.debug("confirmed: %s", confirmed)
+                        logger.debug("waitlist: %s", waitlist)
+                        logger.debug("conflict: %s", conflict)
+
+
                         points = row["points"]
                         if points in (None or ""):
                             points = 0.0
+                            logger.debug("points is None or empty, setting to 0.0")
+                        else:
+                            try:
+                                points = float(points)
+                            except ValueError:
+                                logger.error(
+                                    "Invalid points value '%s', setting to 0.0", points
+                                )
+                                points = 0.0
+                        logger.debug("points: %f", points)
+                        logger.debug("full_address: %s", row["full_address"].strip())
 
-                        phone1 = ""
-                        if row[phone1] is None or row[phone1] == "":
+                        # Check if phone1 is empty or None, use user.phone1 if so
+                        logger.debug("phone1: %s, user phone1 %s", row["phone1"], user.phone1)
+                        raw_phone1 = row.get("phone1", "")
+                        if raw_phone1 is None or raw_phone1.strip() == "":
                             phone1 = user.phone1
                         else:
-                            phone1 = row["phone1"].strip()
+                            phone1 = raw_phone1.strip()
+                        logger.debug("after phone1 test: %s", phone1)
 
                         ice_name = ""
                         if row["ice_name"] is None or row["ice_name"] == "":
@@ -192,21 +244,19 @@ class Command(BaseCommand):
                             ice_phone = user.ice_phone
                         else:
                             ice_phone = row["ice_phone"].strip()
+                        logger.debug("ice_name: %s", ice_name)
+                        logger.debug("ice_relationship: %s", ice_relationship)
+                        logger.debug("ice_phone: %s", ice_phone)
+
 
                         # use date_of_birth to determine if user is over 16
                         logger.debug("points: %f", points)
                         logger.debug("haunt_experience: %s", row["haunt_experience"])
                         logger.debug("original birth date %s", original_bd)
-                        logger.debug("email_blocked after test: %s", eb)
-                        logger.debug("wear_mask: %s", row["wear_mask"])
-                        logger.debug("waiver: %s", row["waiver"])
-                        logger.debug("waiver after test: %s", wv)
-                        logger.debug("start_time %s", aware_st)
-                        logger.debug("end_time %s", aware_et)
-                        logger.debug("dob %s", dob)
-                        logger.debug("age %s", age)
-                        logger.debug("under_16 %s", under_16)
-                        logger.debug("under_18 %s", under_18)
+                        logger.debug("email_blocked: %s", eb)
+                        logger.debug("wear_mask: %s", wm)
+                        logger.debug("waiver: %s", wv)
+
 
                         ev, created = EventVolunteers.objects.update_or_create(
                             volunteer_id=user.id,
@@ -216,9 +266,11 @@ class Command(BaseCommand):
                                 "last_name": row["last_name"].strip(),
                                 "volunteer_id": user.id,
                                 "event_id": event.id,
+                                "event_name": event.event_name.strip(),
+                                "date": event.event_date,
                                 "hours": row["hours"].strip(),
                                 "points": points,
-                                "date": row["date"].strip(),
+                                "task": row["task"].strip(),
                                 "slot_column": row["slot_column"].strip(),
                                 "slot_row": row["slot_row"].strip(),
                                 "phone1": phone1,

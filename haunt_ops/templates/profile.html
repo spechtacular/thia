@@ -1,23 +1,51 @@
 {% extends "base.html" %}
 {% load static %}
 
-
 {% block title %}Edit Profile — {{ user.get_full_name }}{% endblock %}
 
 {% block content %}
-  <h1>Edit Your Profile</h1>
-  <h2>{{ user.first_name }}</h2>
-  {% if user.image_url %}
-    <img src="{% static 'people_pics/' %}{{ user.image_url }}" alt="Profile Picture"
-      style="width:100px; height:100px; object-fit:cover; border-radius:50%;">
-  {% else %}
-    <img src="{% static 'people_pics/default.jpg' %}" alt="Default Profile Picture"
-      style="width:100px; height:100px; object-fit:cover; border-radius:50%;">
-  {% endif %}
+<div class="container py-4">
+  <h1 class="mb-4">Edit Your Profile</h1>
+  <div class="row">
+    <!-- Avatar column -->
+    <div class="col-md-4 text-center mb-4">
+      {% if user.image_url %}
+        <img src="{% static 'people_pics/' %}{{ user.image_url }}"
+             class="img-fluid rounded-circle mb-3"
+             style="width: 150px; height: 150px; object-fit: cover;"
+             alt="Profile Picture">
+      {% else %}
+        <img src="{% static 'people_pics/default.jpg' %}"
+             class="img-fluid rounded-circle mb-3"
+             style="width: 150px; height: 150px; object-fit: cover;"
+             alt="Default Profile Picture">
+      {% endif %}
+      <h5 class="mt-2">{{ user.first_name }} {{ user.last_name }}</h5>
+    </div>
 
-  <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Save Changes</button>
-  </form>
+    <!-- Form column -->
+    <div class="col-md-8">
+      <form method="post" class="row g-3 needs-validation" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+          <div class="col-md-6 mb-3">
+            <label for="{{ field.id_for_label }}" class="form-label">
+              {{ field.label }}
+            </label>
+            {{ field }}
+            {% if field.errors %}
+              <div class="invalid-feedback d-block">
+                {{ field.errors|striptags }}
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+        <div class="col-12">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}
+

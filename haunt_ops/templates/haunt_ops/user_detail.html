@@ -1,8 +1,24 @@
 {% extends "base.html" %}
+{% block title %}User Detail{% endblock %}
+
 {% block content %}
-<h1>{{ user.username }}</h1>
-<p>Email: {{ user.email }}</p>
-<p>First name: {{ user.first_name }}<br>
-   Last name:  {{ user.last_name }}</p>
-<p><a href="{% url 'user_list' %}">← Back to all users</a></p>
+  <div class="card mb-4">
+    <div class="card-header">
+      <h2>{{ user.username }}</h2>
+    </div>
+    <div class="card-body">
+      <p><strong>Email:</strong> {{ user.email }}</p>
+      <p><strong>Thumbnail:</strong> <img src="{{ user.image_url }}" alt="User Image" class="img-thumbnail" style="max-width: 150px;"></p>
+      <p><strong>Phone:</strong> {{ user.phone1 }}</p>
+      <p><strong>First name:</strong> {{ user.first_name }}</p>
+      <p><strong>Last name:</strong> {{ user.last_name }}</p>
+      <p><strong>Date of birth:</strong> {{ user.date_of_birth|date:"Y-m-d " }}</p>
+      <p><strong>ICE Name:</strong> {{ user.ice_name }}</p>
+      <p><strong>ICE Relationship:</strong> {{ user.ice_relationship }}</p>
+      <p><strong>ICE Phone:</strong> {{ user.ice_phone }}</p>
+    </div>
+    <div class="card-footer">
+      <a href="{% url 'user_list' %}" class="btn btn-secondary">← Back to list</a>
+    </div>
+  </div>
 {% endblock %}

@@ -55,7 +55,7 @@ class Command(BaseCommand):
             __file__, log_dir=settings.LOG_DIR, log_level=log_level
         )
 
-        logger.info("Started load_groups command.")
+        logger.info("Starting load users command.")
 
         try:
             with open(file_path, newline="", encoding="utf-8") as csvfile:
