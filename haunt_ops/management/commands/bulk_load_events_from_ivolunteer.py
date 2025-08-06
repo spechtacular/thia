@@ -254,10 +254,10 @@ class Command(BaseCommand):
                         )
 
                     logging.info(message)
-            summary = f"✅Processed: {total}, Created: {created_count}, Updated: {updated_count}"
+            summary = f"✅Processed: {total} users, Created: {created_count}, Updated: {updated_count}"
             logging.info(summary)
             if dry_run:
-                logging.info("✅Dry-run mode enabled: no changes were saved.")
+                logging.info("✅Dry-run mode enabled: no users were saved.")
 
         except FileNotFoundError:
             logging.error("❌File not found: %s", file_path)

@@ -202,7 +202,7 @@ class Command(BaseUtilsCommand):
                 downloaded_file = self.wait_for_new_download(
                     download_directory, timeout=60
                 )
-                logging.info("✅ Report File downloaded: %s", downloaded_file)
+                logging.info("✅ ivolunteer Report File downloaded: %s", downloaded_file)
                 # Convert to CSV and replace ivolunteer column names with postgresql column names
                 self.convert_xls_to_csv(downloaded_file)
                 logger.info(

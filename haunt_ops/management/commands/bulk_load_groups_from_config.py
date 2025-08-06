@@ -106,11 +106,11 @@ class Command(BaseCommand):
 
                     message = f"{action} group: {group_name.id},{group_name}"
                     logging.info(message)
-            summary = f"Processed: {total}, Created: {created_count}, Updated: {updated_count}"
+            summary = f"Processed: {total} groups, Created: {created_count}, Updated: {updated_count}"
             logger.info("%s", summary)
             logger.info("group import from config file %s complete.", config_path)
             if dry_run:
-                logger.info("Dry-run mode enabled: no changes were saved.")
+                logger.info("Dry-run mode enabled: no groups were saved.")
 
         except yaml.YAMLError as e:
             logger.error("YAML parsing error: %s", str(e))

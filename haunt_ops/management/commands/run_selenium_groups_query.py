@@ -231,11 +231,11 @@ class Command(BaseCommand):
 
                             message = f"{action} event: {group.id},{group_name}"
                             logging.info(message)
-                summary = f"✅Processed: {total}, Created: {created_count}, Updated: {updated_count}"
+                summary = f"✅Processed: {total} groups, Created: {created_count}, Updated: {updated_count}"
                 logger.info("%s", summary)
                 logger.info("✅group import from ivolunteer complete.")
                 if dry_run:
-                    logger.info("✅Dry-run mode enabled: no changes were saved.")
+                    logger.info("✅Dry-run mode enabled: no groups were saved.")
 
             except Exception as e:
                 logger.error("Selenium Exception occurred: %s", str(e))

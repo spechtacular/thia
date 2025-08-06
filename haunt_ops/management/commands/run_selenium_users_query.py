@@ -233,7 +233,7 @@ class Command(BaseUtilsCommand):
                 download_directory, timeout=60
             )  # Wait for the file to download
 
-            logging.info("✅ Report File downloaded: %s", new_file_path)
+            logging.info("✅ ivolunteer Report File downloaded: %s", new_file_path)
 
             # Convert the downloaded file to CSV
             # and replace ivolunteer column names with postgresql column names

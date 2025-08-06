@@ -196,12 +196,12 @@ class Command(BaseCommand):
 
                         message = f"{action} event: {event.id},{formatted_event_date}"
                         logging.info(message)
-                summary = f"✅Processed: {total}, Created: {created_count}, Updated: {updated_count}"
+                summary = f"✅Processed: {total} events, Created: {created_count}, Updated: {updated_count}"
 
                 logger.info("%s", summary)
                 logger.info("✅event import form ivolunteer complete.")
                 if dry_run:
-                    logger.info("✅Dry-run mode enabled: no changes were saved.")
+                    logger.info("✅Dry-run mode enabled: no events were saved.")
 
             except Exception as e:
                 logger.error("❌Exception occurred: %s", e)

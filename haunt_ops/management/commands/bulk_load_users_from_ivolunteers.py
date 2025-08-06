@@ -205,9 +205,9 @@ class Command(BaseCommand):
             )
             self.stdout.write(self.style.SUCCESS(summary))
             logging.info(summary)
-            logger.info("✅CSV import complete.")
+            logger.info("✅CSV import of users complete.")
             if dry_run:
-                logger.info("✅Dry-run mode enabled: no changes were saved.")
+                logger.info("✅Dry-run mode enabled: no users were saved.")
 
         except FileNotFoundError:
             error_msg = f"❌File not found: {file_path}"
