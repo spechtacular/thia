@@ -42,7 +42,7 @@ class Command(BaseCommand):
             default="config/selenium_config.yaml",
             help="""Path to YAML configuration file (default: config/selenium_config.yaml) \n
               With Custom config:\n python manage.py load_config_example
-              --config=config/custom_config.yaml"""
+              --config=config/custom_config.yaml""",
         )
         parser.add_argument(
             "--dry-run",
@@ -174,7 +174,7 @@ class Command(BaseCommand):
                     By.XPATH,
                     "//div[@__idx"
                     " and normalize-space(.) != ''"
-                    " and not(ancestor-or-self::*[@aria-hidden='true'])]"
+                    " and not(ancestor-or-self::*[@aria-hidden='true'])]",
                 )
                 # 1) If you're already on the Groups tab, collect all visible __idx items
                 # This is a robust way to grab only the “displayed” entries in a

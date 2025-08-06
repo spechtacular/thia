@@ -11,6 +11,7 @@ import yaml
 
 from django.core.management.base import BaseCommand, CommandError
 from haunt_ops.models import Groups
+
 # pylint: disable=no-member
 
 logger = logging.getLogger("haunt_ops")  # Uses logger config from settings.py
@@ -26,7 +27,9 @@ class Command(BaseCommand):
         python manage.py load_groups_from_config --config=config/etl_config.yaml
     """
 
-    help = "Load or update events from configuration file named ./config/etl_config.yaml"
+    help = (
+        "Load or update events from configuration file named ./config/etl_config.yaml"
+    )
 
     def add_arguments(self, parser):
         parser.add_argument(

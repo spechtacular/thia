@@ -3,6 +3,7 @@ This file contains the models for the HauntOps application.
 It includes the AppUser model, Groups model, and related models 
   for managing user profiles and groups.
 """
+from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.base_user import BaseUserManager
 from django.utils.translation import gettext_lazy as _
@@ -53,32 +54,32 @@ class AppUser(AbstractUser):
     Custom user model for the HauntOps application.
     It extends the AbstractUser model and includes additional fields specific to the application.
     """
-    first_name = models.CharField(max_length=30, blank=True)
-    last_name = models.CharField(max_length=30, blank=True)
+    first_name = models.CharField(max_length=30, blank=False, null=False)
+    last_name = models.CharField(max_length=30, blank=False, null=False)
     email = models.CharField(max_length=150, unique=True)
     username = models.CharField(max_length=150, unique=True)
-    image_url = models.CharField(max_length=200, blank=True)
+    image_url = models.CharField(max_length=200, blank=True, default="unknown")
     tshirt_size = models.CharField(max_length=12, default="unknown")
     address = models.CharField(max_length=100, default="unknown")
-    city = models.CharField(max_length=100, blank=True)
+    city = models.CharField(max_length=100, blank=True, default="unknown")
     state = models.CharField(max_length=30, default="CA")
     zipcode = models.CharField(max_length=20, default="unknown")
     country = models.CharField(max_length=30, default="USA")
-    company = models.CharField(max_length=100, blank=True)
-    phone1 = models.CharField(max_length=12, default="unknown")
-    phone2 = models.CharField(max_length=12, blank=True)
-    date_of_birth = models.DateField()
-    last_activity = models.DateTimeField(blank=True)
+    company = models.CharField(max_length=100, blank=True, default="unknown")
+    phone1 = models.CharField(max_length=12, null=False, blank=False, default="unknown")
+    phone2 = models.CharField(max_length=12, blank=True, null=True)
+    date_of_birth = models.DateField(null=False,blank=False, default=timezone.now)
+    last_activity = models.DateTimeField(null=False, default=timezone.now)
     email_blocked = models.BooleanField(default=False)
-    ice_name = models.CharField(max_length=100, default="unknown")
-    ice_relationship = models.CharField(max_length=100, default="unknown")
-    ice_phone = models.CharField(max_length=12, default="unknown")
+    ice_name = models.CharField(max_length=100, null=False, blank=False)
+    ice_relationship = models.CharField(max_length=100, null=False, blank=False)
+    ice_phone = models.CharField(max_length=12, null=False, blank=False)
     wear_mask = models.BooleanField(default=False)
-    referral_source =  models.CharField(max_length=500,  blank=True)
-    haunt_experience =  models.CharField(max_length=500,  blank=True)
-    allergies =  models.CharField(max_length=100, blank=True)
+    referral_source =  models.CharField(max_length=500,  null=True, blank=True)
+    haunt_experience =  models.CharField(max_length=500,  null=True, blank=True, default="none")
+    allergies =  models.CharField(max_length=100, null=True, blank=True, default="none")
     waiver = models.BooleanField(default=False)
-    point_total = models.IntegerField(default=0)
+    point_total = models.FloatField(null=False,blank=False,default=0.0)
 
 
 
@@ -200,7 +201,7 @@ class EventVolunteers(models.Model):
     under_18 = models.BooleanField(blank=True,  default=False)
     under_16 = models.BooleanField(blank=True,  default=False)
     first_name = models.CharField(max_length=30, blank=True)
-    last_name = models.CharField(max_length=30, blank=True)
+    last_name = models.CharField(max_length=30, blank=False, null=False)
     hours = models.FloatField(blank=True)
     date = models.DateField()
     phone1 = models.CharField(max_length=12, default="unknown")
@@ -211,7 +212,7 @@ class EventVolunteers(models.Model):
     ice_name = models.CharField(max_length=100, default="unknown")
     ice_relationship = models.CharField(max_length=100, default="unknown")
     ice_phone = models.CharField(max_length=12, default="unknown")
-    allergies =  models.CharField(max_length=100, blank=True)
+    allergies =  models.CharField(max_length=100, blank=True, default="none")
     email_blocked = models.BooleanField(default=False)
 
 

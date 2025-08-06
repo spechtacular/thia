@@ -95,8 +95,10 @@ class Command(BaseCommand):
                             volunteer_id=user.id, event_id=event.id
                         ).exists()
                         action = "Would create" if not ev_exists else "Would update"
-                        message = (f"event_volunteers {action} for user.id: "
-                            f"{user.id}, event.id: {event.id}  with email: {user_email}")
+                        message = (
+                            f"event_volunteers {action} for user.id: "
+                            f"{user.id}, event.id: {event.id}  with email: {user_email}"
+                        )
 
                         if action == "Would create":
                             created_count += 1
@@ -246,8 +248,10 @@ class Command(BaseCommand):
                         else:
                             updated_count += 1
                             action = "Updated"
-                        message = (f"✅{action} event_volunteer: {ev.id}"
-                            f" ,user_id: {ev.volunteer_id} event_id: {ev.event_id}")
+                        message = (
+                            f"✅{action} event_volunteer: {ev.id}"
+                            f" ,user_id: {ev.volunteer_id} event_id: {ev.event_id}"
+                        )
 
                     logging.info(message)
             summary = f"✅Processed: {total}, Created: {created_count}, Updated: {updated_count}"

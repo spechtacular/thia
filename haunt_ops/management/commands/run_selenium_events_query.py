@@ -42,7 +42,8 @@ class Command(BaseCommand):
             default="config/selenium_config.yaml",
             help="""Path to YAML configuration file (default: config/selenium_config.yaml) \n
               With Custom config:\n python manage.py load_config_example
-                --config=config/custom_config.yaml"""        )
+                --config=config/custom_config.yaml""",
+        )
         parser.add_argument(
             "--dry-run",
             action="store_true",
