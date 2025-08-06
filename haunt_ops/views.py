@@ -9,14 +9,12 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
-from .forms import PublicSignupForm, AppUserChangeForm, ProfileForm
+from django.contrib.auth.views import LogoutView
 from django.urls import reverse
 
+from .forms import PublicSignupForm, AppUserChangeForm, ProfileForm
+
 from .models import AppUser, Events, Groups, EventVolunteers, GroupVolunteers
-
-
-
-
 
 
 logger = logging.getLogger(__name__)
@@ -219,6 +217,10 @@ def event_detail(request, pk):
     event = get_object_or_404(Events, pk=pk)
     return render(request, 'haunt_ops/event_detail.html', {'event': event})
 
+class LogoutViaGetView(LogoutView):
+    def get(self, request, *args, **kwargs):
+        # treat GET the same as POST
+        return super().post(request, *args, **kwargs)
 
 
 @login_required

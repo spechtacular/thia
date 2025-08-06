@@ -1,14 +1,20 @@
 """
 This command updates a user profile based on users email address.
-It allows updating user fields : first name, last name, phone numbers,
-and optionally assigns an image url based on image files in the specified image directory.
+It allows updating user fields : image_url only, for now
+It assigns an image url based on image file names in the specified image directory.
 """
 
 import os
+
 from django.core.management.base import BaseCommand, CommandError
+from django.conf import settings
+
 from haunt_ops.models import AppUser
+from haunt_ops.utils.logging_utils import configure_rotating_logger
+
 
 # pylint: disable=no-member
+
 
 
 class Command(BaseCommand):
@@ -26,43 +32,50 @@ class Command(BaseCommand):
         parser.add_argument(
             "--image_directory",
             type=str,
+            default="static/people_pics",
             help="pass the path to the people_pics directory containing volunteer images.",
-            default=None,
         )
 
-        parser.add_argument("--first_name", type=str, help="First name", default=None)
-        parser.add_argument("--last_name", type=str, help="Last name", default=None)
-        parser.add_argument("--phone1", type=str, help="Phone number", default=None)
-        parser.add_argument("--phone2", type=str, help="Phone number", default=None)
-        parser.add_argument("--image_url", type=str, help="Image URL", default=None)
+        parser.add_argument(
+            "--log",
+            type=str,
+            default="INFO",
+            choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+            help="Set the log level (default: INFO)",
+        )
+
+        parser.add_argument(
+            "--image_url",
+            type=str,
+            help="Update image_url field in app_user table",
+            default="image_url"
+        )
 
         parser.add_argument(
             "--dry-run", action="store_true", help="Preview changes without saving them"
         )
 
-    def process_file_name(self, imagefile, user):
+    def process_file_name(self, imagefile, user, logger):
         """
         Process the image file name to match user first and last names.
         Returns the image file name if it matches the user's first and last names.
         """
         filename, ext = os.path.splitext(imagefile)
-        self.stdout.write(f"Processing people_pics file: {imagefile}")
+        logger.info("Processing people_pics file: %s", {imagefile})
         allowed_extensions = {".jpg", ".jpeg", ".png"}
-        # Add your custom logic here, e.g.,
-        # - Parse information from the filename
-        # - Perform database operations based on the filename
-        # - Rename the file
-        # - etc.
+        # convert user first and last names to lower case and remove weird characters
         fname = user.first_name.lower().replace("'", "").replace('"', "")
         lname = user.last_name.lower().replace("'", "_").replace('"', "")
+        # convert image file name to lower case
         ifile = imagefile.lower()
 
-        self.stdout.write(f"Processing people_pics file: {ifile},{fname},{lname}")
+        logger.info("Processing people_pics file: %s,%s,%s", {ifile},{fname},{lname})
+
         if fname in ifile and lname in ifile:
             name, ext = os.path.splitext(ifile)
 
             if ext not in allowed_extensions:
-                self.stdout.write(f"Skipping unsupported file type: {filename}")
+                logger.info("Skipping unsupported file type: %s", {filename})
                 return None
 
             return imagefile
@@ -72,17 +85,24 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         email = options["email"]
         dry_run = options["dry_run"]
+        image_directory = options["image_directory"]
+        field = options["image_url"]
+        log_level = options["log"].upper()
+
+         # Get a unique log file using __file__
+        logger = configure_rotating_logger(
+            __file__, log_dir=settings.LOG_DIR, log_level=log_level
+        )
+
 
         try:
             user = AppUser.objects.get(email=email)
         except AppUser.DoesNotExist:  # pylint: disable=no-member
-            self.stderr.write(
-                self.style.ERROR(f"User with email {email} not found.")
-            )  # pylint: disable=no-member
+            logger.error("User with email %s not found.",{email})
             return
 
         # Print user ID
-        self.stdout.write(f"Found user ID: {user.id}")
+        logger.info("Found user ID: %s, searching image directory %s", {user.id}, {image_directory})
 
         # Update fields if provided
         fields_updated = False
@@ -90,46 +110,32 @@ class Command(BaseCommand):
             new_value = options.get(field)
 
             if new_value is not None:
-                self.stderr.write(
-                    self.style.SUCCESS(f"User with email {email} updating {field}")
-                )  # pylint: disable=no-member
+                logger.info("User with email %s updating %s", {email}, {field})
                 if field == "image_url":
-                    image_path = options["image_directory"]
+                    image_path = image_directory
                     if not os.path.isdir(image_path):
                         raise CommandError(
                             f'Directory "{image_path}" does not exist.'
-                        )  # pylint: disable=no-member
+                        )
 
-                    self.stdout.write(
-                        self.style.SUCCESS(f"Processing files in: {image_path}")
-                    )  # pylint: disable=no-member
+                    logger.info("Processing files in: %s", {image_path})
 
                     for filename in os.listdir(image_path):
                         file_path = os.path.join(image_path, filename)
                         if os.path.isfile(file_path):
-                            pic_file_found = self.process_file_name(filename, user)
+                            pic_file_found = self.process_file_name(filename, user, logger)
                             if pic_file_found is not None:
-                                self.stdout.write(
-                                    self.style.SUCCESS(
-                                        f"found image_url {pic_file_found} for {email} ."
+                                logger.info(
+                                        "found image_url %s for %s ", {pic_file_found}, {file_path}
                                     )
-                                )  # pylint: disable=no-member
                                 setattr(user, "image_url", pic_file_found)
                                 fields_updated = True
                                 break
 
                         if fields_updated:
-                            self.stdout.write(
-                                self.style.SUCCESS(
-                                    f"File processing for user {email} complete."
-                                )
-                            )
+                            logger.info("File processing for user %s complete.", {email})
                         else:
-                            self.stdout.write(
-                                self.style.ERROR(
-                                    f'no matching image for user {email}".'
-                                )
-                            )  # pylint: disable=no-member
+                            logger.error("no matching image for user %s", {email})
 
                 else:
                     # not updating the image_url fields
@@ -139,10 +145,8 @@ class Command(BaseCommand):
         if fields_updated:
             if not dry_run:
                 user.save()
-                self.stdout.write(self.style.SUCCESS(f"Updated profile for {email}"))
+                logger.info("Updated profile for %s", {email})
             else:
-                self.stdout.write(
-                    self.style.WARNING("Dry run enabled — no changes saved.")
-                )
+                logger.warning("Dry run enabled — no app_user fields saved.")
         else:
-            self.stdout.write("No fields provided to update.")
+            logger.info("No fields provided to update.")

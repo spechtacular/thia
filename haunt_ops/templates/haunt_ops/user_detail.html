@@ -8,7 +8,10 @@
     </div>
     <div class="card-body">
       <p><strong>Email:</strong> {{ user.email }}</p>
-      <p><strong>Thumbnail:</strong> <img src="{{ user.image_url }}" alt="User Image" class="img-thumbnail" style="max-width: 150px;"></p>
+      <p><strong>Thumbnail:</strong> <img src="{% static 'people_pics/' %}{{ user.image_url }}"
+             class="img-fluid rounded-circle mb-3"
+             style="width: 150px; height: 150px; object-fit: cover;"
+             alt="Profile Picture"> </p>
       <p><strong>Phone:</strong> {{ user.phone1 }}</p>
       <p><strong>First name:</strong> {{ user.first_name }}</p>
       <p><strong>Last name:</strong> {{ user.last_name }}</p>
