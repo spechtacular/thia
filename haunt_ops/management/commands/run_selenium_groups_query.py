@@ -18,6 +18,7 @@ from haunt_ops.models import Groups
 
 
 # pylint: disable=no-member
+# pylint: disable=import-outside-toplevel
 
 logger = logging.getLogger("haunt_ops")  # Uses logger config from settings.py
 
@@ -32,14 +33,16 @@ class Command(BaseCommand):
         python manage.py run_selenium_groups_query --config=config/selenium_config.yaml --dry-run
     """
 
-    help = "Load or update groups from ivolunteers Groups page, uses configuration file named ./config/selenium_config.yaml"
+    help = "Load or update groups from ivolunteers Groups page"
 
     def add_arguments(self, parser):
         parser.add_argument(
             "--config",
             type=str,
             default="config/selenium_config.yaml",
-            help="Path to YAML configuration file (default: config/selenium_config.yaml) \n With Custom config:\n python manage.py load_config_example --config=config/custom_config.yaml",
+            help="""Path to YAML configuration file (default: config/selenium_config.yaml) \n
+              With Custom config:\n python manage.py load_config_example
+              --config=config/custom_config.yaml"""
         )
         parser.add_argument(
             "--dry-run",
@@ -86,7 +89,9 @@ class Command(BaseCommand):
             driver = webdriver.Chrome(options=options)
 
             # optional driver specification
-            # driver = webdriver.Chrome(service=webdriver.ChromeService(executable_path='/path/to/chromedriver'), options=options)
+            # driver = webdriver.Chrome(
+            #   service=webdriver.ChromeService(executable_path=
+            #   '/path/to/chromedriver'), options=options)
             iv_password = config["login"]["password"]
             if iv_password == "ENV":
                 iv_password = os.environ.get("IVOLUNTEER_PASSWORD")
@@ -165,57 +170,72 @@ class Command(BaseCommand):
                 #    if div.is_displayed() and div.text.strip() != ""
                 # ]
 
-                # 1) If you're already on the Groups tab, collect all visible __idx items
                 els = driver.find_elements(
                     By.XPATH,
-                    "//div[@__idx and normalize-space(.) != '' and not(ancestor-or-self::*[@aria-hidden='true'])]",
+                    "//div[@__idx"
+                    " and normalize-space(.) != ''"
+                    " and not(ancestor-or-self::*[@aria-hidden='true'])]"
                 )
+                # 1) If you're already on the Groups tab, collect all visible __idx items
+                # This is a robust way to grab only the “displayed” entries in a
+                # dynamic GWT table or list.
+                for el in els:
+                    idx = el.get_attribute("__idx")
+                    text = el.text.strip()
+                    print(f"Item {idx}: {text}")
+
+                # collect all visible names
                 group_names = [el.text.strip() for el in els if el.is_displayed()]
+                if not group_names:
+                    logger.warning("❌No groups found in the Groups tab.")
+                    raise CommandError("❌ No groups found in the Groups tab.")
+                else:
+                    logger.info("Found %d groups in the Groups tab.", len(group_names))
 
-                for group_name in group_names:
-                    print(group_name)
-                    total += 1
+                    for group_name in group_names:
+                        print(group_name)
+                        total += 1
 
-                    logger.info("Group Name: %s", group_name)
+                        logger.info("Group Name: %s", group_name)
 
-                    if dry_run:
-                        group_exists = Groups.objects.filter(
-                            group_name=group_name
-                        ).exists()  #  Check if group exists
-                        if group_exists:
-                            updated_count += 1
-                            action = "Updated"
+                        if dry_run:
+                            group_exists = Groups.objects.filter(
+                                group_name=group_name
+                            ).exists()  #  Check if group exists
+                            if group_exists:
+                                updated_count += 1
+                                action = "Updated"
+                            else:
+                                created_count += 1
+                                action = "Created"
+                            dry_run_action = (
+                                "Would create" if not group_exists else "Would update"
+                            )
+                            message = f"{dry_run_action} event: {group_name}"
+                            logging.info(message)
+
                         else:
-                            created_count += 1
-                            action = "Created"
-                        dry_run_action = (
-                            "Would create" if not group_exists else "Would update"
-                        )
-                        message = f"{dry_run_action} event: {group_name}"
-                        logging.info(message)
+                            group, created = Groups.objects.update_or_create(
+                                group_name=group_name,
+                                defaults={
+                                    "group_points": 1,
+                                    "group_name": group_name.strip(),
+                                },
+                            )
+                            if created:
+                                created_count += 1
+                                action = "Created"
+                            else:
+                                updated_count += 1
+                                action = "Updated"
 
-                    else:
-                        group, created = Groups.objects.update_or_create(
-                            group_name=group_name,
-                            defaults={
-                                "group_points": 1,
-                                "group_name": group_name.strip(),
-                            },
-                        )
-                        if created:
-                            created_count += 1
-                            action = "Created"
-                        else:
-                            updated_count += 1
-                            action = "Updated"
-
-                        message = f"{action} event: {group.id},{group_name}"
-                        logging.info(message)
-                summary = f"Processed: {total}, Created: {created_count}, Updated: {updated_count}"
+                            message = f"{action} event: {group.id},{group_name}"
+                            logging.info(message)
+                summary = f"✅Processed: {total}, Created: {created_count}, Updated: {updated_count}"
                 logger.info("%s", summary)
-                logger.info("group import from ivolunteer complete.")
+                logger.info("✅group import from ivolunteer complete.")
                 if dry_run:
-                    logger.info("Dry-run mode enabled: no changes were saved.")
+                    logger.info("✅Dry-run mode enabled: no changes were saved.")
 
             except Exception as e:
                 logger.error("Selenium Exception occurred: %s", str(e))

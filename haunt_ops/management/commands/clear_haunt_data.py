@@ -19,6 +19,7 @@ from haunt_ops.models import (
     EventVolunteers,
 )
 
+# pylint: disable=no-member
 logger = logging.getLogger("haunt_ops")  # Uses logger config from settings.py
 
 
@@ -28,9 +29,9 @@ class Command(BaseCommand):
         python manage.py clear_haunt_data --dry-run
     or without dry-run
         python manage.py clear_haunt_data
-    This command deletes all data from key operational tables, with optional --dry-run to preview deletions.
-    It does not delete required accounts, such as sysadmin and test accounts.
-    It will not delete AppUser accounts with IDs 2 and 3, which are used as sysadmin and test accounts.
+    This command deletes all data from key operational tables,
+         optional --dry-run to preview deletions.
+    It does not delete specifed accounts, such as sysadmin and test accounts.
     """
 
     help = "Deletes all data from key operational tables, with optional --dry-run"

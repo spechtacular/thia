@@ -206,7 +206,9 @@ class Command(BaseUtilsCommand):
             # Then targets the radio <input> before the label
             radio_button = driver.find_element(
                 By.XPATH,
-                "//label[text()='All Database Participants']/preceding-sibling::input[@type='radio']",
+                "//label[text()="
+                "'All Database Participants']/"
+                "preceding-sibling::input[@type='radio']",
             )
 
             driver.execute_script("arguments[0].checked = true;", radio_button)

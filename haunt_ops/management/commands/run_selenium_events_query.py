@@ -19,7 +19,7 @@ import yaml
 from haunt_ops.models import Events
 
 # pylint: disable=no-member
-
+# pylint: disable=syntax-error
 logger = logging.getLogger("haunt_ops")  # Uses logger config from settings.py
 
 
@@ -33,15 +33,16 @@ class Command(BaseCommand):
         python manage.py run_selenium_events_query --config=config/selenium_config.yaml
     """
 
-    help = "Load or update events from ivolunteers Events page, uses configuration file named ./config/selenium_config.yaml"
+    help = "Load or update events from ivolunteers Events page"
 
     def add_arguments(self, parser):
         parser.add_argument(
             "--config",
             type=str,
             default="config/selenium_config.yaml",
-            help="Path to YAML configuration file (default: config/selenium_config.yaml) \n With Custom config:\n python manage.py load_config_example --config=config/custom_config.yaml",
-        )
+            help="""Path to YAML configuration file (default: config/selenium_config.yaml) \n
+              With Custom config:\n python manage.py load_config_example
+                --config=config/custom_config.yaml"""        )
         parser.add_argument(
             "--dry-run",
             action="store_true",
@@ -87,7 +88,9 @@ class Command(BaseCommand):
             driver = webdriver.Chrome(options=options)
 
             # optional driver specification
-            # driver = webdriver.Chrome(service=webdriver.ChromeService(executable_path='/path/to/chromedriver'), options=options)
+            # driver = webdriver.Chrome(
+            #   service=webdriver.ChromeService(executable_path=
+            #       '/path/to/chromedriver'), options=options)
 
             iv_password = config["login"]["password"]
             if iv_password == "ENV":

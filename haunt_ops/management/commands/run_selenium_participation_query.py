@@ -22,6 +22,7 @@ from haunt_ops.management.commands.base_utils import BaseUtilsCommand
 
 # pylint: disable=no-member
 
+
 logger = logging.getLogger("haunt_ops")
 
 
@@ -41,7 +42,7 @@ class Command(BaseUtilsCommand):
             "--config",
             type=str,
             default="config/selenium_config.yaml",
-            help="Path to YAML configuration file (default: config/selenium_config.yaml) \n With Custom config:\n python manage.py load_config_example --config=config/custom_config.yaml",
+            help="Path to YAML configuration file (default: config/selenium_config.yaml)",
         )
 
     def handle(self, *args, **kwargs):
@@ -142,7 +143,8 @@ class Command(BaseUtilsCommand):
                 # Format
                 format_select = driver.find_element(
                     By.XPATH,
-                    "//span[contains(text(), 'Format:')]/ancestor::tr/following-sibling::tr[1]//select",
+                    "//span[contains(text()",
+                    "'Format:')]/ancestor::tr/following-sibling::tr[1]//select",
                 )
                 Select(format_select).select_by_value("EXCEL")
                 logger.info("Selected EXCEL format option")
@@ -180,7 +182,9 @@ class Command(BaseUtilsCommand):
                 # All Database Participants
                 radio = driver.find_element(
                     By.XPATH,
-                    "//label[text()='All Database Participants']/preceding-sibling::input[@type='radio']",
+                    "//label[text()="
+                    "'All Database Participants']"
+                    "/preceding-sibling::input[@type='radio']",
                 )
                 driver.execute_script("arguments[0].checked = true;", radio)
                 logger.info("Selected All Database Participants option")

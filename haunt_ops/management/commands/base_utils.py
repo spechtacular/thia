@@ -1,5 +1,18 @@
-# haunt_ops/management/commands/base_utils.py
-
+"""
+This module provides a base class for utility commands:
+    1) A method to convert Excel files to CSV. The converted files
+    have a csv extension instead of xls"
+    2) A method to replace Excel column names based on a YAML
+     mapping.The CSV file containing replaced headers are
+     prefixed with 'replaced_' to indicate that the
+     column names have been modified
+     to be PostgreSQL friendly.
+    3) A method to wait for a new file download to complete,
+     rename it to "<command>-YYYYmmdd-HHMMSS<ext>" and return
+     the new path. This is useful for commands that download files
+     from ivolunteer and need to ensure the file is fully
+     downloaded before processing.
+"""
 import os
 import sys
 import time
@@ -56,8 +69,8 @@ class BaseUtilsCommand(BaseCommand):
             raise CommandError(f"❌ Parser error: {e}") from e
         except pd.errors.XLRDError as e:
             raise CommandError(f"❌ Excel read error: {e}") from e
-        except pd.errors.EmptyDataError:
-            raise CommandError(f"❌ No data in {input_path}")
+        except pd.errors.EmptyDataError as exc:
+            raise CommandError(f"❌ No data in {input_path}") from exc
         except (OSError, IOError) as e:
             raise CommandError(f"❌ File I/O error: {e}") from e
         except Exception as e:

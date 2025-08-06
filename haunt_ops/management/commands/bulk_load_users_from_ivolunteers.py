@@ -181,16 +181,20 @@ class Command(BaseCommand):
                                         )
                                     )
                                     if created:
-                                        gmsg = f" | Added to group: {group.group_name} and created GroupVolunteers entry {gv.id}."
+                                        gmsg = (f" | Added to group: {group.group_name} "
+                                        "and created GroupVolunteers entry {gv.id}.")
                                     else:
-                                        gmsg = f" | Already in group: {group.group_name} and GroupVolunteers entry exists {gv.id}."
+                                        gmsg = (f" | Already in group: {group.group_name} "
+                                                    "and GroupVolunteers entry exists {gv.id}.")
 
                                 except Groups.objects.model.DoesNotExist as exc:
-                                    gmsg = f"❌ No group found with name {experience} for user {user_email}."
+                                    gmsg = (f"❌ No group found with name {experience} "
+                                            "for user {user_email}.")
                                 finally:
                                     logging.info(gmsg)
                         logging.info(message)
-            summary = f"✅Processed: {total} users, Created: {created_count} users, Updated: {updated_count} users"
+            summary = (f"✅Processed: {total} users, Created: {created_count} "
+                       "users, Updated: {updated_count} users")
             self.stdout.write(self.style.SUCCESS(summary))
             logging.info(summary)
             logger.info("✅CSV import complete.")
