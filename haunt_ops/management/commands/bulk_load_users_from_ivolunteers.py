@@ -21,9 +21,9 @@ from haunt_ops.utils.logging_utils import configure_rotating_logger
 class Command(BaseCommand):
     """
     start command
-        python manage.py bulk_load_users_from_ivolunteers --csv path/to/users.csv 
+        python manage.py bulk_load_users_from_ivolunteers --csv path/to/users.csv
     or with dry-run
-        python manage.py bulk_load_users_from_ivolunteers --csv path/to/users.csv --dry-run 
+        python manage.py bulk_load_users_from_ivolunteers --csv path/to/users.csv --dry-run
     or with log-level
         python manage.py bulk_load_users_from_ivolunteers --csv path/to/users.csv --log-level DEBUG
     """
@@ -164,12 +164,14 @@ class Command(BaseCommand):
                         for experience in haunt_experience:
                             experience = experience.strip()
                             if experience:
-                                gmsg=""
+                                gmsg = ""
                                 try:
                                     group = Groups.objects.get(group_name=experience)
                                     logging.info(
                                         "Group ID: %d, Name: %s for user %s",
-                                        group.id, group.group_name, user_email
+                                        group.id,
+                                        group.group_name,
+                                        user_email,
                                     )
                                     gv, created = (
                                         GroupVolunteers.objects.update_or_create(
@@ -184,7 +186,7 @@ class Command(BaseCommand):
                                         gmsg = f" | Already in group: {group.group_name} and GroupVolunteers entry exists {gv.id}."
 
                                 except Groups.objects.model.DoesNotExist as exc:
-                                    gmsg =f"❌ No group found with name {experience} for user {user_email}." 
+                                    gmsg = f"❌ No group found with name {experience} for user {user_email}."
                                 finally:
                                     logging.info(gmsg)
                         logging.info(message)
@@ -194,7 +196,6 @@ class Command(BaseCommand):
             logger.info("✅CSV import complete.")
             if dry_run:
                 logger.info("✅Dry-run mode enabled: no changes were saved.")
-                
 
         except FileNotFoundError:
             error_msg = f"❌File not found: {file_path}"

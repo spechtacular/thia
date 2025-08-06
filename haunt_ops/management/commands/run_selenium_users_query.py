@@ -2,6 +2,7 @@
 This command uses selenium to query the ivolunteer database user report.
 It uses configuration data from a configuration file named ./config/selenium_config.yaml.
 """
+
 import os
 import time
 
@@ -25,24 +26,21 @@ class Command(BaseUtilsCommand):
         python manage.py run_selenium_users_query
     or with custom config
         python manage.py run_selenium_users_query --config=config/custom_config.yaml
-    
+
     """
 
     help = "Run Selenium query for user data from iVolunteer."
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--config',
+            "--config",
             type=str,
-            default='config/selenium_config.yaml',
-            help='Path to selenium configuration file (default: config/selenium_config.yaml) \n With Custom config:\n python manage.py load_config_example --config=config/custom_config.yaml'
+            default="config/selenium_config.yaml",
         )
-        
-
 
     def handle(self, *args, **kwargs):
         config_file = kwargs.get("config", "config/selenium_config.yaml")
-    
+
         # Load configuration from YAML file
         with open(config_file, encoding="UTF-8") as f:
             config = yaml.safe_load(f)
@@ -70,11 +68,9 @@ class Command(BaseUtilsCommand):
         # driver = webdriver.Chrome(service=webdriver.ChromeService(
         #   executable_path='/path/to/chromedriver'), options=options)
 
-    
         iv_password = config["login"]["password"]
         if iv_password == "ENV":
             iv_password = os.environ.get("IVOLUNTEER_PASSWORD")
-
 
         wait = WebDriverWait(driver, 30)
 
@@ -83,11 +79,15 @@ class Command(BaseUtilsCommand):
             driver.get(config["login"]["url"])
             wait.until(EC.presence_of_element_located((By.ID, "org_admin_login")))
             driver.find_element(By.ID, "action0").send_keys(config["login"]["org_id"])
-            driver.find_element(By.ID, "action1").send_keys(config["login"]["admin_email"])
+            driver.find_element(By.ID, "action1").send_keys(
+                config["login"]["admin_email"]
+            )
             driver.find_element(By.ID, "action2").send_keys(iv_password)
             driver.find_element(By.ID, "Submit").click()
 
-            logger.info("✅ Successfully logged in as %s ", config["login"]["admin_email"])
+            logger.info(
+                "✅ Successfully logged in as %s ", config["login"]["admin_email"]
+            )
 
             # Wait for Dashboard
             database_menu = wait.until(
@@ -145,7 +145,8 @@ class Command(BaseUtilsCommand):
                         if option.is_enabled():
                             report_dropdown.select_by_value("DbParticipantReportExcel")
                             logger.info(
-                                "✅ Successfully selected DbParticipantReportExcel after wait")
+                                "✅ Successfully selected DbParticipantReportExcel after wait"
+                            )
                             break
                 else:
                     time.sleep(1)
@@ -153,9 +154,7 @@ class Command(BaseUtilsCommand):
                 break
 
             else:
-                raise RuntimeError(
-                    "❌ 'DbParticipationReport' never became enabled."
-                )
+                raise RuntimeError("❌ 'DbParticipationReport' never became enabled.")
 
             # Sort/Group
             sort_group_dropdown = driver.find_element(
@@ -165,7 +164,7 @@ class Command(BaseUtilsCommand):
 
             logger.info("📑 Selecting page size option")
 
-            # After selecting Report & Sort/Group, re-query the dropdowns 
+            # After selecting Report & Sort/Group, re-query the dropdowns
             # because the options may have changed
             wait.until(
                 EC.presence_of_element_located(
@@ -192,7 +191,9 @@ class Command(BaseUtilsCommand):
 
             if not checkbox.is_selected():
                 checkbox.click()
-                logger.info("✅ 'List events for each participant' checkbox is now checked.")
+                logger.info(
+                    "✅ 'List events for each participant' checkbox is now checked."
+                )
             else:
                 logger.info(
                     "ℹ️ 'List events for each participant' checkbox was already checked."
@@ -201,7 +202,7 @@ class Command(BaseUtilsCommand):
             # Select "All Database Participants"
             logger.info("Selected all database participants")
 
-            # XPath Finds the <label> with that exact text. 
+            # XPath Finds the <label> with that exact text.
             # Then targets the radio <input> before the label
             radio_button = driver.find_element(
                 By.XPATH,
@@ -210,7 +211,9 @@ class Command(BaseUtilsCommand):
 
             driver.execute_script("arguments[0].checked = true;", radio_button)
 
-            logger.info("✅ Selected Run Report option, Radio button force-selected via JS")
+            logger.info(
+                "✅ Selected Run Report option, Radio button force-selected via JS"
+            )
 
             # Wait until the button is clickable
             # locate by title
@@ -232,11 +235,10 @@ class Command(BaseUtilsCommand):
 
             # Convert the downloaded file to CSV
             # and replace ivolunteer column names with postgresql column names
-            self.convert_xls_to_csv(new_file_path)  
-            logger.info( "✅ ivolunteer users report completed successfully.")
+            self.convert_xls_to_csv(new_file_path)
+            logger.info("✅ ivolunteer users report completed successfully.")
 
         except Exception as e:
             logger.error("❌ Error occurred: %s ", str(e))
         finally:
             driver.quit()
-

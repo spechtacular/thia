@@ -10,6 +10,7 @@ from haunt_ops.models import AppUser
 
 # pylint: disable=no-member
 
+
 class Command(BaseCommand):
     """
     start command

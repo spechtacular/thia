@@ -23,12 +23,12 @@ logger = logging.getLogger("haunt_ops")  # Uses logger config from settings.py
 class Command(BaseCommand):
     """
     run command
-       python manage.py bulk_load_events_from_ivolunteer 
-                --csv=path/to/users.csv 
+       python manage.py bulk_load_events_from_ivolunteer
+                --csv=path/to/users.csv
     or with dry-run option
-       python manage.py bulk_load_events_from_ivolunteer 
+       python manage.py bulk_load_events_from_ivolunteer
                 --csv=path/to/users.csv --dry-run
-    
+
     """
 
     help = "Load or update ivolunteer users from a CSV file."
@@ -40,7 +40,6 @@ class Command(BaseCommand):
             action="store_true",
             help="Simulate updates without saving to database.",
         )
-       
 
     def handle(self, *args, **kwargs):
         file_path = kwargs["csv"]
@@ -61,12 +60,17 @@ class Command(BaseCommand):
                         logging.warning(message)
                         continue
 
-
                     # Check if user exists
                     try:
                         user = AppUser.objects.get(email=user_email)
-                        logger.info("processing app_user=%s,%s,%s,%s,%s",
-                                user.id, user.email, user.first_name, user.last_name, user.date_of_birth)
+                        logger.info(
+                            "processing app_user=%s,%s,%s,%s,%s",
+                            user.id,
+                            user.email,
+                            user.first_name,
+                            user.last_name,
+                            user.date_of_birth,
+                        )
                     except ObjectDoesNotExist:
                         logger.error("No user with  email %s found.", user_email)
                         continue
@@ -76,19 +80,25 @@ class Command(BaseCommand):
                         edate = row["date"].strip()
                         logger.debug("edate: %s", edate)
                         event = Events.objects.filter(event_date=edate).first()
-                        logger.info("processing event: %s, %s, %s, %s",event.id, event.event_name, event.event_date, event.event_status)
+                        logger.info(
+                            "processing event: %s, %s, %s, %s",
+                            event.id,
+                            event.event_name,
+                            event.event_date,
+                            event.event_status,
+                        )
                     except ObjectDoesNotExist:
-                        logger.error("No event dated %s found.", edate)   
+                        logger.error("No event dated %s found.", edate)
                         continue
-                    
-
 
                     if dry_run:
-                        ev_exists = EventVolunteers.objects.filter(volunteer_id=user.id, event_id=event.id).exists()
+                        ev_exists = EventVolunteers.objects.filter(
+                            volunteer_id=user.id, event_id=event.id
+                        ).exists()
                         action = "Would create" if not ev_exists else "Would update"
                         message = f"event_volunteers {action} for user.id: {user.id}, event.id: {event.id}  with email: {user_email}"
                         if action == "Would create":
-                            created_count += 1  
+                            created_count += 1
                         else:
                             updated_count += 1
                     else:
@@ -125,43 +135,40 @@ class Command(BaseCommand):
                         else:
                             wv = False
 
-                        eb = False
-                        if "true" in row["email_blocked"].strip().lower():
-                            eb = True
-                        else:
-                            eb = False
+                        eb = "true" in row["email_blocked"].strip().lower()
 
-                        wm = False
-                        if "true" in row["wear_mask"].strip().lower():
-                            wm = True
-                        else:
-                            wm = False
+                        wm = "true" in row["wear_mask"].strip().lower()
+                        
 
                         # todays date
                         today = date.today()
-                        age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+                        age = (
+                            today.year
+                            - dob.year
+                            - ((today.month, today.day) < (dob.month, dob.day))
+                        )
                         # use date_of_birth to determine if user is over 16
-                        under_16 = (age < 16)
+                        under_16 = age < 16
                         # use date_of_birth to determine if user is over 18
-                        under_18 = (age < 18)
+                        under_18 = age < 18
 
-                        signed_in = (row["signed_in"] == "Yes")
+                        signed_in = row["signed_in"] == "Yes"
 
-                        confirmed = (row["confirmed"] == "Yes")
+                        confirmed = row["confirmed"] == "Yes"
 
-                        waitlist = (row["waitlist"] == "Yes")
-  
-                        conflict = (row["conflict"] == "Yes")
+                        waitlist = row["waitlist"] == "Yes"
+
+                        conflict = row["conflict"] == "Yes"
 
                         points = row["points"]
                         if points in (None or ""):
                             points = 0.0
 
-                        phone1=""
+                        phone1 = ""
                         if row[phone1] is None or row[phone1] == "":
                             phone1 = user.phone1
                         else:
-                            phone1 = row["phone1"].strip()  
+                            phone1 = row["phone1"].strip()
 
                         ice_name = ""
                         if row["ice_name"] is None or row["ice_name"] == "":
@@ -170,17 +177,19 @@ class Command(BaseCommand):
                             ice_name = row["ice_name"].strip()
 
                         ice_relationship = ""
-                        if row["ice_relationship"] is None or row["ice_relationship"] == "":
+                        if (
+                            row["ice_relationship"] is None
+                            or row["ice_relationship"] == ""
+                        ):
                             ice_relationship = user.ice_relationship
                         else:
-                            ice_relationship = row["ice_relationship"].strip()  
+                            ice_relationship = row["ice_relationship"].strip()
 
                         ice_phone = ""
                         if row["ice_phone"] is None or row["ice_phone"] == "":
                             ice_phone = user.ice_phone
                         else:
                             ice_phone = row["ice_phone"].strip()
-
 
                         # use date_of_birth to determine if user is over 16
                         logger.debug("points: %f", points)
@@ -238,7 +247,7 @@ class Command(BaseCommand):
                             updated_count += 1
                             action = "Updated"
                         message = f"✅{action} event_volunteer: {ev.id},user_id: {ev.volunteer_id} event_id: {ev.event_id}"
-                    
+
                     logging.info(message)
             summary = f"✅Processed: {total}, Created: {created_count}, Updated: {updated_count}"
             logging.info(summary)

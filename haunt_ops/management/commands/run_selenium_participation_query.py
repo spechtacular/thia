@@ -25,27 +25,24 @@ from haunt_ops.management.commands.base_utils import BaseUtilsCommand
 logger = logging.getLogger("haunt_ops")
 
 
-
 class Command(BaseUtilsCommand):
     """
     start command
-        python manage.py run_selenium_participation_query 
+        python manage.py run_selenium_participation_query
     or with custom config
-        python manage.py run_selenium_participation_query --config=config/custom_config.yaml 
-    
+        python manage.py run_selenium_participation_query --config=config/custom_config.yaml
+
     """
 
     help = "Run Selenium query for participation data from iVolunteer."
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--config',
+            "--config",
             type=str,
-            default='config/selenium_config.yaml',
-            help='Path to YAML configuration file (default: config/selenium_config.yaml) \n With Custom config:\n python manage.py load_config_example --config=config/custom_config.yaml'
+            default="config/selenium_config.yaml",
+            help="Path to YAML configuration file (default: config/selenium_config.yaml) \n With Custom config:\n python manage.py load_config_example --config=config/custom_config.yaml",
         )
-        
-
 
     def handle(self, *args, **kwargs):
         config_file = kwargs.get("config", "config/selenium_config.yaml")
@@ -78,13 +75,18 @@ class Command(BaseUtilsCommand):
                 wait = WebDriverWait(driver, 30)
                 driver.get(config["login"]["url"])
                 wait.until(EC.presence_of_element_located((By.ID, "org_admin_login")))
-                driver.find_element(By.ID, "action0").send_keys(config["login"]["org_id"])
-                driver.find_element(By.ID, "action1").send_keys(config["login"]["admin_email"])
+                driver.find_element(By.ID, "action0").send_keys(
+                    config["login"]["org_id"]
+                )
+                driver.find_element(By.ID, "action1").send_keys(
+                    config["login"]["admin_email"]
+                )
                 driver.find_element(By.ID, "action2").send_keys(iv_password)
                 driver.find_element(By.ID, "Submit").click()
 
-                logger.info("✅ Successfully logged in as %s ", config["login"]["admin_email"])
-
+                logger.info(
+                    "✅ Successfully logged in as %s ", config["login"]["admin_email"]
+                )
 
                 # Navigate
                 wait.until(
@@ -112,7 +114,6 @@ class Command(BaseUtilsCommand):
                 report_dropdown_elem = dropdowns[4]
                 report_dropdown = Select(report_dropdown_elem)
 
-                
                 # Find the option you want
                 for i in range(10):  # retry for up to 10 seconds
                     for option in report_dropdown.options:
@@ -130,8 +131,7 @@ class Command(BaseUtilsCommand):
                     raise RuntimeError(
                         "❌ 'DbParticipationReport' never became enabled."
                     )
-            
-            
+
                 # Sort/Group
                 sort_group_dropdown = driver.find_element(
                     By.XPATH, "//span[text()='Sort/Group:']/following::select[1]"
@@ -183,7 +183,7 @@ class Command(BaseUtilsCommand):
                     "//label[text()='All Database Participants']/preceding-sibling::input[@type='radio']",
                 )
                 driver.execute_script("arguments[0].checked = true;", radio)
-                logger.info("Selected All Database Participants option") 
+                logger.info("Selected All Database Participants option")
 
                 # Run Report
                 run_button = WebDriverWait(driver, 10).until(
@@ -196,12 +196,14 @@ class Command(BaseUtilsCommand):
 
                 # Wait for download
                 downloaded_file = self.wait_for_new_download(
-                        download_directory, timeout=60
+                    download_directory, timeout=60
                 )
                 logging.info("✅ Report File downloaded: %s", downloaded_file)
                 # Convert to CSV and replace ivolunteer column names with postgresql column names
                 self.convert_xls_to_csv(downloaded_file)
-                logger.info("✅ ivolunteer participation report completed successfully.")
+                logger.info(
+                    "✅ ivolunteer participation report completed successfully."
+                )
 
             except Exception as e:
                 logger.error("❌ Error during Selenium execution: %s", str(e))
@@ -215,4 +217,3 @@ class Command(BaseUtilsCommand):
             self.stderr.write(self.style.ERROR(tb))
             # Then raise a CommandError with the original message
             raise CommandError(f"❌ Execution failed: {e}") from e
-        

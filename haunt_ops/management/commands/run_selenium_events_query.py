@@ -100,13 +100,18 @@ class Command(BaseCommand):
                 logger.info("🔐 Logging in...")
                 driver.get(config["login"]["url"])
                 wait.until(EC.presence_of_element_located((By.ID, "org_admin_login")))
-                driver.find_element(By.ID, "action0").send_keys(config["login"]["org_id"])
-                driver.find_element(By.ID, "action1").send_keys(config["login"]["admin_email"])
+                driver.find_element(By.ID, "action0").send_keys(
+                    config["login"]["org_id"]
+                )
+                driver.find_element(By.ID, "action1").send_keys(
+                    config["login"]["admin_email"]
+                )
                 driver.find_element(By.ID, "action2").send_keys(iv_password)
                 driver.find_element(By.ID, "Submit").click()
 
-                logger.info("✅ Successfully logged in as %s ", config["login"]["admin_email"])
-
+                logger.info(
+                    "✅ Successfully logged in as %s ", config["login"]["admin_email"]
+                )
 
                 # Wait for Dashboard
                 events_menu = wait.until(
@@ -187,7 +192,7 @@ class Command(BaseCommand):
 
                         message = f"{action} event: {event.id},{formatted_event_date}"
                         logging.info(message)
-                summary = f"✅Processed: {total}, Created: {created_count}, Updated: {updated_count}" 
+                summary = f"✅Processed: {total}, Created: {created_count}, Updated: {updated_count}"
 
                 logger.info("%s", summary)
                 logger.info("✅event import form ivolunteer complete.")

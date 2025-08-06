@@ -14,21 +14,30 @@ from django.core.management.base import BaseCommand, CommandError
 
 # pylint: disable=no-member
 
-logger = logging.getLogger('haunt_ops')
+logger = logging.getLogger("haunt_ops")
 
 
 class BaseUtilsCommand(BaseCommand):
+    """Base class for utility commands that handle file conversion and column renaming.
+    Provides methods to convert Excel files to CSV and replace column names based on a YAML mapping.
+    The converted CSV files are prefixed with 'replaced_' to indicate that the column names
+    have been modified to be PostgreSQL friendly.
+    """
+
     PREFIX = "replaced_"
 
     def convert_xls_to_csv(self, input_path):
-        """Convert Excel (.xls/.xlsx) → CSV,  this takes run_selenium_participation_query_date.xls and 
-             creates a csv file run_selenium_participation_query_date.csv.
-            The new csv file is input to replace_column_names and the original ivolunteer excel column
-             names are replaced with postgresql friendly column names and the output file name is
-               replaced_run_selenium_participation_query_date.csv
-            The replaced_run_selenium_participation_query_date.csv file is input to the 
-               bulk_load_events_from_ivolunteer script to load ivolunteer data into the postgresql database
-	"""
+        """Convert Excel (.xls/.xlsx) → CSV,  this takes
+        run_selenium_participation_query_date.xls and
+         creates a csv file run_selenium_participation_query_date.csv.
+        The new csv file is input to replace_column_names and the original
+            ivolunteer excel column
+         names are replaced with postgresql friendly column names and the output file name is
+           replaced_run_selenium_participation_query_date.csv
+        The replaced_run_selenium_participation_query_date.csv file is input to the
+           bulk_load_events_from_ivolunteer script to load ivolunteer data into
+            the postgresql database
+        """
         sheet_name = 0
         output_path = None
 
@@ -118,7 +127,9 @@ class BaseUtilsCommand(BaseCommand):
                         # avoid collisions
                         i = 1
                         while os.path.exists(new_path):
-                            new_path = os.path.join(download_dir, f"{cmd}-{ts}-{i}{ext}")
+                            new_path = os.path.join(
+                                download_dir, f"{cmd}-{ts}-{i}{ext}"
+                            )
                             i += 1
 
                         try:
@@ -136,3 +147,6 @@ class BaseUtilsCommand(BaseCommand):
 
         raise CommandError(f"❌No completed download in {timeout}s")
 
+    def handle(self, *args, **options):
+        """Base handle method to be overridden by subclasses."""
+        raise NotImplementedError("Subclasses must implement the handle method.")

@@ -1,8 +1,8 @@
 """
 Command to clear haunt-related operational data.
-Deletes data from key tables like AppUser, Events, Groups, 
+Deletes data from key tables like AppUser, Events, Groups,
     EventChecklist, GroupVolunteers, and EventVolunteers.
-Can be run in dry-run mode to preview deletions without actually 
+Can be run in dry-run mode to preview deletions without actually
     removing data.
 """
 
