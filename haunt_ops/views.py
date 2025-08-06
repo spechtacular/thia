@@ -2,11 +2,20 @@
 This file contains views for the HauntOps application.
 It includes views for user profiles, signup, and the home page.
 """
+import logging
 from django.contrib.auth import authenticate, login
+from django.contrib.auth import get_user_model
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
-from .forms import PublicSignupForm, AppUserChangeForm
+from django.contrib.auth import logout
+from .forms import PublicSignupForm, AppUserChangeForm, ProfileForm
+from django.urls import reverse
+
+from .forms import PublicSignupForm, ProfileForm, AppUserChangeForm
+from .models import AppUser
+
+
+logger = logging.getLogger(__name__)
 
 def signup(request):
    """   
@@ -56,16 +65,20 @@ def login_view(request):
     It authenticates the user and redirects to their public profile if successful.
     If the credentials are invalid, it renders the login template with an error message.
     """
-    if request.method == "POST" and 'username' in request.POST and 'password' in request.POST:
-        username = request.POST['username']
-        password = request.POST['password']
-        user = authenticate(request, username=username, password=password)
+    if request.method == 'POST':
+        email = request.POST.get('username')  # the login form field is still "username"
+        password = request.POST.get('password')
+        user = authenticate(request, username=email, password=password)
         if user:
             login(request, user)
-            return redirect(reverse('public_profile', args=[user.username]))
+            return redirect('profile')
         else:
-            return render(request, 'login.html', {'error': 'Invalid credentials'})
-    return render(request, 'login.html')
+            return render(request, 'registration/login.html', {
+                'form_error': 'Invalid email or password.'
+            })
+
+    return render(request, 'registration/login.html')
+
 
 
 def public_profile(request, username):
@@ -75,7 +88,33 @@ def public_profile(request, username):
     If the user does not exist, it raises a 404 error.
     """
     user = get_object_or_404(User, username=username)
-    profile = user.profile
-    return render(request, 'public_profile.html', 
-       {'user_profile': profile})
+    return render(request, 'public_profile.html', {'user_profile': user_obj})
 
+def profile_view(request):
+    if request.method == 'POST':
+        form = ProfileForm(request.POST, request.FILES, instance=request.user)
+        if form.is_valid():
+            form.save()
+            return redirect('profile')
+    else:
+        form = ProfileForm(instance=request.user)
+
+    return render(request, 'profile.html', {'form': form})
+
+def user_list(request):
+    users = AppUser.objects.all()
+    return render(request, 'haunt_ops/user_list.html', {'users': users})
+
+
+def user_detail(request, pk):
+    user = get_object_or_404(AppUser, pk=pk)
+    return render(request, 'haunt_ops/user_detail.html', {'user': user})
+
+
+@login_required
+def logout_view(request):
+    """
+    Log the user out and redirect to the login page.
+    """
+    logout(request)
+    return redirect('login')   # or wherever you want them to go

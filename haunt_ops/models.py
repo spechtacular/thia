@@ -163,8 +163,8 @@ class Events(models.Model) :
     It includes fields for event date, name, and status.
     """
     id = models.BigAutoField(primary_key=True)
-    event_date = models.DateField(blank=True)
-    event_name = models.CharField(max_length=500, blank=True)
+    event_date = models.DateField(blank=False,null=False)
+    event_name = models.CharField(max_length=500, blank=False,null=False)
     event_status = models.TextField(max_length=50, default="TBD")
     class Meta:
         """
@@ -212,7 +212,7 @@ class EventVolunteers(models.Model):
     ice_name = models.CharField(max_length=100, default="unknown")
     ice_relationship = models.CharField(max_length=100, default="unknown")
     ice_phone = models.CharField(max_length=12, default="unknown")
-    allergies =  models.CharField(max_length=100, blank=True, default="none")
+    allergies =  models.CharField(max_length=100, blank=True, null=True, default="none")
     email_blocked = models.BooleanField(default=False)
 
 

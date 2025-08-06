@@ -69,3 +69,19 @@ class PublicSignupForm(UserCreationForm):
         if commit:
             user.save()
         return user
+
+class ProfileForm(UserChangeForm):
+    class Meta:
+        model = AppUser
+        # list exactly the fields you *do* want—do NOT include "password"
+        fields = (
+            'email', 'first_name', 'last_name',
+            'image_url', 'date_of_birth', 'image_url',
+            'phone1', 'phone2', 'ice_relationship', 'ice_name', 'ice_phone',
+            'tshirt_size', 'address', 'city', 'city', 'state', 'point_total'
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Just in case, remove the password field if it sneaks in
+        self.fields.pop('password', None)

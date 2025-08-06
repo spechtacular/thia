@@ -1,31 +1,23 @@
+{% extends "base.html" %}
 {% load static %}
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title></title>
-</head>
-<body>
-    <h1>Edit Your Profile</h1>
-   {% load custom_filters %}
-    <h2>{{ user.first_name }} </h2> <!-- {{ user_profile.user.last_name|replace_apostrophe }}</h2> -->
-        {% if user.image_url %}
-           <img src="{% static 'people_pics/' %}{{ user.image_url }}" alt="Profile Picture"
-              style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%;">
-        {% else %}
-           <img src="{% static 'people_pics/default.jpg' %}" alt="Missing Profile Picture"
-              style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%;">
-        {% endif %}
-     <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Save Changes</button>
-     </form>
-    <p>
-     <form method="post" action="{% url 'logout' %}">
-        {% csrf_token %}
-        <button type="submit">Log Out</button>
-    </form>
-    </p>
-</body>
-</html>
+
+{% block title %}Edit Profile — {{ user.get_full_name }}{% endblock %}
+
+{% block content %}
+  <h1>Edit Your Profile</h1>
+  <h2>{{ user.first_name }}</h2>
+  {% if user.image_url %}
+    <img src="{% static 'people_pics/' %}{{ user.image_url }}" alt="Profile Picture"
+      style="width:100px; height:100px; object-fit:cover; border-radius:50%;">
+  {% else %}
+    <img src="{% static 'people_pics/default.jpg' %}" alt="Default Profile Picture"
+      style="width:100px; height:100px; object-fit:cover; border-radius:50%;">
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Save Changes</button>
+  </form>
+{% endblock %}
