@@ -60,7 +60,7 @@ class AppUser(AbstractUser):
     last_name = models.CharField(max_length=30, blank=False, null=False)
     email = models.CharField(max_length=150, unique=True)
     username = models.CharField(max_length=150, unique=True)
-    image_url = models.CharField(max_length=200, blank=True, default="unknown")
+    image_url = models.CharField(max_length=200, blank=True, default="default.jpg")
     tshirt_size = models.CharField(max_length=12, default="unknown")
     address = models.CharField(max_length=100, default="unknown")
     city = models.CharField(max_length=100, blank=True, default="unknown")
