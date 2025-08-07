@@ -7,6 +7,8 @@ from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.base_user import BaseUserManager
 from django.utils.translation import gettext_lazy as _
+from django.db.models import UniqueConstraint
+from django.db.models.functions import Lower
 # we have a custom user table so lets get the table name from the settings file
 from django.conf import settings
 
@@ -120,7 +122,10 @@ class Groups(models.Model) :
     Model representing groups in the HauntOps application.
     It includes fields for group name and points associated with the group.
     """
-    group_name = models.CharField(max_length=100, unique=True)
+    id = models.BigAutoField(primary_key=True)
+    #group_name = models.CharField(max_length=100, unique=True, null=False, blank=False)
+    group_name = models.CharField(max_length=100, unique=True, null=True, blank=True)
+
     group_points = models.IntegerField(default=1)
 
     class Meta:
@@ -130,8 +135,11 @@ class Groups(models.Model) :
         """
         db_table = 'groups'
         ordering = ['group_name']
+        constraints = [
+            UniqueConstraint(Lower('group_name'), name='uniq_group_name_ci')
+        ]
 
-    def __str__(self):
+    def __str__(self)->str:
         return self.group_name or "Unnamed Group"
 
 class Events(models.Model) :
@@ -159,6 +167,9 @@ class Events(models.Model) :
         return f"{self.event_name or 'Unnamed Event'} "
 
 class GroupVolunteers(models.Model):
+    """
+    Model correlating Haunt Users with groups they have participated in.
+    """
     id = models.BigAutoField(primary_key=True)
 
     volunteer = models.ForeignKey(
@@ -166,11 +177,7 @@ class GroupVolunteers(models.Model):
         on_delete=models.CASCADE,
         related_name='group_volunteers_as_volunteer'
     )
-    users = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='group_volunteers_as_user'
-    )
+
     group = models.ForeignKey(
         Groups,
         on_delete=models.CASCADE,
@@ -192,7 +199,7 @@ class EventVolunteers(models.Model):
     end_time = models.DateTimeField(blank=True)
     volunteer = models.ForeignKey(AppUser, models.DO_NOTHING)
     event = models.ForeignKey(Events, models.DO_NOTHING)
-    task = models.TextField()
+    task = models.TextField(blank=True, null=True)
     slot_column = models.TextField(blank=True)
     slot_row = models.TextField(blank=True)
     signed_in = models.BooleanField(blank=True,  default=False)
@@ -200,16 +207,18 @@ class EventVolunteers(models.Model):
     confirmed = models.BooleanField(blank=True,  default=False)
     waitlist = models.BooleanField(blank=True,  default=False)
     points = models.FloatField(blank=True,  default=0.0)
-    event_name = models.TextField()
+    event_name = models.TextField(blank=True, null=True)
     under_18 = models.BooleanField(blank=True,  default=False)
     under_16 = models.BooleanField(blank=True,  default=False)
     first_name = models.CharField(max_length=30, blank=True)
-    last_name = models.CharField(max_length=30, blank=False, null=False)
-    hours = models.FloatField(blank=True)
-    date = models.DateField()
+    last_name = models.CharField(max_length=30, blank=True, null=True)
+    hours = models.FloatField(blank=True,null=True)
+    #date = models.DateField()
+    date = models.DateField(null=True, blank=True)
     phone1 = models.CharField(max_length=12, default="unknown")
     full_address = models.CharField(max_length=100, default="unknown")
-    date_of_birth = models.DateField()
+    #date_of_birth = models.DateField()
+    date_of_birth = models.DateField(null=True, blank=True)
     wear_mask = models.BooleanField(blank=True,  default=False)
     waiver = models.BooleanField(blank=True,  default=False)
     ice_name = models.CharField(max_length=100, default="unknown")
@@ -243,5 +252,5 @@ class EventVolunteers(models.Model):
         ordering = ['date']
 
     def __str__(self):
-        return f"{self.volunteer.email} - {self.event.event_name} - {self.group_name}"
+        return f"{self.volunteer.email} - {self.event.event_name} - {self.task}"
 

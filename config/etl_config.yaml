@@ -22,7 +22,7 @@ features:
 
 
 
-csv_header_name_mapping: 
+csv_header_name_mapping:
   "Unnamed: 0": "id"
   "F.Name": "first_name"
   "L.Name" : "last_name"
@@ -74,7 +74,7 @@ csv_header_name_mapping:
 
 
 
-  
+
 groups:
   "Build Team": 1
   "Build Team Members": 1
@@ -95,14 +95,13 @@ groups:
   "Room Actors": 1
   "Scare Actor": 1
   "Social Media": 1
-  "social Media": 1
   "Threshold Guardian" : 1
   "Ticket Booth" : 1
   "Ticket Taker/Door Control" : 1
   "Zipline" : 1
-  
 
-   
+
+
 
 
 

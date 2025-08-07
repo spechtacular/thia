@@ -7,10 +7,13 @@
       <h2>{{ user.first_name }} {{ user.last_name }}</h2>
     </div>
     <div class="card-body">
-      <p><strong>Thumbnail:</strong> <img src="{% static 'people_pics/' %}{{ user.image_url }}"
-             class="img-fluid rounded-circle mb-3"
-             style="width: 150px; height: 150px; object-fit: cover;"
-             alt="Profile Picture"> </p>
+      <p>
+        <div class="ratio" style="--bs-aspect-ratio: 133.333%; max-width: 320px;">
+          <img src="{% static 'people_pics/' %}{{ user.image_url }}"
+              class="w-100 h-100 rounded-2 object-fit-cover"
+              alt="Profile Picture">
+        </div>
+      </p>
       <p><strong>First name:</strong> {{ user.first_name }}</p>
       <p><strong>Last name:</strong> {{ user.last_name }}</p>
       <p><strong>Phone:</strong> {{ user.phone1 }}</p>

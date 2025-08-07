@@ -18,19 +18,19 @@ from .models import AppUser, Events, Groups, EventVolunteers, GroupVolunteers
 logger = logging.getLogger(__name__)
 
 def signup(request):
-   """
-   View for handling user signup.
-   It uses the PublicSignupForm to create a new user.
-   If the form is valid, it saves the user and redirects to the login page.
-   """
-   if request.method == 'POST':
-       form = PublicSignupForm(request.POST)
-       if form.is_valid():
-           form.save()
-           return redirect('login')  # redirect after signup
-   else:
-      form = PublicSignupForm()
-   return render(request, 'registration/signup.html', {'form': form})
+    """
+    View for handling user signup.
+    It uses the PublicSignupForm to create a new user.
+    If the form is valid, it saves the user and redirects to the login page.
+    """
+    if request.method == 'POST':
+        form = PublicSignupForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('login')  # redirect after signup
+    else:
+        form = PublicSignupForm()
+    return render(request, 'registration/signup.html', {'form': form})
 
 
 def home(request):
@@ -144,32 +144,27 @@ def event_volunteers_list(request):
     })
 
 def group_volunteers_list(request):
-    # 1. Grab every row in the junction table
-    ev_rows = GroupVolunteers.objects.all()
+    """
+    correlate volunteers with groups they have experience with
+    """
+    # Pull related user & group in one query
+    qs = (GroupVolunteers.objects
+          .select_related('volunteer', 'group')
+          .order_by('group__group_name', 'volunteer__last_name', 'volunteer__first_name'))
 
-    data = []
-    for ev in ev_rows:
-        # 2. From each EventVolunteers, pull the two IDs
-        user_id  = ev.volunteer_id
-        group_id = ev.group_id
+    paginator = Paginator(qs, 25)  # 25 rows per page
+    page_number = request.GET.get('page', 1)
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
 
-        # 3. Look up each record by its PK
-        user  = AppUser.objects.get(pk=user_id)
-        group = Groups.objects.get(pk=group_id)
-
-        # 4. Build a dict of exactly the fields you want
-        data.append({
-            'group_name':   group.group_name,
-            'email':        user.email,
-            'first_name':   user.first_name,
-            'last_name':    user.last_name,
-            'phone1':       user.phone1,
-        })
-
-    # 5. Pass that list into the template
     return render(request, 'haunt_ops/group_volunteers_list.html', {
-        'rows': data
+        'page_obj': page_obj,
     })
+
 
 def events_list(request):
     """
@@ -219,6 +214,9 @@ def user_detail(request, pk):
     return render(request, 'haunt_ops/user_detail.html', {'user': user})
 
 def event_detail(request, pk):
+    """
+    page that lists all volunteers for a specific event
+    """
     # Grab the event or 404
     event = get_object_or_404(Events, pk=pk)
 
@@ -231,6 +229,9 @@ def event_detail(request, pk):
     })
 
 def event_prep(request, event_pk, vol_pk):
+    """
+    Page related to each volunteers prep for a specific event
+    """
     event  = get_object_or_404(Events, pk=event_pk)
     ev_signup = get_object_or_404(
         EventVolunteers.objects.select_related('volunteer','event'),
@@ -247,7 +248,7 @@ def event_prep(request, event_pk, vol_pk):
 
     return render(request, 'event_prep.html', {
         'event':  event,
-        'signup': ev_signup,
+        'ev_signup': ev_signup,
         'user':   ev_signup.volunteer,
         'form':   form,
     })

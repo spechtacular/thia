@@ -166,7 +166,8 @@ class Command(BaseCommand):
                             if experience:
                                 gmsg = ""
                                 try:
-                                    group = Groups.objects.get(group_name=experience)
+                                    # case insensitive lookup
+                                    group = Groups.objects.get(group_name_iexact=experience)
                                     logging.info(
                                         "Group ID: %d, Name: %s for user %s",
                                         group.id,

@@ -82,6 +82,9 @@ class PublicSignupForm(UserCreationForm):
             fld.widget.attrs.update({'class': 'form-control'})
 
 class ProfileForm(UserChangeForm):
+    """
+    user profile page , updates to the user info is made here
+    """
     class Meta:
         model = AppUser
         # list exactly the fields you *do* want—do NOT include "password"
