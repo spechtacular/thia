@@ -25,6 +25,7 @@
       <div class="collapse navbar-collapse" id="mainNav">
         <!-- LEFT: Events & Groups dropdowns -->
         <ul class="navbar-nav me-auto">
+          <li class="nav-item"><a class="nav-link" href="{% url 'user_list' %}">Users</a></li>
           <!-- Events -->
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" id="eventsDropdown" role="button"
@@ -51,12 +52,9 @@
         </ul>
 
         <!-- RIGHT: user links -->
-        <ul class="navbar-nav ms-auto">
+        <ul class="navbar-nav ms-auto align-items-center">
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'user_list' %}">Users</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'profile' %}">My Profile</a>
+            <a class="nav-link" href="{% url 'profile' %}">Profile</a>
           </li>
           <li class="nav-item">
             <form method="post" action="{% url 'logout' %}" class="d-inline">
