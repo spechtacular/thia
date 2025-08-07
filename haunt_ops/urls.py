@@ -5,7 +5,7 @@ It maps URLs to views for user profiles, signup, and the home page.
 from django.urls import path
 from django.contrib.auth.views import LogoutView
 
-from haunt_ops.views import public_profile, LogoutViaGetView
+from haunt_ops.views import public_profile
 from . import views
 
 urlpatterns = [
@@ -21,5 +21,5 @@ urlpatterns = [
     path('event-volunteers/', views.event_volunteers_list, name='event_volunteers_list'),
     path('groups/', views.groups_list, name='groups_list'),
     path('group-volunteers/', views.group_volunteers_list, name='group_volunteers_list'),
-    path('accounts/logout/', LogoutViaGetView.as_view(), name='logout'),
+    path('events/<int:event_pk>/volunteer/<int:vol_pk>/prep/',views.event_prep,name='event_prep'),
 ]

@@ -1,6 +1,6 @@
 """
 This file contains the models for the HauntOps application.
-It includes the AppUser model, Groups model, and related models 
+It includes the AppUser model, Groups model, and related models
   for managing user profiles and groups.
 """
 from django.utils import timezone
@@ -29,7 +29,7 @@ class AppUserManager(BaseUserManager):
         extra_fields.setdefault('username',email)
         extra_fields.setdefault('is_active', True)
         extra_fields.setdefault("is_staff", False)
-        extra_fields.setdefault("is_superuser", False)    
+        extra_fields.setdefault("is_superuser", False)
         user = self.model(email=email, **extra_fields)
         if password:
             user.set_password(password)
@@ -46,11 +46,11 @@ class AppUserManager(BaseUserManager):
         extra_fields.setdefault("username", email)
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
-        extra_fields.setdefault("is_active", True)    
+        extra_fields.setdefault("is_active", True)
         return self.create_user(email=email, password=password, **extra_fields)
 
 class AppUser(AbstractUser):
-    """        
+    """
     Custom user model for the HauntOps application.
     It extends the AbstractUser model and includes additional fields specific to the application.
     """
@@ -94,6 +94,7 @@ class AppUser(AbstractUser):
         Meta class for AppUser"
         """
         db_table = 'app_user'
+        ordering = ['last_name']
 
     def __str__(self):
         return self.email
@@ -105,9 +106,9 @@ class AppUser(AbstractUser):
             Override Save method for AppUser model.
             It ensures that the username is set to the email if not provided.
             This is a fix to the signup issue I had:
-            You're setting extra_fields.setdefault("username", email) in the manager, 
+            You're setting extra_fields.setdefault("username", email) in the manager,
             but your signup path (via UserCreationForm) is not using the manager—
-            it creates the model instance and calls user.save() directly. 
+            it creates the model instance and calls user.save() directly.
             So your manager logic never runs, and username stays empty.
         """
         if not self.username and self.email:
@@ -128,34 +129,10 @@ class Groups(models.Model) :
             It specifies the database table name for the model.
         """
         db_table = 'groups'
+        ordering = ['group_name']
 
     def __str__(self):
         return self.group_name or "Unnamed Group"
-
-
-class GroupVolunteers(models.Model) :
-    """
-    Model representing the relationship between groups and volunteers.
-    It includes foreign keys to the AppUser and Groups models.
-    """
-    id = models.BigAutoField(primary_key=True)
-    # volunteer is a foreign key to the AppUser model
-    volunteer = models.ForeignKey(settings.AUTH_USER_MODEL,
-                on_delete=models.CASCADE)
-    group = models.ForeignKey(Groups,
-            on_delete=models.CASCADE)
-
-    class Meta:
-        """           
-            Meta class for GroupVolunteers.
-        It specifies the database table name for the model.
-        """
-        managed = False
-        # This model is managed by the database, not Django migrations
-        db_table = 'group_volunteers'
-
-    def __str__(self):
-        return "Unnamed Group"
 
 class Events(models.Model) :
     """
@@ -170,15 +147,40 @@ class Events(models.Model) :
         """
         Meta class for Events.
         It specifies the database table name for the model.
-        This model is not managed by Django migrations, 
+        This model is not managed by Django migrations,
             meaning it is expected to be created and managed by the database directly.
-        This is useful for legacy tables or when the 
+        This is useful for legacy tables or when the
             table structure is controlled outside of Django.
         """
         db_table = 'events'
+        ordering = ['event_date']
 
     def __str__(self):
         return f"{self.event_name or 'Unnamed Event'} "
+
+class GroupVolunteers(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
+    volunteer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='group_volunteers_as_volunteer'
+    )
+    users = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='group_volunteers_as_user'
+    )
+    group = models.ForeignKey(
+        Groups,
+        on_delete=models.CASCADE,
+        related_name='group_volunteers'
+    )
+
+    class Meta:
+        db_table = 'group_volunteers'
+        ordering = ['group']
+
 
 class EventVolunteers(models.Model):
     """
@@ -189,6 +191,7 @@ class EventVolunteers(models.Model):
     start_time = models.DateTimeField(blank=True)
     end_time = models.DateTimeField(blank=True)
     volunteer = models.ForeignKey(AppUser, models.DO_NOTHING)
+    event = models.ForeignKey(Events, models.DO_NOTHING)
     task = models.TextField()
     slot_column = models.TextField(blank=True)
     slot_row = models.TextField(blank=True)
@@ -214,6 +217,9 @@ class EventVolunteers(models.Model):
     ice_phone = models.CharField(max_length=12, default="unknown")
     allergies =  models.CharField(max_length=100, blank=True, null=True, default="none")
     email_blocked = models.BooleanField(default=False)
+    makeup = models.BooleanField(default=False)
+    costume = models.BooleanField(default=False)
+
 
 
 
@@ -222,7 +228,7 @@ class EventVolunteers(models.Model):
     class Meta:
         """
         Meta class for EventVolunteers.
-        It specifies the database table name 
+        It specifies the database table name
             and that this model is not managed by Django migrations.
         """
         # This model is managed by the database, not Django migrations
@@ -230,49 +236,12 @@ class EventVolunteers(models.Model):
         # It is typically used for legacy tables or when the table is managed by another system
         # or when you want to prevent Django from making changes to the table structure.
         # This is useful when you have a pre-existing table that you want to use with Django models.
-        # It allows you to define a model that maps to an existing table without Django 
+        # It allows you to define a model that maps to an existing table without Django
         # trying to manage it.
         #
-        managed = False
         db_table = 'event_volunteers'
+        ordering = ['date']
 
     def __str__(self):
         return f"{self.volunteer.email} - {self.event.event_name} - {self.group_name}"
 
-class EventChecklist(models.Model) :
-    """
-    Model representing a checklist for volunteers in the HauntOps application.
-    It includes fields for volunteer details, group, event, and various checklist items.
-    """
-    id = models.BigAutoField(primary_key=True)
-    volunteer = models.ForeignKey(settings.AUTH_USER_MODEL,
-                on_delete=models.CASCADE)
-    group = models.ForeignKey(Groups,
-            on_delete=models.CASCADE)
-    event = models.ForeignKey(Events,
-            on_delete=models.CASCADE)
-
-    signed_in = models.BooleanField(default=False)
-    costume = models.BooleanField(default=False)
-    makeup = models.BooleanField(default=False)
-    trained =  models.BooleanField(default=False)
-
-    class Meta:
-        """ 
-        Meta class for EventChecklist.
-        It specifies the database table name and that this model 
-            is not managed by Django migrations.
-        """
-        managed = False
-        # This model is managed by the database, not Django migrations
-        # This means that Django will not create or modify the table for this model
-        # It is typically used for legacy tables or when the table is managed by another system
-        # or when you want to prevent Django from making changes to the table structure.
-        # This is useful when you have a pre-existing table that you want to use with Django models.
-        # It allows you to define a model that maps to an existing table without Django 
-        #   trying to manage it.
-        #
-        db_table = 'event_checklist'
-
-    def __str__(self):
-        return f"Checklist: {self.volunteer.email} for {self.event.event_name}"

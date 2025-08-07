@@ -4,15 +4,13 @@ It includes views for user profiles, signup, and the home page.
 """
 import logging
 from django.contrib.auth import authenticate, login
-from django.contrib.auth import get_user_model
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
-from django.contrib.auth.views import LogoutView
-from django.urls import reverse
 
-from .forms import PublicSignupForm, AppUserChangeForm, ProfileForm
+
+from .forms import PublicSignupForm, AppUserChangeForm, ProfileForm, EventPrepForm
 
 from .models import AppUser, Events, Groups, EventVolunteers, GroupVolunteers
 
@@ -89,10 +87,13 @@ def public_profile(request, username):
     It retrieves the user by username and renders the public profile template.
     If the user does not exist, it raises a 404 error.
     """
-    user = get_object_or_404(User, username=username)
-    return render(request, 'public_profile.html', {'user_profile': user_obj})
+    user = get_object_or_404(AppUser, username=username)
+    return render(request, 'public_profile.html', {'user_profile': user})
 
 def profile_view(request):
+    """
+    user profile page
+    """
     if request.method == 'POST':
         form = ProfileForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
@@ -104,9 +105,12 @@ def profile_view(request):
     return render(request, 'profile.html', {'form': form})
 
 def user_list(request):
+    """
+    list users from app_user table
+    """
     users = AppUser.objects.all()
-    # Paginate with 10 users per page
-    paginator = Paginator(users, 10)
+    # Paginate with 20 users per page
+    paginator = Paginator(users, 20)
     page = request.GET.get('page', 1)
 
     try:
@@ -121,11 +125,13 @@ def user_list(request):
     })
 
 def event_volunteers_list(request):
-    evols = EventVolunteers.objects.all()
-    # Paginate with 10 event volunteers per page
-    paginator = Paginator(evols, 10)
+    evols = EventVolunteers.objects.all().order_by('date')
+    # Paginate with 20 event volunteers per page
+    paginator = Paginator(evols, 20)
     page = request.GET.get('page', 1)
 
+    # DEBUGGING: log out how many records you found
+    logging.getLogger(__name__).info("Found %d event volunteers", evols.count())
     try:
         evols_page = paginator.page(page)
     except PageNotAnInteger:
@@ -170,9 +176,9 @@ def events_list(request):
     View for listing all events.
     It retrieves all events from the database and paginates them.
     """
-    events = Events.objects.all()
+    events = Events.objects.all().order_by('event_date')
     # Paginate with 10 events per page
-    paginator = Paginator(events, 10)
+    paginator = Paginator(events, 20)
     page = request.GET.get('page', 1)
 
     try:
@@ -193,7 +199,7 @@ def groups_list(request):
     """
     groups = Groups.objects.all()
     # Paginate with 10 groups per page
-    paginator = Paginator(groups, 10)
+    paginator = Paginator(groups, 20)
     page = request.GET.get('page', 1)
 
     try:
@@ -208,19 +214,43 @@ def groups_list(request):
     })
 
 
-
 def user_detail(request, pk):
     user = get_object_or_404(AppUser, pk=pk)
     return render(request, 'haunt_ops/user_detail.html', {'user': user})
 
 def event_detail(request, pk):
+    # Grab the event or 404
     event = get_object_or_404(Events, pk=pk)
-    return render(request, 'haunt_ops/event_detail.html', {'event': event})
 
-class LogoutViaGetView(LogoutView):
-    def get(self, request, *args, **kwargs):
-        # treat GET the same as POST
-        return super().post(request, *args, **kwargs)
+    # All volunteers for this event:
+    volunteers = EventVolunteers.objects.filter(event_id=pk).select_related('volunteer', 'event')
+
+    return render(request, 'haunt_ops/event_detail.html', {
+        'event': event,
+        'volunteers': volunteers,
+    })
+
+def event_prep(request, event_pk, vol_pk):
+    event  = get_object_or_404(Events, pk=event_pk)
+    ev_signup = get_object_or_404(
+        EventVolunteers.objects.select_related('volunteer','event'),
+        pk=vol_pk, event_id=event_pk
+    )
+
+    if request.method == 'POST':
+        form = EventPrepForm(request.POST, instance=ev_signup)
+        if form.is_valid():
+            form.save()
+            return redirect('event_detail', pk=event_pk)
+    else:
+        form = EventPrepForm(instance=ev_signup)
+
+    return render(request, 'event_prep.html', {
+        'event':  event,
+        'signup': ev_signup,
+        'user':   ev_signup.volunteer,
+        'form':   form,
+    })
 
 
 @login_required

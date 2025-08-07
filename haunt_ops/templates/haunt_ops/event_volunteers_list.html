@@ -1,24 +1,26 @@
 {% extends "base.html" %}
-{% block title %}User List{% endblock %}
+{% block title %}Event Volunteers{% endblock %}
 
 {% block content %}
-   <h1 class="mb-4">All Users</h1>
+   <h1 class="mb-4">Haunt Event Volunteers</h1>
 
   <table class="table table-striped table-hover">
     <thead class="table-dark">
       <tr>
-        <th>Group Name</th>
-        <th>Volunteer Email</th>
+        <th>Event Name</th>
         <th>Volunteer First Name</th>
         <th>Volunteer Last Name</th>
         <th>Volunteer Date of birth</th>
         <th>Volunteer Phone</th>
+        <th>Volunteer ICE Name</th>
+        <th>Volunteer ICE Relationship</th>
+        <th>Volunteer ICE Phone</th>
       </tr>
     </thead>
     <tbody>
-    {% for user in users_page %}
+    {% for evols in evols_page %}
       <tr>
-        <td><a href="{% url 'event_detail' evol.pk %}">{{ evols.event_id }}</a></td>
+        <td>{{ evols.event_name }}</td>
         <td>{{ evols.first_name }}</td>
         <td>{{ evols.last_name }}</td>
         <td>{{ evols.date_of_birth|date:"d-m-Y" }}</td>
@@ -28,7 +30,7 @@
         <td>{{ evols.ice_phone }}</td>
       </tr>
     {% empty %}
-      <tr><td colspan="6">No users found.</td></tr>
+      <tr><td colspan="6">No volunteers found.</td></tr>
     {% endfor %}
     </tbody>
   </table>
@@ -58,7 +60,7 @@
         {% endif %}
       {% endfor %}
 
-      {% if users_page.has_next %}
+      {% if evols_page.has_next %}
         <li class="page-item">
           <a class="page-link" href="?page={{ evols_page.next_page_number }}">Next</a>
         </li>

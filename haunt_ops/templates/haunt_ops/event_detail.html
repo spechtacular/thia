@@ -1,19 +1,43 @@
 {% extends "base.html" %}
-{% block title %}Event Detail{% endblock %}
+{% block title %}Event Volunteer Detail{% endblock %}
 
 {% block content %}
-  <div class="card mb-4">
-    <div class="card-header">
-      <h2>{{ event.event_name }}</h2>
-    </div>
-    <div class="card-body">
-      <p><strong>ID:</strong> {{ event.id }}</p>
-      <p><strong>Name:</strong> {{ event.event_name }}</p>
-      <p><strong>Event Date:</strong> {{ event.date|date:"Y-m-d " }}</p>
-      <p><strong>Event Status:</strong> {{ event.status }}</p>
-    </div>
-    <div class="card-footer">
-      <a href="{% url 'event_volunteers_list' %}" class="btn btn-secondary">← Back to list</a>
-    </div>
-  </div>
+  <strong>{{ event.event_name }}</strong>
+  <p><strong>Date:</strong> {{ event.event_date|date:"d-m-Y" }}</p>
+
+  <h2>Volunteers</h2>
+  {% if volunteers %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th><th>Start Time</th><th>End Time</th><th>Slot Column</th>
+          <th>VID</th><th>Under 16</th><th>Under 18</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for ev in volunteers %}
+        <tr>
+          <td>
+            <a href="{% url 'event_prep' event.pk ev.pk %}">
+            {{ ev.volunteer.first_name }} {{ ev.volunteer.last_name }}</a>
+          </td>
+          <td>{{ ev.start_time|date:"H:i d-m-Y" }}</td>
+          <td>{{ ev.end_time|date:"H:i d-m-Y" }}</td>
+          <td>{{ ev.slot_column }}</td>
+          <td>{{ ev.volunteer_id }}</td>
+          <td>{{ ev.under_16 }}</td>
+          <td>{{ ev.under_18 }}</td>
+
+
+
+
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No volunteers signed up for this event yet.</p>
+  {% endif %}
+
+  <p><a href="{% url 'events_list' %}">&laquo; Back to all events</a></p>
 {% endblock %}

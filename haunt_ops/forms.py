@@ -5,7 +5,7 @@ It includes forms for creating and changing user profiles, as well as a public s
 from django import forms
 from django.utils import timezone
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from .models import AppUser
+from .models import AppUser, EventVolunteers
 
 class AppUserCreationForm(UserCreationForm):
     """
@@ -96,3 +96,30 @@ class ProfileForm(UserChangeForm):
         super().__init__(*args, **kwargs)
         # Just in case, remove the password field if it sneaks in
         self.fields.pop('password', None)
+
+
+class EventPrepForm(forms.ModelForm):
+    """
+    Exposes the Boolean prep flags on EventVolunteers as checkboxes.
+    """
+    class Meta:
+        model = EventVolunteers
+        fields = [
+            'signed_in', 'makeup', 'costume',
+            'wear_mask', 'waiver', 'confirmed',
+            'waitlist', 'conflict',
+        ]
+        widgets = {
+            name: forms.CheckboxInput(attrs={'class': 'form-check-input'})
+            for name in fields
+        }
+        labels = {
+            'signed_in': 'Signed In',
+            'makeup': 'Makeup',
+            'costume': 'Costume',
+            'wear_mask': 'Wear Mask',
+            'waiver': 'Waiver Signed',
+            'confirmed': 'Confirmed',
+            'waitlist': 'Waitlist',
+            'conflict': 'Conflict',
+        }
