@@ -10,8 +10,8 @@
     <table class="table">
       <thead>
         <tr>
-          <th>Name</th><th>Start Time</th><th>End Time</th><th>Slot Column</th>
-          <th>VID</th><th>Under 16</th><th>Under 18</th>
+          <th>Name</th><th>Start Time</th><th>End Time</th><th>Task</th>
+          <th>Slot Column</th><th>Slot Row</th>
         </tr>
       </thead>
       <tbody>
@@ -23,10 +23,10 @@
           </td>
           <td>{{ ev.start_time|date:"H:i d-m-Y" }}</td>
           <td>{{ ev.end_time|date:"H:i d-m-Y" }}</td>
+          <td>{{ ev.task }}</td>
           <td>{{ ev.slot_column }}</td>
-          <td>{{ ev.volunteer_id }}</td>
-          <td>{{ ev.under_16 }}</td>
-          <td>{{ ev.under_18 }}</td>
+          <td>{{ ev.slot_row }}</td>
+
 
 
 
