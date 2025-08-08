@@ -7,6 +7,7 @@ from django.contrib.auth import authenticate, login
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required
+from django.db.models.functions import Lower
 from django.contrib.auth import logout
 
 
@@ -221,11 +222,19 @@ def event_detail(request, pk):
     event = get_object_or_404(Events, pk=pk)
 
     # All volunteers for this event:
-    volunteers = EventVolunteers.objects.filter(event_id=pk).select_related('volunteer', 'event')
+     # Order by volunteer last name (case-insensitive), then first name
+    signups = (
+        EventVolunteers.objects
+        .filter(event=event)
+        .select_related('volunteer')  # joins AppUser for efficiency
+        #.annotate(last_lower=Lower('volunteer__last_name'))
+        #.order_by('last_lower')
+        .order_by('volunteer__last_name', 'volunteer__first_name')
+    )
 
     return render(request, 'haunt_ops/event_detail.html', {
         'event': event,
-        'volunteers': volunteers,
+        'signups': signups,
     })
 
 def event_prep(request, event_pk, vol_pk):

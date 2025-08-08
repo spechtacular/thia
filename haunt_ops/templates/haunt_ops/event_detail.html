@@ -6,7 +6,7 @@
   <p><strong>Date:</strong> {{ event.event_date|date:"d-m-Y" }}</p>
 
   <h2>Volunteers</h2>
-  {% if volunteers %}
+  {% if signups %}
     <table class="table">
       <thead>
         <tr>
@@ -15,7 +15,7 @@
         </tr>
       </thead>
       <tbody>
-      {% for ev in volunteers %}
+      {% for ev in signups %}
         <tr>
           <td>
             <a href="{% url 'event_prep' event.pk ev.pk %}">
