@@ -33,9 +33,9 @@
     <li><strong>Phone:</strong> {{ ev_signup.phone1 }}{% if user.phone2 %} / {{ user.phone2 }}{% endif %}</li>
     <li><strong>ICE Contact:</strong> {{ ev_signup.ice_name }} ({{ ev_signup.ice_relationship }}) – {{ ev_signup.ice_phone }}</li>
     <li><strong>Allergies:</strong> {{ ev_signup.allergies|default:"None" }}</li>
-    <li><strong>Date of birth:</strong> {{ ev_signup.date_of_birth|date:"d-m-Y"}}</li>
-    <li><strong>Under 16:</strong> {{ ev_signup.under_16|yesno:"Yes,No" }}</li>
-    <li><strong>Under 18:</strong> {{ ev_signup.under_18|yesno:"Yes,No" }}</li>
+    <li><strong>Date of birth:</strong> {{ ev_signup.date_of_birth|date:"d-m-Y"}},
+    <strong>Under 16:</strong> {{ ev_signup.under_16|yesno:"Yes,No" }},
+    <strong>Under 18:</strong> {{ ev_signup.under_18|yesno:"Yes,No" }}</li>
   </ul>
 
   <h3>Update Prep Status</h3>

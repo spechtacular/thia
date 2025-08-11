@@ -103,8 +103,20 @@ class Command(BaseCommand):
                     # Check if event exists
                     try:
                         edate = row["date"].strip()
+                        if hasattr(edate, "date"):   # edate might be a datetime
+                            edate = edate.date()
+                        incoming_name = row["event_name"].strip()
                         logger.debug("edate: %s", edate)
                         event = Events.objects.filter(event_date=edate).first()
+                        if event is None:
+                            base_name = (incoming_name or "Unnamed Event").strip()
+                            new_name  = f"{base_name} — {edate}"   # your “modified” name
+                            event = Events.objects.create(
+                                event_date=edate,
+                                event_name=new_name,
+                                event_status="TBD",
+                            )
+
                         logger.info(
                             "processing event: %s, %s, %s, %s",
                             event.id,

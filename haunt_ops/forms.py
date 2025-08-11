@@ -108,21 +108,20 @@ class EventPrepForm(forms.ModelForm):
     class Meta:
         model = EventVolunteers
         fields = [
-            'signed_in', 'makeup', 'costume',
-            'wear_mask', 'waiver', 'confirmed',
-            'waitlist', 'conflict',
+            'confirmed', 'signed_in', 'makeup', 'costume',
+            'waiver', 'wear_mask', 'waitlist', 'conflict',
         ]
         widgets = {
             name: forms.CheckboxInput(attrs={'class': 'form-check-input'})
             for name in fields
         }
         labels = {
+            'confirmed': 'Confirmed',
             'signed_in': 'Signed In',
             'makeup': 'Makeup',
             'costume': 'Costume',
             'wear_mask': 'Wear Mask',
             'waiver': 'Waiver Signed',
-            'confirmed': 'Confirmed',
             'waitlist': 'Waitlist',
             'conflict': 'Conflict',
         }
