@@ -167,7 +167,7 @@ class Command(BaseCommand):
                                 gmsg = ""
                                 try:
                                     # case insensitive lookup
-                                    group = Groups.objects.get(group_name_iexact=experience)
+                                    group = Groups.objects.get(group_name__iexact=experience)
                                     logging.info(
                                         "Group ID: %d, Name: %s for user %s",
                                         group.id,
@@ -184,25 +184,26 @@ class Command(BaseCommand):
                                     if created:
                                         gmsg = (
                                             f" | Added to group: {group.group_name} "
-                                            "and created GroupVolunteers entry {gv.id}."
+                                            f"and created GroupVolunteers entry {gv.id}."
                                         )
                                     else:
                                         gmsg = (
                                             f" | Already in group: {group.group_name} "
-                                            "and GroupVolunteers entry exists {gv.id}."
+                                            f"and GroupVolunteers entry exists {gv.id}."
                                         )
 
                                 except Groups.objects.model.DoesNotExist as exc:
                                     gmsg = (
                                         f"❌ No group found with name {experience} "
-                                        "for user {user_email}."
+                                        f"for user {user_email} : "
+                                        f"exc : {exc}"
                                     )
                                 finally:
                                     logging.info(gmsg)
                         logging.info(message)
             summary = (
                 f"✅Processed: {total} users, Created: {created_count} "
-                "users, Updated: {updated_count} users"
+                f"users, Updated: {updated_count} users"
             )
             self.stdout.write(self.style.SUCCESS(summary))
             logging.info(summary)
