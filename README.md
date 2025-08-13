@@ -48,11 +48,12 @@
 
 
 ## Roadmap / TODO
-- [ ] Add Docker support for easier deployment
+- [ ] Breakup selenium code and create shared libraries for common functions
 - [ ] Resolve Django makemigration issues
 - [ ] Implement skills list by volunteer
 - [ ] Implement groups list by volunteer
 - [ ] Add user profile image upload to profile page
+- [ ] Add Docker support for easier deployment
 - [ ] Add Selenium automation to create test events
 - [ ] Add automated testing
 - [ ] Add CI/CD
