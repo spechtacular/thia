@@ -3,6 +3,7 @@
 """
 import datetime
 from django.utils.dateparse import parse_date, parse_datetime
+from django.utils import timezone
 
 def to_date(value):
     """
@@ -31,3 +32,21 @@ def to_date(value):
         # last resort if it’s like “YYYY-MM-DD HH:MM:SS”
         return datetime.datetime.strptime(s, "%Y-%m-%d %H:%M:%S").date()
     raise TypeError("Unsupported edate type")
+
+def default_if_blank(value, default_value=None, *, date_only=False):
+    """
+    Return `value` if set (non-empty), else return `default_value`.
+    Special handling for date/datetime defaults:
+      - If `date_only=True` and default_value is a (Y,M,D) tuple, returns datetime.date
+      - If date_only=False and default_value is a (Y,M,D[,H,M,S]) tuple, returns tz-aware datetime
+    """
+    if value not in (None, "", []):
+        return value
+
+    if isinstance(default_value, tuple):
+        if date_only:
+            return datetime.date(*default_value)
+        else:
+            tz = timezone.get_current_timezone()
+            return tz.localize(datetime.datetime(*default_value))
+    return default_value

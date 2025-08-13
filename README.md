@@ -49,7 +49,7 @@
 
 ## Roadmap / TODO
 - [ ] Breakup selenium code and create shared libraries for common functions
-- [ ] Resolve Django makemigration issues
+- [x] Resolve Django makemigration issues
 - [ ] Implement skills list by volunteer
 - [ ] Implement groups list by volunteer
 - [ ] Add user profile image upload to profile page

@@ -13,6 +13,7 @@ from django.db.models.functions import Lower
 from django.conf import settings
 
 from django.db import models
+from haunt_ops.utils.time_string_utils import default_if_blank
 
 
 class AppUserManager(BaseUserManager):
@@ -124,7 +125,6 @@ class Groups(models.Model) :
     It includes fields for group name and points associated with the group.
     """
     id = models.BigAutoField(primary_key=True)
-    #group_name = models.CharField(max_length=100, unique=True, null=False, blank=False)
     group_name = models.CharField(max_length=100, unique=True, null=True, blank=True)
 
     group_points = models.IntegerField(default=1)
@@ -196,10 +196,18 @@ class EventVolunteers(models.Model):
     It includes fields for start and end time, volunteer details, task, and event association.
     """
     id = models.BigAutoField(primary_key=True)
-    start_time = models.DateTimeField(blank=True)
-    end_time = models.DateTimeField(blank=True)
-    volunteer = models.ForeignKey(AppUser, models.DO_NOTHING)
-    event = models.ForeignKey(Events, models.DO_NOTHING)
+    start_time = models.DateTimeField(blank=True, null=True)
+    end_time = models.DateTimeField(blank=True, null=True)
+    # volunteer is a foreign key to the AppUser model
+    # This establishes a many-to-one relationship between EventVolunteers and AppUser.
+    # This means that each EventVolunteers instance is associated with one AppUser,
+    # but an AppUser can have multiple EventVolunteers instances.
+    volunteer = models.ForeignKey(AppUser, on_delete=models.CASCADE)
+    # event is a foreign key to the Events model
+    # This establishes a many-to-one relationship between EventVolunteers and Events.
+    # This means that each EventVolunteers instance is associated with one Events,
+    # but an Events can have multiple EventVolunteers instances.
+    event = models.ForeignKey(Events, on_delete=models.CASCADE)
     task = models.TextField(blank=True, null=True)
     slot_column = models.TextField(blank=True)
     slot_row = models.TextField(blank=True)
@@ -214,11 +222,9 @@ class EventVolunteers(models.Model):
     first_name = models.CharField(max_length=30, blank=True)
     last_name = models.CharField(max_length=30, blank=True, null=True)
     hours = models.FloatField(blank=True,null=True)
-    #date = models.DateField()
     date = models.DateField(null=True, blank=True)
     phone1 = models.CharField(max_length=12, default="unknown")
     full_address = models.CharField(max_length=100, default="unknown")
-    #date_of_birth = models.DateField()
     date_of_birth = models.DateField(null=True, blank=True)
     wear_mask = models.BooleanField(blank=True,  default=False)
     waiver = models.BooleanField(blank=True,  default=False)
@@ -232,22 +238,21 @@ class EventVolunteers(models.Model):
 
 
 
+    def save(self, *args, **kwargs):
+        self.first_name = default_if_blank(self.first_name, "Zack")
+        self.last_name = default_if_blank(self.last_name, "DeMon")
+        self.start_time = default_if_blank(self.start_time,(1999, 10, 31, 9, 0, 0))
+        self.end_time = default_if_blank(self.end_time,(1999, 10, 31, 12, 0, 0))
+        self.date = default_if_blank(self.date, (1999, 10, 31), date_only=True)
+        self.date_of_birth = default_if_blank(self.date_of_birth, (1999, 10, 31), date_only=True)
 
-    event = models.ForeignKey('Events', models.DO_NOTHING)
+        super().save(*args, **kwargs)
 
     class Meta:
         """
         Meta class for EventVolunteers.
         It specifies the database table name
-            and that this model is not managed by Django migrations.
         """
-        # This model is managed by the database, not Django migrations
-        # This means that Django will not create or modify the table for this model
-        # It is typically used for legacy tables or when the table is managed by another system
-        # or when you want to prevent Django from making changes to the table structure.
-        # This is useful when you have a pre-existing table that you want to use with Django models.
-        # It allows you to define a model that maps to an existing table without Django
-        # trying to manage it.
         #
         db_table = 'event_volunteers'
         ordering = ['date']
