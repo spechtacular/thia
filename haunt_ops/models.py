@@ -51,6 +51,7 @@ class AppUserManager(BaseUserManager):
         extra_fields.setdefault("is_active", True)
         return self.create_user(email=email, password=password, **extra_fields)
 
+
 class AppUser(AbstractUser):
     """
     Custom user model for the HauntOps application.

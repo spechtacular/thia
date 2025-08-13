@@ -1,7 +1,7 @@
 - Secret project values are stored in a **.env** file in the project root directory, this file is not in the repo for security reasons.
 - **requirements.txt** : file contains the pip modules to be installed for the Django  project.
 - **setup_venv.py** : script will create a local file named **.venv** in the project root directory to be used for a local development environment.
-- This is the sequence of events used to clear and reload the local Django postgresql database.
+- This is the sequence of events used to clear and reload the local Django postgresql database. An internet connection is required to connect to the ivolunteer website.
    1. **clear_haunt_data.py** clears all project tables except for admin and test accounts, there is a --dry-run option to run the script without deleting any project data from postgresql.
       1. python manage.py clear_haunt_data
    2. After clearing the project database the local Django project postgresql database tables must be restored from the iVolunteer database. Here are the steps:
@@ -26,7 +26,7 @@
          1. python manage.py run_selenium_participation_query
       7. **bulk_load_events_from_ivolunteer.py** : inserts new report data from the converted csv report file into the postgresql event_volunteers table.
          1. python manage.py bulk_load_events_from_ivolunteer --csv path/to/users.csv
-- This is the sequence used to update the existing Django postgresql database contents.
+- This is the sequence used to update the existing Django postgresql database contents. An internet connection is required to connect to the ivolunteer website.
    1. **run_selenium_users_query.py** : runs the iVolunteer DB users XLS formatted report.
       1. python manage.py run_selenium_users_query
    2. **bulk_load_users_from_ivolunteers.py** : inserts or updates new report data from the converted csv file into the postgresql app_user table.

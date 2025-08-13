@@ -19,7 +19,8 @@ class AppUserCreationForm(UserCreationForm):
         """
         model = AppUser
         fields = ( 'email', 'username', 'image_url', 'date_of_birth', 'address', 'tshirt_size',
-                   'city', 'state', 'phone1', 'phone2', 'ice_name', 'ice_phone', 'company','country',
+                   'city', 'state', 'phone1', 'phone2', 'ice_name', 'ice_phone', 'company',
+                   'country',
                    'ice_relationship', 'wear_mask', 'referral_source', 'haunt_experience',
                    'allergies', 'zipcode', 'first_name', 'last_name', 'waiver')
     def __init__(self, *args, **kwargs):
@@ -40,7 +41,8 @@ class AppUserChangeForm(UserChangeForm):
         """
         model = AppUser
         fields = ( 'email', 'username', 'image_url', 'date_of_birth', 'address', 'tshirt_size',
-                   'city', 'state', 'phone1', 'phone2', 'ice_name', 'ice_phone', 'company','country',
+                   'city', 'state', 'phone1', 'phone2', 'ice_name', 'ice_phone', 'company',
+                   'country',
                    'ice_relationship', 'wear_mask', 'referral_source', 'haunt_experience',
                    'allergies', 'zipcode', 'first_name', 'last_name', 'waiver')
         widgets = {

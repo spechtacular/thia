@@ -15,7 +15,7 @@ from .forms import PublicSignupForm, AppUserChangeForm, ProfileForm, EventPrepFo
 
 from .models import AppUser, Events, Groups, EventVolunteers, GroupVolunteers
 
-
+# use for debugging only
 logger = logging.getLogger(__name__)
 
 def signup(request):
@@ -126,13 +126,14 @@ def user_list(request):
     })
 
 def event_volunteers_list(request):
+    """
+    View for listing all event volunteers.
+    It retrieves all event volunteers from the database and paginates them."""
     evols = EventVolunteers.objects.all().order_by('date')
     # Paginate with 20 event volunteers per page
     paginator = Paginator(evols, 20)
     page = request.GET.get('page', 1)
 
-    # DEBUGGING: log out how many records you found
-    logging.getLogger(__name__).info("Found %d event volunteers", evols.count())
     try:
         evols_page = paginator.page(page)
     except PageNotAnInteger:
@@ -211,6 +212,10 @@ def groups_list(request):
 
 
 def user_detail(request, pk):
+    """
+    View for displaying the details of a specific user.
+    It retrieves the user by primary key (pk) and renders the user detail template.
+    If the user does not exist, it raises a 404 error."""
     user = get_object_or_404(AppUser, pk=pk)
     return render(request, 'haunt_ops/user_detail.html', {'user': user})
 
