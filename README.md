@@ -45,3 +45,17 @@
    5. **bulk_load_events_from_ivolunteer.py** : inserts or updates new report data from the converted csv report file into the postgresql event_volunteers table.
       1. python manage.py bulk_load_events_from_ivolunteer --csv path/to/replaced_users.csv
 
+
+
+## Roadmap / TODO
+- [ ] Add Docker support for easier deployment
+- [ ] Resolve Django makemigration issues
+- [ ] Implement skills list by volunteer
+- [ ] Implement groups list by volunteer
+- [ ] Add user profile image upload to profile page
+- [ ] Add Selenium automation to create test events
+- [ ] Add automated testing
+- [ ] Add CI/CD
+- [ ] Add react support
+
+
