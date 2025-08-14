@@ -3,7 +3,7 @@ This file contains URL patterns for the HauntOps application.
 It maps URLs to views for user profiles, signup, and the home page.
 """
 from django.urls import path
-from django.contrib.auth.views import LogoutView
+from django.contrib.auth.views import LogoutView, PasswordResetView, PasswordResetDoneView, PasswordResetConfirmView, PasswordResetCompleteView
 
 from haunt_ops.views import public_profile
 from . import views
@@ -22,4 +22,8 @@ urlpatterns = [
     path('groups/', views.groups_list, name='groups_list'),
     path('group-volunteers/', views.group_volunteers_list, name='group_volunteers_list'),
     path('events/<int:event_pk>/volunteer/<int:vol_pk>/prep/',views.event_prep,name='event_prep'),
+    path("password-reset/", PasswordResetView.as_view(), name="password_reset"),
+    path("password-reset/done/", PasswordResetDoneView.as_view(), name="password_reset_done"),
+    path("reset/<uidb64>/<token>/", PasswordResetConfirmView.as_view(), name="password_reset_confirm"),
+    path("reset/done/", PasswordResetCompleteView.as_view(), name="password_reset_complete"),
 ]
