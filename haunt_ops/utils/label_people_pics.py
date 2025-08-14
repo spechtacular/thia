@@ -1,6 +1,7 @@
 """
-This script iterates through all files in a specified directory, processes image files by adding the filename as a title to the image, 
-and saves the modified images with a new name. 
+This script iterates through all files in a specified directory,
+processes image files by adding the filename as a title to the image,
+and saves the modified images with a new name.
 It uses the Pillow library for image processing.
 
 """
@@ -53,7 +54,7 @@ def add_filename_title(image_path, font_size=25, font_color=(255, 255, 255), tit
             print(f"Image format: {img.format}")
             width,height = img.size
             draw = ImageDraw.Draw(img)
-            print("image drawn")  
+            print("image drawn")
             # split filename and path
             filepath, filename = os.path.split(image_path)
             print(f"modifying file {filename}")
@@ -64,7 +65,7 @@ def add_filename_title(image_path, font_size=25, font_color=(255, 255, 255), tit
             print(f"namefield {namefield}")
             # remove spaces around name
             staffname = namefield[0].strip() + " " + namefield[1].strip()
-        
+
             print(f"fn={filename} , {staffname}")
 
             font_size = int(height * 0.1)  # 10% of image height
@@ -79,9 +80,9 @@ def add_filename_title(image_path, font_size=25, font_color=(255, 255, 255), tit
                 print(f"An IO error occurred: {ioe}, using the defaut font")
 
 
-            new_image_path = filepath +"/" + basename + ".png" 
-       
-            # hard coded for my vampire pic, position was 180,150 
+            new_image_path = filepath +"/" + basename + ".png"
+
+            # hard coded for my vampire pic, position was 180,150
             draw.text((80,50), staffname, font=font, fill=font_color)
             img.save(new_image_path ) # Save with a new name to avoid overwriting
             print(f"Image saved with title: {new_image_path}")

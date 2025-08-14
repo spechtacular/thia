@@ -9,42 +9,34 @@
   <!-- Bootstrap CSS -->
   <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
 
-  <!-- Your custom styles -->
-  <link href="{% static 'css/styles.css' %}" rel="stylesheet">
+  <!-- Auth styles FIRST (scoped to auth pages), then your global styles LAST -->
   <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+  <link href="{% static 'css/styles.css' %}" rel="stylesheet">
 </head>
-<body>
+
+<body class="{% block body_class %}{% endblock %}">
   {% if user.is_authenticated %}
   <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
     <div class="container-fluid">
       <a class="navbar-brand" href="{% url 'home' %}">The Haunt</a>
-      <button class="navbar-toggler" type="button"
-              data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
         <span class="navbar-toggler-icon"></span>
       </button>
 
       <div class="collapse navbar-collapse" id="mainNav">
-        <!-- LEFT: Events & Groups dropdowns -->
         <ul class="navbar-nav me-auto">
           <li class="nav-item"><a class="nav-link" href="{% url 'user_list' %}">Users</a></li>
-          <!-- Events -->
+
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="eventsDropdown" role="button"
-               data-bs-toggle="dropdown" aria-expanded="false">
-              Events
-            </a>
+            <a class="nav-link dropdown-toggle" href="#" id="eventsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Events</a>
             <ul class="dropdown-menu" aria-labelledby="eventsDropdown">
               <li><a class="dropdown-item" href="{% url 'events_list' %}">All Haunt Events</a></li>
               <li><a class="dropdown-item" href="{% url 'event_volunteers_list' %}">Event Volunteers</a></li>
             </ul>
           </li>
 
-          <!-- Groups -->
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="groupsDropdown" role="button"
-               data-bs-toggle="dropdown" aria-expanded="false">
-              Groups
-            </a>
+            <a class="nav-link dropdown-toggle" href="#" id="groupsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Groups</a>
             <ul class="dropdown-menu" aria-labelledby="groupsDropdown">
               <li><a class="dropdown-item" href="{% url 'groups_list' %}">All Haunt Groups</a></li>
               <li><a class="dropdown-item" href="{% url 'group_volunteers_list' %}">Volunteer/Group Associations</a></li>
@@ -52,21 +44,12 @@
           </li>
         </ul>
 
-        <!-- RIGHT: user links -->
         <ul class="navbar-nav ms-auto align-items-center">
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'profile' %}">Profile</a>
-          </li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'profile' %}">Profile</a></li>
           <li class="nav-item">
             <form method="post" action="{% url 'logout' %}" class="d-inline">
               {% csrf_token %}
-              <button
-                type="submit"
-                class="nav-link btn btn-link p-0"
-                style="height: auto;"
-              >
-               Logout
-              </button>
+              <button type="submit" class="nav-link btn btn-link p-0" style="height: auto;">Logout</button>
             </form>
           </li>
         </ul>
@@ -76,11 +59,9 @@
   {% endif %}
 
   <div class="container">
-    {% block content %}
-    {% endblock %}
+    {% block content %}{% endblock %}
   </div>
 
-  <!-- Bootstrap JS bundle (includes Popper) -->
   <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
 </body>
 </html>

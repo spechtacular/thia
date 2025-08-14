@@ -4,7 +4,7 @@ browser_config:
     - "--enable-logging"
     - "--v=1"
     - "--headless=new"
-   download_directory: "/Users/tedspecht/haunt-test"
+   download_directory: "./haunt_ops/downloads"
 
 login:
   url: "https://ivolunteer.com/administrator-login/"

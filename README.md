@@ -4,7 +4,10 @@
 - This is the sequence of events used to clear and reload the local Django postgresql database. An internet connection is required to connect to the ivolunteer website.
    1. **clear_haunt_data.py** clears all project tables except for admin and test accounts, there is a --dry-run option to run the script without deleting any project data from postgresql.
       1. python manage.py clear_haunt_data
-   2. After clearing the project database the local Django project postgresql database tables must be restored from the iVolunteer database. Here are the steps:
+   2. After clearing the local project database a Django admin account must be created. This account is required to run the Django project base commands:
+      1. In the project root directory type "python manage.py createsuperuser"
+      2. We use the SUPERUSER_ACCOUNT name in .env  as the username along with the password is stored in the .env file as SUPERUSER_PASSWORD.
+   3. User and Event Data must be queried from ivolunteer site and store in the local postgresql database tables.
       1. **bulk_load_groups_from_config.py** : this loads group labels from a project config file instead of scraping the iVolunteer web page. There are options to use a custom configuration file and a dry-run.
          1. python manage.py bulk_load_groups_from_config
       2. **run_selenium_events_query.py** : scrapes all iVolunteer event labels and stores them in the postgresql events table.

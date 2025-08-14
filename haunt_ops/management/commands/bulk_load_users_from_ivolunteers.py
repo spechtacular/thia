@@ -69,7 +69,7 @@ class Command(BaseCommand):
                     total += 1
                     user_email = row["email"].strip()
                     if not user_email:
-                        message = f"Skipping row {total}: missing email."
+                        message = f"Skipping row {total}: missing email {user_email}."
                         self.stdout.write(message)
                         logging.warning(message)
                         continue
@@ -205,7 +205,6 @@ class Command(BaseCommand):
                 f"✅Processed: {total} users, Created: {created_count} "
                 f"users, Updated: {updated_count} users"
             )
-            self.stdout.write(self.style.SUCCESS(summary))
             logging.info(summary)
             logger.info("✅CSV import of users complete.")
             if dry_run:
@@ -213,10 +212,8 @@ class Command(BaseCommand):
 
         except FileNotFoundError:
             error_msg = f"❌File not found: {file_path}"
-            self.stderr.write(self.style.ERROR(error_msg))
             logging.error(error_msg)
 
         except Exception as e:
             error_msg = f"❌Error processing file: {str(e)}"
-            self.stderr.write(self.style.ERROR(error_msg))
             logging.error(error_msg)

@@ -1,7 +1,17 @@
+"""
+utilities used to rename image files in a directory
+This script renames files by replacing "_updated" with "_pic" and spaces with underscores.
+It can perform a dry run to show what changes would be made without actually renaming the files
+"""
 import os
 import argparse
 
 def rename_files(directory, dry_run=False):
+    """
+    Rename files in the specified directory by replacing "_updated" with "_pic"
+    and spaces with underscores.
+    If dry_run is True, it will only print the changes without renaming.
+    """
     if not os.path.isdir(directory):
         print(f"❌ Directory not found: {directory}")
         return
@@ -23,6 +33,9 @@ def rename_files(directory, dry_run=False):
     print(f"\n✅ {renamed_count} file(s) {'would be renamed' if dry_run else 'renamed'}.")
 
 def main():
+    """
+    Main function to parse command line arguments and call rename_files.
+    """
     parser = argparse.ArgumentParser(description="Batch rename files in a directory.")
     parser.add_argument("directory", help="Path to the target directory")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be renamed without making changes")

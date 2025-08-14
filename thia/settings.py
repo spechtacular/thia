@@ -85,8 +85,8 @@ WSGI_APPLICATION = 'thia.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'thia',
-        'USER': 'zack',
+        'NAME': env('POSTGRES_DB'),
+        'USER': env('POSTGRES_USER'),
         'PASSWORD': env('THIA_DB_PASSWORD'),
         'HOST': 'localhost',
         'PORT': '5432',
@@ -119,6 +119,15 @@ AUTH_USER_MODEL = "haunt_ops.AppUser"
 
 LANGUAGE_CODE = 'en-us'
 USE_I18N = True
+
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587          # or use 465 with EMAIL_USE_SSL=True
+EMAIL_USE_TLS = True      # use TLS on 587
+EMAIL_HOST_USER = os.getenv("GMAIL_USER")
+EMAIL_HOST_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # time zones
 USE_TZ = True
