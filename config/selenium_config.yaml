@@ -6,9 +6,5 @@ browser_config:
     - "--headless=new"
    download_directory: "./haunt_ops/downloads"
 
-login:
-  url: "https://ivolunteer.com/administrator-login/"
-  org_id: "the-haunt"
-  admin_email: "tedspecht@gmail.com"
-  password: 'ENV'
+
 

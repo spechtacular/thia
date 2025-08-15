@@ -1,0 +1,10 @@
+python manage.py copy_events \
+      --iv-url "https://the-haunt.ivolunteer.com/admin" \
+      --email "$IVOLUNTEER_ADMIN_EMAIL" \
+      --password "$IVOLUNTEER_PASSWORD" \
+      --browser firefox 
+      #--dump-frames  
+      #--headless \
+      #--navigate-events
+      #--log-pw-hash
+

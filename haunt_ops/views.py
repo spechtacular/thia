@@ -91,7 +91,7 @@ def public_profile(request, username):
     user = get_object_or_404(AppUser, username=username)
     return render(request, 'public_profile.html', {'user_profile': user})
 
-def profile_view(request):
+def user_profile_view(request):
     """
     user profile page
     """
