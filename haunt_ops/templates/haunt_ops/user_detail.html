@@ -24,7 +24,7 @@
       <p><strong>ICE Phone:</strong> {{ user.ice_phone }}</p>
     </div>
     <div class="card-footer">
-      <a href="{% url 'user_list' %}" class="btn btn-secondary">← Back to list</a>
+      <a href="{{ back_url }}" class="btn btn-secondary">⬅ Back</a>
     </div>
   </div>
 {% endblock %}

@@ -9,6 +9,8 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required
 from django.db.models.functions import Lower
 from django.contrib.auth import logout
+from django.db.models import Count
+from django.urls import reverse
 
 
 from .forms import PublicSignupForm, AppUserChangeForm, ProfileForm, EventPrepForm
@@ -109,21 +111,24 @@ def user_list(request):
     """
     list users from app_user table
     """
-    users = AppUser.objects.all()
-    # Paginate with 20 users per page
-    paginator = Paginator(users, 20)
-    page = request.GET.get('page', 1)
-
+    qs = (
+        AppUser.objects
+        .annotate(
+            groups_count=Count('group_volunteers_as_volunteer', distinct=True),  # FK/M2M on related model pointing to User
+            events_count=Count('event_participants', distinct=True),  # same idea
+        )
+        .order_by('last_name', 'first_name')
+    )
+    paginator = Paginator(qs, 25)
+    page = request.GET.get('page')
     try:
         users_page = paginator.page(page)
     except PageNotAnInteger:
         users_page = paginator.page(1)
     except EmptyPage:
         users_page = paginator.page(paginator.num_pages)
+    return render(request, 'haunt_ops/user_list.html', {'users_page': users_page})
 
-    return render(request, 'haunt_ops/user_list.html', {
-        'users_page': users_page
-    })
 
 def event_volunteers_list(request):
     """
@@ -194,7 +199,12 @@ def groups_list(request):
     View for listing all groups.
     It retrieves all groups from the database and paginates them.
     """
-    groups = Groups.objects.all()
+    groups = (
+        Groups.objects
+        .annotate(volunteer_count=Count("group_volunteers"))  # adjust related name!
+        .order_by("group_name")
+    )
+
     # Paginate with 10 groups per page
     paginator = Paginator(groups, 20)
     page = request.GET.get('page', 1)
@@ -215,9 +225,13 @@ def user_detail(request, pk):
     """
     View for displaying the details of a specific user.
     It retrieves the user by primary key (pk) and renders the user detail template.
-    If the user does not exist, it raises a 404 error."""
+    If the user does not exist, it raises a 404 error.
+    """
     user = get_object_or_404(AppUser, pk=pk)
-    return render(request, 'haunt_ops/user_detail.html', {'user': user})
+    return render(request, "haunt_ops/user_detail.html",
+                  {"user": user,
+                    "back_url": request.META.get("HTTP_REFERER", reverse("user_list")),
+                })
 
 def event_detail(request, pk):
     """
@@ -267,6 +281,37 @@ def event_prep(request, event_pk, vol_pk):
         'form':   form,
     })
 
+def user_group_memberships_view(request, pk):
+    user = get_object_or_404(AppUser, pk=pk)
+    memberships = GroupVolunteers.objects.filter(volunteer=user).select_related("group")
+    return render(request, "haunt_ops/user_group_memberships.html", {
+        "user": user,
+        "memberships": memberships,
+    })
+
+def user_event_participation_view(request, pk):
+    user_obj = get_object_or_404(AppUser, pk=pk)
+    participations = EventVolunteers.objects.filter(volunteer=user_obj).select_related("event")
+    return render(request, "haunt_ops/user_event_participation.html", {
+        "user_obj": user_obj,            # avoid clobbering request.user context
+        "participations": participations,
+    })
+
+def group_volunteers_view(request, pk):
+    group = get_object_or_404(Groups, pk=pk)
+    volunteers_qs = (
+        GroupVolunteers.objects
+        .filter(group=group)
+        .select_related("volunteer")  # adjust FK name if needed
+        .order_by("volunteer__last_name", "volunteer__first_name")
+    )
+    paginator = Paginator(volunteers_qs, 25)
+    page_number = request.GET.get("page")
+    volunteers_page = paginator.get_page(page_number)
+    return render(request, "haunt_ops/group_volunteers.html", {
+        "group": group,
+        "volunteers_page": volunteers_page,
+    })
 
 @login_required
 def logout_view(request):

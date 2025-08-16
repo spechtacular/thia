@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ user.first_name }}'s Groups{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Groups for {{ user.first_name }} {{ user.last_name }}</h2>
+  <a href="{% url 'user_list' %}" class="btn btn-sm btn-outline-secondary">← Back to Volunteers</a>
+</div>
+
+<ul class="list-group">
+  {% for membership in memberships %}
+    <li class="list-group-item">
+      {{ membership.group.group_name }}
+    </li>
+  {% empty %}
+    <li class="list-group-item">No group memberships</li>
+  {% endfor %}
+</ul>
+{% endblock %}

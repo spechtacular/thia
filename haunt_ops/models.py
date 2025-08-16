@@ -202,12 +202,15 @@ class EventVolunteers(models.Model):
     # This establishes a many-to-one relationship between EventVolunteers and AppUser.
     # This means that each EventVolunteers instance is associated with one AppUser,
     # but an AppUser can have multiple EventVolunteers instances.
-    volunteer = models.ForeignKey(AppUser, on_delete=models.CASCADE)
+    volunteer = models.ForeignKey(AppUser,
+                                  related_name="event_participants",
+                                  on_delete=models.CASCADE)
     # event is a foreign key to the Events model
     # This establishes a many-to-one relationship between EventVolunteers and Events.
     # This means that each EventVolunteers instance is associated with one Events,
     # but an Events can have multiple EventVolunteers instances.
-    event = models.ForeignKey(Events, on_delete=models.CASCADE)
+    event = models.ForeignKey(Events,
+                              on_delete=models.CASCADE)
     task = models.TextField(blank=True, null=True)
     slot_column = models.TextField(blank=True)
     slot_row = models.TextField(blank=True)

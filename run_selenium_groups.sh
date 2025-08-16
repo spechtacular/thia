@@ -1,11 +1,8 @@
-#python manage.py run_selenium_events_query \
-#python manage.py run_selenium_groups_query \
-python manage.py run_selenium_users_query \
+python manage.py run_selenium_groups_query \
       --iv-url "https://the-haunt.ivolunteer.com/admin" \
       --email "$IVOLUNTEER_ADMIN_EMAIL" \
       --password "$IVOLUNTEER_PASSWORD" \
       --browser firefox 
-      #--download-dir "$IVOLUNTEER_DOWNLOAD_DIR" \
       #--dump-frames  
       #--headless \
       #--log-pw-hash

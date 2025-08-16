@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ user_obj.first_name }}'s Events{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Events for {{ user_obj.first_name }} {{ user_obj.last_name }}</h2>
+  <a href="{% url 'user_list' %}" class="btn btn-sm btn-outline-secondary">← Back to Volunteers</a>
+</div>
+
+<ul class="list-group">
+  {% for participation in participations %}
+    <li class="list-group-item">
+      <a href="{% url 'event_detail' participation.event.pk %}">
+        {{ participation.event.event_name }}
+      </a>
+      – {{ participation.event.event_date|date:"d-m-Y" }}
+    </li>
+  {% empty %}
+    <li class="list-group-item">No event participation</li>
+  {% endfor %}
+</ul>
+{% endblock %}
