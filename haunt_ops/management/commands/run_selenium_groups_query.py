@@ -1,249 +1,198 @@
 """
 haunt_ops/management/commands/run_selenium_groups_query.py
-Command to load or update groups from ivolunteers Groups page using Selenium.
-This command uses a configuration file named ./config/selenium_config.yaml.
+Command to load or update groups from ivolunteers Groups section of
+the Database page using Selenium.
 It supports dry-run mode to simulate updates without saving to the database.
 """
 
-import os
+from __future__ import annotations
 import logging
-import yaml
+import os
+
+from dataclasses import dataclass
 from django.core.management.base import BaseCommand, CommandError
-from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options
+
 from haunt_ops.models import Groups
+from haunt_ops.utils.iv_core import (
+    DriverConfig,
+    build_driver,
+    login_iv,
+    click_top_tab,
+    click_inner_tabpanel_tab,
+    dump_all_frames,
+    debug_dump_page,
+    ADMIN_IFRAME_ID,
+    scrape_groups_from_filter_dropdown,
+    scrape_database_group_list,
+    click_database_group_by_name,
+    wait_for_overlay_to_clear,
+)
 
 
-# pylint: disable=no-member
-# pylint: disable=import-outside-toplevel
+logger = logging.getLogger("haunt_ops")
 
-logger = logging.getLogger("haunt_ops")  # Uses logger config from settings.py
+
+@dataclass
+class CmdConfig:
+    iv_url: str
+    iv_admin_email: str
+    iv_password: str
+    headless: bool
+    dump_frames: bool
+    timeout: int
+    browser: str
+    log_pw_hash: bool
 
 
 class Command(BaseCommand):
-    """
-    start command
-        python manage.py run_selenium_groups_query
-    or with custom config
-        python manage.py run_selenium_groups_query --config=config/custom_config.yaml
-    or with dry-run
-        python manage.py run_selenium_groups_query --config=config/selenium_config.yaml --dry-run
-    """
-
-    help = "Load or update groups from ivolunteers Groups page"
+    help = "Login to iVolunteer admin, click Groups tab, scrape groups (Firefox default)."
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            "--config",
-            type=str,
-            default="config/selenium_config.yaml",
-            help="""Path to YAML configuration file (default: config/selenium_config.yaml) \n
-              With Custom config:\n python manage.py load_config_example
-              --config=config/custom_config.yaml""",
+        parser.add_argument("--iv-url", dest="iv_url", default=os.environ.get("IVOLUNTEER_URL", ""))
+        parser.add_argument("--email", dest="iv_admin_email", default=os.environ.get("IVOLUNTEER_ADMIN_EMAIL", ""))
+        parser.add_argument("--password", dest="iv_password", default=os.environ.get("IVOLUNTEER_PASSWORD", ""))
+        parser.add_argument("--headless", action="store_true", default=False)
+        parser.add_argument("--dump-frames", action="store_true", default=False)
+        parser.add_argument("--timeout", type=int, default=60)
+        parser.add_argument("--browser", choices=["firefox","chrome"], default=os.environ.get("BROWSER","firefox"))
+        parser.add_argument("--log-pw-hash", action="store_true", default=False)
+        parser.add_argument("--dry-run", action="store_true", help="Simulate updates without saving to database.")
+
+
+    def handle(self, *args, **options):
+        cfg = CmdConfig(
+            iv_url=options["iv_url"],
+            iv_admin_email=options["iv_admin_email"],
+            iv_password=options["iv_password"],
+            headless=options["headless"],
+            dump_frames=options["dump_frames"],
+            timeout=max(15, int(options["timeout"])),
+            browser=options["browser"],
+            log_pw_hash=options["log_pw_hash"],
         )
-        parser.add_argument(
-            "--dry-run",
-            action="store_true",
-            help="Simulate updates without saving to database.",
-        )
+        dry_run = options["dry_run"]
 
-    def handle(self, *args, **kwargs):
-        config_path = kwargs["config"]
-        dry_run = kwargs["dry_run"]
+        if not (cfg.iv_url and cfg.iv_admin_email and cfg.iv_password):
+            missing = [k for k, v in [
+                ("IVOLUNTEER_URL", cfg.iv_url),
+                ("IVOLUNTEER_ADMIN_EMAIL", cfg.iv_admin_email),
+                ("IVOLUNTEER_PASSWORD", cfg.iv_password),
+            ] if not v]
+            raise CommandError(f"❌ Missing required inputs: {', '.join(missing)}. Provide flags or set env vars.")
 
-        if not os.path.exists(config_path):
-            logger.error("config file not found %s", config_path)
-            raise CommandError(f"❌ Config file not found: {config_path}")
+        logger.info("▶ Starting with email=%s pw_len=%s headless=%s browser=%s",
+                    cfg.iv_admin_email, len(cfg.iv_password or ''), cfg.headless, cfg.browser)
 
+        driver = None
         try:
-            with open(config_path, "r", encoding="UTF-8") as file:
-                config = yaml.safe_load(file)
+            driver = build_driver(DriverConfig(
+                browser=cfg.browser,
+                headless=cfg.headless,
+            ))
 
-            if not config:
-                logger.error("Config file %s is empty or malformed.", config_path)
-                raise CommandError(
-                    f"❌ Config file {config_path} is empty or malformed."
-                )
+            ok = login_iv(
+                driver,
+                cfg.iv_url,
+                cfg.iv_admin_email,
+                cfg.iv_password,
+                timeout=cfg.timeout,
+                log_pw_hash=cfg.log_pw_hash,
+            )
+            if not ok:
+                raise CommandError("Login failed — see logs and /tmp/iv_login_* dumps.")
 
-            #  --- initialize browser options ---
-            download_directory = config["browser_config"]["download_directory"]
+            if cfg.dump_frames:
+                dump_all_frames(driver, prefix="iv_after_login")
 
-            options = Options()
-            for arg in config["browser_config"]["chrome_options"]:
-                logger.debug("adding  parameter %s to driver options", arg)
-                options.add_argument(arg)
+            self.stdout.write(self.style.SUCCESS("✅ Login completed successfully."))
 
-            # preferences used
-            prefs = {
-                "download.default_directory": download_directory,
-                "download.prompt_for_download": False,
-                "download.directory_upgrade": True,
-                "safebrowsing.enabled": True,
-            }
-            options.add_experimental_option("prefs", prefs)
+            logger.info("Operating in top document; ignoring hidden %s iframe.", ADMIN_IFRAME_ID)
 
-            # initialize webdriver with options and preferences
-            driver = webdriver.Chrome(options=options)
+            if not click_top_tab(driver, "Database", timeout=cfg.timeout, logger=logger):
+                dump_all_frames(driver, prefix="iv_database_click_fail_topdoc")
+                raise CommandError("Could not activate the 'Database' tab from the landing page menu.")
 
-            # optional driver specification
-            # driver = webdriver.Chrome(
-            #   service=webdriver.ChromeService(executable_path=
-            #   '/path/to/chromedriver'), options=options)
-            iv_password = config["login"]["password"]
-            if iv_password == "ENV":
-                iv_password = os.environ.get("IVOLUNTEER_PASSWORD")
+            self.stdout.write(self.style.SUCCESS("✅ Database tab activated successfully."))
 
-            wait = WebDriverWait(driver, 30)
+            self.stdout.write(self.style.SUCCESS("ℹ️ Using 'Filter Group' dropdown on Participants tab to get group names."))
 
+            wait_for_overlay_to_clear(driver, timeout=cfg.timeout)
             try:
+                click_inner_tabpanel_tab(driver, "Participants", timeout=cfg.timeout, logger=logger)
+                wait_for_overlay_to_clear(driver, timeout=cfg.timeout)
+            except Exception:
+                # Not fatal; Participants is usually default
+                pass
 
-                logger.info("🔐 Logging in...")
-                driver.get(config["login"]["url"])
-                wait.until(EC.presence_of_element_located((By.ID, "org_admin_login")))
-                driver.find_element(By.ID, "action0").send_keys(
-                    config["login"]["org_id"]
-                )
-                driver.find_element(By.ID, "action1").send_keys(
-                    config["login"]["admin_email"]
-                )
-                driver.find_element(By.ID, "action2").send_keys(iv_password)
-                driver.find_element(By.ID, "Submit").click()
 
-                logger.info(
-                    "✅ Successfully logged in as %s ", config["login"]["admin_email"]
-                )
-                # Wait for Dashboard, Database option
-                database_menu = wait.until(
-                    EC.visibility_of_element_located(
-                        (
-                            By.XPATH,
-                            "//div[@class='gwt-Label' and contains(text(), 'Database')]",
-                        )
-                    )
-                )
+            created_count = 0
+            updated_count = 0
 
-                database_menu.click()
-                logger.info("clicked the database button")
+            groups = scrape_database_group_list(driver, timeout=cfg.timeout, logger=logger)
 
-                logger.info("waiting for Groups option")
-                groups_tab = wait.until(
-                    EC.element_to_be_clickable(
-                        (
-                            By.XPATH,
-                            "//div[@class='gwt-TabLayoutPanelTabInner']/div[text()='Groups']",
-                        )
-                    )
-                )
-                groups_tab.click()
-                logger.info("clicked on Groups option")
+            # 2) Fallback: Participants tab "Filter Group" dropdown if the Groups list is empty
+            if not groups:
+                logger.info("Groups tab list empty; falling back to 'Filter Group' dropdown on Participants tab.")
+                groups = scrape_groups_from_filter_dropdown(driver, timeout=cfg.timeout, logger=logger)
 
-                # wait for groups tab to load
-                wait.until(
-                    EC.presence_of_element_located((By.CLASS_NAME, "GKEPJM3CCEB"))
-                )
+            if not groups:
+                dump_all_frames(driver, prefix="iv_groups_scrape_fail")
+                raise CommandError("❌ No groups found on the page. Check the page structure or selectors.")
 
-                logger.info("groups tab found")
 
-                # variables used to report the group results
-                created_count = 0
-                updated_count = 0
-                action = None
-                total = 0
+            for g in groups:
+                print(f"{g['idx']:>2}: {g['name']}")
 
-                # Find all divs under the container that might be items
-                container = wait.until(
-                    EC.presence_of_element_located((By.CLASS_NAME, "GKEPJM3CCEB"))
-                )
-                item_divs = container.find_elements(
-                    By.XPATH, ".//div[contains(@class, 'GKEPJM3C')]"
-                )
+            total = len(groups)
+            logger.info("Found %d groups to process.", total)
 
-                logger.info("found the div class GKEPJM3CCEB")
+            if dry_run:
+                logger.info("Dry-run mode enabled: no groups will be saved to the database.")
 
-                # Filter down to only visible leaf nodes with text
-                # group_names = [
-                #    div.text.strip()
-                #    for div in item_divs
-                #    if div.is_displayed() and div.text.strip() != ""
-                # ]
+            for g in groups:
+                group_name = (g["name"] or "").strip()
 
-                els = driver.find_elements(
-                    By.XPATH,
-                    "//div[@__idx"
-                    " and normalize-space(.) != ''"
-                    " and not(ancestor-or-self::*[@aria-hidden='true'])]",
-                )
-                # 1) If you're already on the Groups tab, collect all visible __idx items
-                # This is a robust way to grab only the “displayed” entries in a
-                # dynamic GWT table or list.
-                for el in els:
-                    idx = el.get_attribute("__idx")
-                    text = el.text.strip()
-                    print(f"Item {idx}: {text}")
+                logger.info("Group Name: %s", group_name)
 
-                # collect all visible names
-                group_names = [el.text.strip() for el in els if el.is_displayed()]
-                if not group_names:
-                    logger.warning("❌No groups found in the Groups tab.")
-                    raise CommandError("❌ No groups found in the Groups tab.")
-                else:
-                    logger.info("Found %d groups in the Groups tab.", len(group_names))
-
-                    for group_name in group_names:
-                        print(group_name)
-                        total += 1
-
-                        logger.info("Group Name: %s", group_name)
-
-                        if dry_run:
-                            group_exists = Groups.objects.filter(
-                                group_name=group_name
-                            ).exists()  #  Check if group exists
-                            if group_exists:
-                                updated_count += 1
-                                action = "Updated"
-                            else:
-                                created_count += 1
-                                action = "Created"
-                            dry_run_action = (
-                                "Would create" if not group_exists else "Would update"
-                            )
-                            message = f"{dry_run_action} event: {group_name}"
-                            logging.info(message)
-
-                        else:
-                            group, created = Groups.objects.update_or_create(
-                                group_name=group_name,
-                                defaults={
-                                    "group_points": 1,
-                                    "group_name": group_name.strip(),
-                                },
-                            )
-                            if created:
-                                created_count += 1
-                                action = "Created"
-                            else:
-                                updated_count += 1
-                                action = "Updated"
-
-                            message = f"{action} event: {group.id},{group_name}"
-                            logging.info(message)
-                            summary = ("✅Processed: %s groups, Created: %s, Updated: %s",
-                                total,
-                                created_count,
-                                updated_count,
-                            )
-                logger.info("%s", summary)
-                logger.info("✅group import from ivolunteer complete.")
                 if dry_run:
-                    logger.info("✅Dry-run mode enabled: no groups were saved.")
+                    group_exists = Groups.objects.filter(group_name=group_name).exists()
+                    if group_exists:
+                        updated_count += 1
+                        logger.info("Would update group: %s", group_name)
+                    else:
+                        created_count += 1
+                        logger.info("Would create group: %s", group_name)
+                else:
+                    group, created = Groups.objects.update_or_create(
+                        group_name=group_name,
+                        defaults={
+                            "group_points": 1,  # Default points, adjust as needed
+                        },
+                    )
+                    if created:
+                        created_count += 1
+                        logger.info("Created group: %s,%s", group.id, group.group_name)
+                    else:
+                        updated_count += 1
+                        logger.info("Updated group: %s,%s", group.id, group.group_name)
 
-            except Exception as e:
-                logger.error("Selenium Exception occurred: %s", str(e))
-                raise CommandError(f"❌ Selenium Exception error: {e}") from e
-        except yaml.YAMLError as e:
-            logger.error("YAML parsing error: %s", str(e))
-            raise CommandError(f"❌ Failed to parse YAML config: {e}") from e
+            summary = f"✅ Processed: {total} groups, Created: {created_count}, Updated: {updated_count}"
+            logger.info("%s", summary)
+            logger.info("✅ Group import from iVolunteer complete.")
+            if dry_run:
+                logger.info("✅ Dry-run mode enabled: no groups were saved.")
+
+        except Exception as e:
+            logger.error("❌ Error during command execution: %s", e)
+            if driver:
+                debug_dump_page(driver, "iv_command_error")
+            raise CommandError(f"❌ Command failed: {e}") from e
+        finally:
+            try:
+                if driver is not None:
+                    driver.quit()
+            except Exception:
+                pass

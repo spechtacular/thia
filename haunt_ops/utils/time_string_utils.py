@@ -1,9 +1,14 @@
 """
 # utils/time_string_utils.py
 """
-import datetime
+import logging
+from datetime import datetime
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils import timezone
+
+# pylint: disable=no-member
+# pylint: disable=syntax-error
+logger = logging.getLogger("haunt_ops")  # Uses logger config from settings.py
 
 def to_date(value):
     """
@@ -50,3 +55,26 @@ def default_if_blank(value, default_value=None, *, date_only=False):
             tz = timezone.get_current_timezone()
             return tz.localize(datetime.datetime(*default_value))
     return default_value
+
+def convert_date_formats(value):
+    """
+    Convert a date string to a datetime object using multiple formats.
+    Tries several common date formats and returns the first successful parse.
+    """
+    clean_start_raw = (
+                        value.strip()                 # remove leading/trailing spaces
+                                .replace("\xa0", " ") # replace non-breaking spaces
+                                .replace("\u200b", "")# remove zero-width spaces, just in case
+    )
+    parsed_event_date = None
+    # Try parsing with multiple formats
+    # Common formats: "MM/DD/YYYY", "MM-DD-YYYY", "MM/DD/YY"
+    date_formats = ["%m/%d/%Y", "%m-%d-%Y", "%m/%d/%y"]
+    for fmt in date_formats:
+        try:
+            parsed_event_date = datetime.strptime(clean_start_raw, fmt)
+            break
+        except ValueError:
+            parsed_event_date = None
+    return parsed_event_date
+
