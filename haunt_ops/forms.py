@@ -4,7 +4,11 @@ It includes forms for creating and changing user profiles, as well as a public s
 """
 from django import forms
 from django.utils import timezone
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from django.contrib.auth.forms import (UserCreationForm,
+                                       UserChangeForm,
+                                        PasswordChangeForm,
+                                        PasswordResetForm,
+                                        SetPasswordForm)
 from .models import AppUser, EventVolunteers
 
 class AppUserCreationForm(UserCreationForm):
@@ -127,3 +131,22 @@ class EventPrepForm(forms.ModelForm):
             'waitlist': 'Waitlist',
             'conflict': 'Conflict',
         }
+class StyledPasswordResetForm(PasswordResetForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["email"].widget.attrs.update({"class": "form-control"})
+
+class StyledSetPasswordForm(SetPasswordForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in ("new_password1", "new_password2"):
+            self.fields[name].widget.attrs.update({"class": "form-control"})
+
+class StyledPasswordChangeForm(PasswordChangeForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Django’s PasswordChangeForm uses old_password, new_password1, new_password2
+        self.fields["old_password"].widget.attrs.update({"class": "form-control"})
+        self.fields["new_password1"].widget.attrs.update({"class": "form-control"})
+        self.fields["new_password2"].widget.attrs.update({"class": "form-control"})
+

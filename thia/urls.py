@@ -16,10 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from haunt_ops.views import public_profile
+
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path("", include("haunt_ops.urls")),  
-    path('accounts/',include("django.contrib.auth.urls")),  
-    path('profile/<str:username>/', public_profile, name='public_profile'),
-]
+    path("", include("haunt_ops.urls")),                 # your app routes
+    path("admin/", admin.site.urls),                     # admin LAST
+    ]
+

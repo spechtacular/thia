@@ -48,3 +48,7 @@ body.auth-page .auth-links a:hover { text-decoration: underline; }
 body.auth-page .navbar { background: rgba(255,255,255,.9); }
 body.auth-page .navbar .nav-link,
 body.auth-page .navbar .navbar-brand { color: #333; }
+
+/* static/css/auth.css */
+.auth-card .card { border-radius: 1rem; }
+.auth-card .btn { border-radius: .75rem; }
