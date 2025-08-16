@@ -438,83 +438,108 @@ def click_top_tab(driver, label_text: str, timeout=15, logger=None) -> bool:
     return ok
 
 
-def click_inner_tabpanel_tab(
-    driver,
-    label_text: str,
-    *,
-    container_xpath: str = "//div[contains(@class,'gwt-TabLayoutPanelTabs')]",
-    timeout: int = 15,
-    logger=None,
-) -> bool:
+# haunt_ops/utils/iv_core.py
+
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+def _js_click(driver, el):
+    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", el)
+    driver.execute_script("arguments[0].click();", el)
+
+def click_inner_tabpanel_tab(driver, tab_text: str, *, timeout: int = 20, logger=None) -> bool:
     """
-    Click a tab inside a GWT TabLayoutPanel by its label (e.g., 'Groups').
-    Verifies selection by waiting for the tab's container to have class 'gwt-TabLayoutPanelTab-selected'.
-    You should call this after you've navigated to the section that contains the tab panel (e.g. after click_top_tab('Database')).
+    Click a GWT inner tab (e.g., Participants, Groups, Send Email, Reports) on the Database page.
+    - Finds the visible TabLayoutPanel header row
+    - Clicks the matching label or its parent tab container
+    - Waits until the tab shows the 'selected' state
     """
     driver.switch_to.default_content()
     wait = WebDriverWait(driver, timeout)
 
-    # Find the label node for the desired tab
-    label = wait.until(EC.presence_of_element_located((
-        By.XPATH,
-        f"{container_xpath}//div[@class='gwt-Label' and normalize-space()='{label_text}']"
-    )))
-    tab = label.find_element(By.XPATH, "./ancestor::div[contains(@class,'gwt-TabLayoutPanelTab')][1]")
+    # 1) Find a visible GWT Tab header row on the page
+    #    It looks like: <div class="gwt-TabLayoutPanelTabs"> ... <div class="gwt-TabLayoutPanelTab"><div><div class="gwt-Label">Reports</div></div></div> ...
+    tabs_row_xpath = "//div[contains(@class,'gwt-TabLayoutPanelTabs') and not(ancestor::*[@aria-hidden='true'])]"
+    tabs_row = wait.until(EC.presence_of_element_located((By.XPATH, tabs_row_xpath)))
 
-    # Already selected?
-    cls = tab.get_attribute("class") or ""
-    if "gwt-TabLayoutPanelTab-selected" in cls:
-        if logger: logger.info("✅ '%s' inner tab already selected.", label_text)
-        return True
-
-    # Try clicking the tab; fallback to clicking the label
+    # 2) Find the label with the requested text under that row
+    label_xpath = (
+        f"{tabs_row_xpath}//div[contains(@class,'gwt-Label') and normalize-space(text())={repr(tab_text)}]"
+    )
     try:
-        driver.execute_script("arguments[0].scrollIntoView({block:'center'});", tab)
+        label_el = wait.until(EC.presence_of_element_located((By.XPATH, label_xpath)))
     except Exception:
-        pass
+        if logger:
+            logger.error("❌ Could not find inner tab label with text '%s'", tab_text)
+        return False
 
+    # 3) The clickable “tab” container is the nearest ancestor with class gwt-TabLayoutPanelTab
+    tab_container = label_el.find_element(By.XPATH, "./ancestor::div[contains(@class,'gwt-TabLayoutPanelTab')]")
+
+    # 4) Click attempts: label → container → JS click
     clicked = False
-    for el in (tab, label):
+    for candidate in (label_el, tab_container):
         try:
-            WebDriverWait(driver, 5).until(EC.element_to_be_clickable(el))
+            _js_click(driver, candidate)
+            clicked = True
+            break
+        except Exception:
             try:
-                el.click()
+                candidate.click()
                 clicked = True
                 break
             except Exception:
-                driver.execute_script("arguments[0].click();", el)
-                clicked = True
-                break
-        except Exception:
-            continue
+                continue
 
     if not clicked:
-        if logger: logger.error("❌ Could not click inner tab '%s'.", label_text)
+        if logger:
+            logger.error("❌ Failed to click inner tab '%s'", tab_text)
         return False
 
-    # Verify selected class appears on that tab
-    def is_selected(d):
-        try:
-            t = d.find_element(By.XPATH,
-                f"{container_xpath}//div[@class='gwt-Label' and normalize-space()='{label_text}']/ancestor::div[contains(@class,'gwt-TabLayoutPanelTab')][1]"
-            )
-            c = t.get_attribute("class") or ""
-            return "gwt-TabLayoutPanelTab-selected" in c
-        except Exception:
-            return False
-
-    ok = False
+    # 5) Wait for the tab to show as selected (class 'gwt-TabLayoutPanelTab-selected')
     try:
-        WebDriverWait(driver, 8).until(lambda d: is_selected(d))
-        ok = True
-    except TimeoutException:
-        ok = False
+        wait.until(lambda d: "gwt-TabLayoutPanelTab-selected" in tab_container.get_attribute("class"))
+    except Exception:
+        if logger:
+            logger.warning("⚠️ Clicked '%s' but did not observe selected class; continuing anyway.", tab_text)
 
     if logger:
-        if ok: logger.info("✅ Inner tab '%s' selected.", label_text)
-        else:  logger.error("❌ Failed to select inner tab '%s'.", label_text)
+        logger.info("✅ Inner tab '%s' selected (or appears selected).", tab_text)
+    return True
 
-    return ok
+
+def wait_for_reports_panel(driver, *, timeout: int = 20, logger=None) -> bool:
+    """
+    After clicking 'Reports', wait for a hallmark of the Reports UI to be visible.
+    We check a few likely anchors:
+      - A top title 'Reports'
+      - A label 'Report by' (the dropdown label)
+      - A dropdown near 'Format' or 'Include Participants'
+    """
+    driver.switch_to.default_content()
+    wait = WebDriverWait(driver, timeout)
+
+    anchors = [
+        # Title 'Reports'
+        "//div[contains(@class,'GKEPJM3CMUB') and normalize-space(text())='Reports' and not(ancestor::*[@aria-hidden='true'])]",
+        # 'Report by' label text
+        "//span[contains(@class,'GKEPJM3CEWB') and contains(normalize-space(.),'Report') and not(ancestor::*[@aria-hidden='true'])]",
+        # A 'Format' label near a select
+        "//span[contains(@class,'GKEPJM3CEWB') and normalize-space(.)='Format:' and not(ancestor::*[@aria-hidden='true'])]",
+        # 'Include Participants' label
+        "//span[contains(@class,'GKEPJM3CEWB') and contains(normalize-space(.),'Include Participants') and not(ancestor::*[@aria-hidden='true'])]",
+    ]
+    try:
+        wait.until(EC.presence_of_element_located((By.XPATH, "|".join(anchors))))
+        if logger:
+            logger.info("✅ Reports panel UI detected.")
+        return True
+    except Exception:
+        if logger:
+            logger.error("❌ Reports panel UI markers not found after selecting 'Reports'.")
+        return False
+
 
 def scrape_groups_from_filter_dropdown(driver, timeout=15, logger=None):
     """

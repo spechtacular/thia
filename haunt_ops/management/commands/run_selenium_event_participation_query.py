@@ -18,6 +18,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from django.conf import settings
 from haunt_ops.management.commands.base_utils import BaseUtilsCommand
 
 # pylint: disable=no-member
@@ -54,12 +55,15 @@ class Command(BaseUtilsCommand):
 
             # Browser config
             download_directory = config["browser_config"]["download_directory"]
+            download_dir = os.path.join(settings.BASE_DIR, download_directory)
+            os.makedirs(download_dir, exist_ok=True)
+
             options = Options()
             for arg in config["browser_config"]["chrome_options"]:
                 options.add_argument(arg)
 
             prefs = {
-                "download.default_directory": download_directory,
+                "download.default_directory": download_dir,
                 "download.prompt_for_download": False,
                 "download.directory_upgrade": True,
                 "safebrowsing.enabled": True,
@@ -201,7 +205,7 @@ class Command(BaseUtilsCommand):
 
                 # Wait for report results to download
                 downloaded_file = self.wait_for_new_download(
-                    download_directory, timeout=60
+                    download_dir, timeout=60
                 )
                 logging.info("✅ ivolunteer Report File downloaded: %s", downloaded_file)
                 # Convert XLS to CSV and

@@ -1,0 +1,50 @@
+/* static/css/auth.css */
+:root {
+  --brand: #2575fc;
+  --brand-hover: #1a5cd8;
+  --card-bg: #fff;
+  --text: #333;
+  --error: #b00020;
+}
+
+/* Only for auth pages */
+body.auth-page {
+  min-height: 100vh;
+  margin: 0;
+  background: linear-gradient(135deg, #6a11cb, var(--brand));
+  font-family: Arial, sans-serif;
+}
+
+body.auth-page .auth-card {
+  background: var(--card-bg);
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.15);
+  width: 100%;
+  max-width: 420px;
+  margin: 5rem auto;
+}
+
+body.auth-page .auth-form { display: grid; gap: 1rem; }
+
+body.auth-page .auth-form input[type="text"],
+body.auth-page .auth-form input[type="password"],
+body.auth-page .auth-form input[type="email"] {
+  width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px;
+}
+
+body.auth-page .auth-btn {
+  display: inline-block; width: 100%; padding: 10px 16px;
+  background: var(--brand); color: #fff; border: 0; border-radius: 8px;
+  font-weight: 700; text-align: center; text-decoration: none; cursor: pointer;
+}
+body.auth-page .auth-btn:hover { background: var(--brand-hover); }
+
+body.auth-page .auth-links { text-align: center; margin-top: 1rem; }
+body.auth-page .auth-links a { color: var(--brand); text-decoration: none; }
+body.auth-page .auth-links a:hover { text-decoration: underline; }
+
+/* Optional: make navbar readable on auth pages if you show it there */
+body.auth-page .navbar { background: rgba(255,255,255,.9); }
+body.auth-page .navbar .nav-link,
+body.auth-page .navbar .navbar-brand { color: #333; }

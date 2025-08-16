@@ -26,8 +26,8 @@ venv/
 db.sqlite3
 media/
 staticfiles/
-static/
 logs/
+downloads/
 
 # Django migrations
 */migrations/*.py
