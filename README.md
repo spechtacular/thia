@@ -51,11 +51,11 @@
 
 
 ## Roadmap / TODO
-- [ ] remove duplicate profile_view page in views.py
+- [x] remove duplicate profile_view page in views.py
 - [ ] format logout, login, reset_password pages
 - [x] Resolve Django makemigration issues
-- [ ] Implement skills list by volunteer
-- [ ] Implement groups list by volunteer
+- [x] Implement list volunteers by event
+- [x] Implement list volunteers by group
 - [ ] Add user profile image upload to profile page
 - [ ] Breakup selenium code and create shared libraries for common functions
 - [ ] Add Docker support for easier deployment
