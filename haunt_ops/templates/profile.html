@@ -30,7 +30,10 @@
         {% for field in form %}
           <div class="col-md-6 mb-3">
             <label for="{{ field.id_for_label }}" class="form-label">
-              {{ field.label }}
+              {% if field.label != "password" %}
+                {{ field.label }}
+              {% endif %}
+
             </label>
             {{ field }}
             {% if field.errors %}

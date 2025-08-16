@@ -20,7 +20,13 @@
   {% if user.is_authenticated %}
   <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
     <div class="container-fluid">
-      <a class="navbar-brand" href="{% url 'home' %}">The Haunt</a>
+      <a class="navbar-brand"
+        href="{% if user.is_authenticated %}{% url 'user_list' %}{% else %}{% url 'home' %}{% endif %}">
+          <img src="{% static 'favicon.ico' %}" alt="The Haunt" width="24" height="24"
+            class="d-inline-block align-text-top me-2">
+        The Haunt
+      </a>
+
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
         <span class="navbar-toggler-icon"></span>
       </button>

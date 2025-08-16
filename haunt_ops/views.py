@@ -93,19 +93,7 @@ def public_profile(request, username):
     user = get_object_or_404(AppUser, username=username)
     return render(request, 'public_profile.html', {'user_profile': user})
 
-def user_profile_view(request):
-    """
-    user profile page
-    """
-    if request.method == 'POST':
-        form = ProfileForm(request.POST, request.FILES, instance=request.user)
-        if form.is_valid():
-            form.save()
-            return redirect('profile')
-    else:
-        form = ProfileForm(instance=request.user)
 
-    return render(request, 'profile.html', {'form': form})
 
 def user_list(request):
     """
