@@ -72,19 +72,17 @@ class Command(BaseUtilsCommand):
         # driver = webdriver.Chrome(service=webdriver.ChromeService(
         #   executable_path='/path/to/chromedriver'), options=options)
 
-        iv_password = config["login"]["password"]
-        if iv_password == "ENV":
-            iv_password = os.environ.get("IVOLUNTEER_PASSWORD")
 
         wait = WebDriverWait(driver, 30)
 
         try:
             logger.info("🔐 Logging in...")
-            driver.get(config["login"]["url"])
+            iv_password = os.environ.get("IVOLUNTEER_PASSWORD")
+            driver.get(os.environ.get("IVOLUNTEER_URL"))
             wait.until(EC.presence_of_element_located((By.ID, "org_admin_login")))
-            driver.find_element(By.ID, "action0").send_keys(config["login"]["org_id"])
+            driver.find_element(By.ID, "action0").send_keys(os.environ.get("IVOLUNTEER_ORG"))
             driver.find_element(By.ID, "action1").send_keys(
-                config["login"]["admin_email"]
+                os.environ.get("IVOLUNTEER_ADMIN_EMAIL")
             )
             driver.find_element(By.ID, "action2").send_keys(iv_password)
             driver.find_element(By.ID, "Submit").click()

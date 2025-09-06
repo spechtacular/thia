@@ -33,7 +33,7 @@ urlpatterns = [
     # Events
     path("events/", views.events_list, name="events_list"),
     path("events/<int:pk>/", views.event_detail, name="event_detail"),
-    path("events/<int:event_pk>/volunteer/<int:vol_pk>/prep/", views.event_prep, name="event_prep"),
+    path("events/<int:event_pk>/volunteer/<int:vol_pk>/prep/", views.event_prep_view, name="event_prep"),
     path("event-volunteers/", views.event_volunteers_list, name="event_volunteers_list"),
 
     # Groups

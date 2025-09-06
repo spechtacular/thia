@@ -78,13 +78,13 @@ class Command(BaseUtilsCommand):
                     iv_password = os.environ.get("IVOLUNTEER_PASSWORD")
 
                 wait = WebDriverWait(driver, 30)
-                driver.get(config["login"]["url"])
+                driver.get(os.environ.get("IVOLUNTEER_URL"))
                 wait.until(EC.presence_of_element_located((By.ID, "org_admin_login")))
                 driver.find_element(By.ID, "action0").send_keys(
-                    config["login"]["org_id"]
+                    os.environ.get("IVOLUNTEER_ORG")
                 )
                 driver.find_element(By.ID, "action1").send_keys(
-                    config["login"]["admin_email"]
+                    os.environ.get("IVOLUNTEER_ADMIN_EMAIL")
                 )
                 driver.find_element(By.ID, "action2").send_keys(iv_password)
                 driver.find_element(By.ID, "Submit").click()

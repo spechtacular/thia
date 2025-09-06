@@ -438,11 +438,8 @@ def click_top_tab(driver, label_text: str, timeout=15, logger=None) -> bool:
     return ok
 
 
-# haunt_ops/utils/iv_core.py
 
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+
 
 def _js_click(driver, el):
     driver.execute_script("arguments[0].scrollIntoView({block:'center'});", el)

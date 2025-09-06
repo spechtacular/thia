@@ -107,30 +107,98 @@ class ProfileForm(UserChangeForm):
         self.fields.pop('password', None)
 
 
+
 class EventPrepForm(forms.ModelForm):
-    """
-    Exposes the Boolean prep flags on EventVolunteers as checkboxes.
-    """
     class Meta:
         model = EventVolunteers
+        fields = ["confirmed", "signed_in", "makeup", "costume", "waitlist", "conflict"]
+        widgets = {name: forms.CheckboxInput(attrs={"class": "form-check-input"}) for name in fields}
+        labels = {
+            "under_16": "Under 16",
+            "under_18": "Under 18",
+            "confirmed": "Confirmed",
+            "signed_in": "Signed In",
+            "makeup": "Makeup",
+            "costume": "Costume",
+            "waitlist": "Waitlist",
+            "conflict": "Conflict",
+        }
+
+class UserPrepForm(forms.ModelForm):
+    class Meta:
+        model = AppUser
         fields = [
-            'confirmed', 'signed_in', 'makeup', 'costume',
-            'waiver', 'wear_mask', 'waitlist', 'conflict',
+            "costume_size",
+            "safety_class",
+            "waiver",
+            "room_actor_training",
+            "line_actor_training",
+            "wear_mask",
         ]
         widgets = {
-            name: forms.CheckboxInput(attrs={'class': 'form-check-input'})
-            for name in fields
+            # If costume_size has choices in your model, Django will render a <select> automatically.
+            # Otherwise, you can force a select or leave TextInput:
+            # "costume_size": forms.Select(attrs={"class": "form-select"}),
+             "costume_size": forms.Select(
+                attrs={
+                    "class": "form-select form-select-sm w-auto",
+                    # fixed/limited width so it doesn't push checkboxes to the next line
+                    "style": "max-width: 220px; min-width: 160px;",
+                }
+            ),
+            "safety_class": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "waiver": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "room_actor_training": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "line_actor_training": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "wear_mask": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
-        labels = {
-            'confirmed': 'Confirmed',
-            'signed_in': 'Signed In',
-            'makeup': 'Makeup',
-            'costume': 'Costume',
-            'wear_mask': 'Wear Mask',
-            'waiver': 'Waiver Signed',
-            'waitlist': 'Waitlist',
-            'conflict': 'Conflict',
-        }
+
+        #labels = {
+        #    "costume_size": "Costume Size",
+        #    "safety_class": "Safety Class Completed",
+        #    "waiver": "Waiver Signed",
+        #    "room_actor_training": "Room Actor Training Completed",
+        #    "line_actor_training": "Line Actor Training Completed",
+        #    "wear_mask": "Wear Mask",
+        #}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        f = self.fields["costume_size"]
+        inst = self.instance if hasattr(self, "instance") else None
+        current = getattr(inst, "costume_size", None) if inst is not None else None
+
+        # Only massage defaults on GET (unbound) and when the user has no value
+        if not self.is_bound and (current is None or current == ""):
+            default = AppUser._meta.get_field("costume_size").default
+            if default not in (None, ""):
+                default = str(default)
+
+                # 1) Make field required so Django doesn't inject an empty "<option>"
+                f.required = True
+
+                # 2) Reorder choices to put the default first (but keep labels/others intact)
+                choices = list(f.choices)
+
+                # If there is an empty option, drop it because we're forcing a default
+                choices = [c for c in choices if str(c[0]) not in ("", "None")]
+
+                # Put default at the front if it exists in the value set
+                if any(str(v) == default for v, _ in choices):
+                    choices = (
+                        [next(c for c in choices if str(c[0]) == default)] +
+                        [c for c in choices if str(c[0]) != default]
+                    )
+                f.choices = choices
+
+                # 3) Set initial so the widget renders selected=default
+                self.initial["costume_size"] = default
+                f.initial = default
+
+
+
+
 class StyledPasswordResetForm(PasswordResetForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

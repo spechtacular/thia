@@ -7,9 +7,8 @@
   <table class="table table-striped table-hover">
     <thead class="table-dark">
       <tr>
-        <th>Email</th>
-        <th>First Name</th>
         <th>Last Name</th>
+        <th>First Name</th>
         <th>Email</th>
         <th>Groups</th>
         <th>Events</th>
@@ -18,10 +17,9 @@
     <tbody>
     {% for user in users_page %}
       <tr>
-        <td><a href="{% url 'user_detail' user.pk %}">{{ user.email }}</a></td>
-        <td>{{ user.first_name }}</td>
         <td>{{ user.last_name }}</td>
-        <td>{{ user.email }}</td>
+        <td>{{ user.first_name }}</td>
+        <td><a href="{% url 'user_detail' user.pk %}">{{ user.email }}</a></td>
         <td>{% if user.groups_count %}
               <a href="{% url 'user_group_memberships' user.pk %}">
                 {{ user.groups_count }} membership{{ user.groups_count|pluralize }}

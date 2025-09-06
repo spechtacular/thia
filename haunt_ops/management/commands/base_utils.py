@@ -113,53 +113,100 @@ class BaseUtilsCommand(BaseCommand):
         """
         Waits up to `timeout` seconds for a new file to appear and stabilize in size,
         renames it to "<command>-YYYYmmdd-HHMMSS<ext>" and returns the new path.
+        - Ignores hidden temp items like .com.google.Chrome.*
+        - Skips partials (.crdownload/.part/.tmp)
+        - Handles races where a file disappears between listdir() and getsize()
         """
-        existing = set(os.listdir(download_dir))
         tmp_exts = (".crdownload", ".part", ".tmp")
 
+        def _is_final_candidate(path):
+            name = os.path.basename(path)
+            if name.startswith("."):          # e.g., .com.google.Chrome.*
+                return False
+            if not os.path.isfile(path):      # skip directories and gone files
+                return False
+            if name.endswith(tmp_exts):       # skip partials
+                return False
+            return True
+
+        existing = set(os.listdir(download_dir))
         start = time.time()
+
         while time.time() - start < timeout:
-            added = set(os.listdir(download_dir)) - existing
-            candidates = [f for f in added if not f.endswith(tmp_exts)]
-            if candidates:
-                paths = [os.path.join(download_dir, f) for f in candidates]
-                newest = max(paths, key=os.path.getmtime)
+            try:
+                current = set(os.listdir(download_dir))
+            except FileNotFoundError:
+                time.sleep(0.25)
+                continue
 
-                # wait for size to stabilize
-                last_size = -1
-                stable_start = time.time()
-                while time.time() - stable_start < stable_secs:
-                    size = os.path.getsize(newest)
-                    if size == last_size:
-                        # build new name
-                        cmd = sys.argv[1]
-                        ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-                        ext = os.path.splitext(newest)[1]
-                        new_name = f"{cmd}-{ts}{ext}"
-                        new_path = os.path.join(download_dir, new_name)
+            added = current - existing
+            if added:
+                paths = [os.path.join(download_dir, f) for f in added]
+                paths = [p for p in paths if _is_final_candidate(p)]
 
-                        # avoid collisions
-                        i = 1
-                        while os.path.exists(new_path):
-                            new_path = os.path.join(
-                                download_dir, f"{cmd}-{ts}-{i}{ext}"
-                            )
-                            i += 1
+                if paths:
+                    try:
+                        newest = max(paths, key=os.path.getmtime)
+                    except (FileNotFoundError, ValueError):
+                        # file vanished or no paths; rescan
+                        time.sleep(0.25)
+                        continue
 
+                    # wait for size to be stable for stable_secs total
+                    last_size = None
+                    stable_elapsed = 0.0
+                    poll = 0.25
+                    # cap polls by stable_secs but also bail out if file disappears
+                    while stable_elapsed < stable_secs:
                         try:
-                            shutil.move(newest, new_path)
-                        except Exception as e:
-                            logger.warning("⚠️ Move failed: %s", e)
-                            return newest
+                            size = os.path.getsize(newest)
+                        except FileNotFoundError:
+                            # It got finalized/renamed away; break to rescan
+                            newest = None
+                            break
 
-                        logger.info("✅ Download renamed to %s", new_path)
-                        return new_path
+                        if size == last_size and size > 0:
+                            stable_elapsed += poll
+                        else:
+                            stable_elapsed = 0.0
+                            last_size = size
+                        time.sleep(poll)
 
-                    last_size = size
-                    time.sleep(0.5)
-            time.sleep(0.5)
+                    if newest is None:
+                        # file changed under us; rescan outer loop
+                        time.sleep(0.25)
+                        continue
+
+                    # Build destination name
+                    cmd = os.path.basename(sys.argv[1]) if len(sys.argv) > 1 else "download"
+                    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+                    ext = os.path.splitext(newest)[1]
+                    new_name = f"{cmd}-{ts}{ext}"
+                    new_path = os.path.join(download_dir, new_name)
+
+                    # Avoid collisions
+                    i = 1
+                    while os.path.exists(new_path):
+                        new_path = os.path.join(download_dir, f"{cmd}-{ts}-{i}{ext}")
+                        i += 1
+
+                    try:
+                        shutil.move(newest, new_path)
+                    except FileNotFoundError:
+                        # Vanished between size check and move; rescan
+                        time.sleep(0.25)
+                        continue
+                    except Exception as e:
+                        logger.warning("⚠️ Move failed: %s", e)
+                        return newest  # fall back to the original path
+
+                    logger.info("✅ Download renamed to %s", new_path)
+                    return new_path
+
+        time.sleep(0.25)
 
         raise CommandError(f"❌No completed download in {timeout}s")
+
 
     def handle(self, *args, **options):
         """Base handle method to be overridden by subclasses."""

@@ -1,52 +1,28 @@
 services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # bind Postgres only on your ZT IP (host)
+    ports:
+      - "192.168.195.60:5432:5432"
+
   web:
     build: .
-    container_name: django_web
-    command: >
-      sh -c "python manage.py collectstatic --noinput &&
-             python manage.py migrate &&
-             gunicorn projectname.wsgi:application -b 0.0.0.0:8000 --workers 3"
+    command: python manage.py runserver 0.0.0.0:8000
+    env_file: .env
     volumes:
       - .:/app
-      - static_volume:/app/staticfiles
-      - media_volume:/app/media
-    env_file: .env
+    # bind Django only on your ZT IP (host)
     ports:
-      - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-
-  db:
-    image: postgres:14-alpine
-    container_name: postgres_db
-    env_file: .env
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  pgadmin:
-    image: dpage/pgadmin9:4
-    container_name: pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
-    ports:
-      - "5050:80"
+      - "192.168.195.60:8000:8000"
     depends_on:
       - db
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
 
 volumes:
-  postgres_data:
-  static_volume:
-  media_volume:
-  pgadmin_data:
+  pgdata:
 

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Prep – {{ user.get_full_name }}{% endblock %}
+
+{% block content %}
+
+  <div class="d-flex align-items-center mb-3">
+      <div class="ratio" style="--bs-aspect-ratio: 133.333%; max-width: 320px;">
+        <img src="{% static 'people_pics/' %}{{ user.image_url }}"
+            class="w-100 h-100 rounded-2 object-fit-cover"
+            alt="Profile Picture">
+      </div>
+  </div>
+  <p><strong class="me-3"> {{ user.get_full_name }} </strong></p>
+  <p><strong>Prep for Event: {{ event.event_name }}</strong></p>
+  <p><strong>Event Date:</strong> {{ event.event_date|date:"d-m-Y" }}</p>
+  <p>
+    <strong>Task:</strong> {{ ev_signup.task|default:"None" }}
+    <strong>Slot Column:</strong> {{ ev_signup.slot_column|default:"None" }}
+    &nbsp;|&nbsp;
+    <strong>Slot Row:</strong> {{ ev_signup.slot_row|default:"None" }}
+  </p>
+  <p>
+    <strong>Volunteer Slot:</strong>
+    Start: {{ ev_signup.start_time|date:"H:i" }},
+    End:   {{ ev_signup.end_time|date:"H:i" }}
+  </p>
+
+  <hr>
+
+  <h2>Volunteer Prep Personal Info</h2>
+  <ul class="list-unstyled mb-4">
+    <li><strong>Phone:</strong> {{ user.phone1 }}{% if user.phone2 %} / {{ user.phone2 }}{% endif %}</li>
+    <li><strong>ICE Contact:</strong> {{ user.ice_name }} ({{ user.ice_relationship }}) – {{ user.ice_phone }}</li>
+    <li><strong>Allergies:</strong> {{ user.allergies|default:"None" }}</li>
+    <li><strong>Date of birth:</strong> {{ user.date_of_birth|date:"d-m-Y"}}</li>
+  </ul>
+
+
+  <h3>Event Checkin/Prep </h3>
+  <form method="post" class="mb-4">
+    {% csrf_token %}
+
+    <!-- User profile flags (AppUser) -->
+    <fieldset>
+      <legend class="h5">Volunteer Training &amp; Safety Items</legend>
+      <div class="row g-3 align-items-center">
+        {# --- costume_size: label and control inline on one line --- #}
+        <div class="col-md-auto d-flex align-items-center mb-2">
+          <label class="form-label mb-0 me-2" for="{{ user_form.costume_size.id_for_label }}">
+            {{ user_form.costume_size.label }}
+          </label>
+          {{ user_form.costume_size }}
+          {% if user_form.costume_size.errors %}
+            <div class="text-danger small ms-2">{{ user_form.costume_size.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+
+        {# --- inline checkboxes; force a line break after the first TWO --- #}
+        {# no-op placeholders if your engine doesn't support set; we rely on forloop.counter below #}
+        {% for field in user_form.visible_fields %}
+          {% if field.name != "costume_size" %}
+            <div class="col-auto form-check form-check-inline mb-2">
+              {{ field }}
+              <label class="form-check-label ms-2" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {% if field.errors %}
+                <div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>
+              {% endif %}
+            </div>
+
+            {# Force a hard line break after the second checkbox in THIS loop #}
+            {% if forloop.counter == 3 %}
+                <div class="w-100"></div>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+
+      </div>
+    </fieldset>
+
+    <br>
+
+    <!-- Event-specific flags (EventVolunteers) -->
+    <fieldset class="mb-3">
+      <legend class="h5">Event Check-in & Status</legend>
+      <div class="row">
+        {% for field in ev_form %}
+          <div class="col-md-3 mb-2">
+            <div class="form-check">
+              {{ field }}
+              <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            </div>
+            {% if field.errors %}
+              <div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </fieldset>
+    <button type="submit" class="btn btn-primary">Save Updated Status</button>
+  </form>
+
+  <p><a href="{% url 'event_detail' event.pk %}">&laquo; Back to Event Detail</a></p>
+{% endblock %}

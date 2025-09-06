@@ -7,13 +7,15 @@ from django.contrib.auth import authenticate, login
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required
-from django.db.models.functions import Lower
+from django.contrib import messages
+from django.db import transaction
 from django.contrib.auth import logout
 from django.db.models import Count
 from django.urls import reverse
 
 
-from .forms import PublicSignupForm, AppUserChangeForm, ProfileForm, EventPrepForm
+from .forms import PublicSignupForm, AppUserChangeForm
+from .forms import EventPrepForm, UserPrepForm
 
 from .models import AppUser, Events, Groups, EventVolunteers, GroupVolunteers
 
@@ -268,6 +270,58 @@ def event_prep(request, event_pk, vol_pk):
         'user':   ev_signup.volunteer,
         'form':   form,
     })
+
+def event_prep_view(request, event_pk, vol_pk):
+    event = get_object_or_404(Events, pk=event_pk)
+    app_user = get_object_or_404(AppUser, pk=vol_pk)
+    # pick the specific signup row; if multiples exist, you may want filter(...) + select one explicitly
+    ev_signup = get_object_or_404(
+        EventVolunteers.objects.select_related('volunteer','event'),
+        pk=vol_pk, event_id=event_pk
+    )
+
+    if request.method == "POST":
+        ev_form = EventPrepForm(request.POST, instance=ev_signup, prefix="ev")
+        user_form = UserPrepForm(request.POST, instance=app_user, prefix="user")
+
+        if ev_form.is_valid() and user_form.is_valid():
+            with transaction.atomic():
+                ev_form.save()
+                user_form.save()
+            messages.success(request, "Event volunteer status updated.")
+            return redirect(reverse("event_prep", args=[event.pk, app_user.pk]))
+        else:
+            messages.error(request, "Fix the errors below and resubmit.")
+    else:
+        ev_form = EventPrepForm(instance=ev_signup, prefix="ev")
+        if not app_user.costume_size:
+            default = AppUser._meta.get_field("costume_size").default
+            if default not in (None, ""):
+                app_user.costume_size = str(default)  # not saved yet
+        user_form = UserPrepForm(instance=app_user, prefix="user")
+
+        #user_form = UserPrepForm(instance=app_user, prefix="user")
+
+    return render(
+        request,
+        "haunt_ops/event_prep.html",
+        {
+            "event": event,
+            "user": ev_signup.volunteer,   # your template expects 'user' to be the AppUser
+            "ev_signup": ev_signup,
+            "ev_form": ev_form,
+            "user_form": user_form,
+            "user_field_names": [
+                    "costume_size",
+                    "safety_class",
+                    "waiver",
+                    "room_actor_training",
+                    "line_actor_training",
+                    "wear_mask",
+                    ]
+        },
+    )
+
 
 def user_group_memberships_view(request, pk):
     user = get_object_or_404(AppUser, pk=pk)

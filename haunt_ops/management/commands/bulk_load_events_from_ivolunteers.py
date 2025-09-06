@@ -175,11 +175,6 @@ class Command(BaseCommand):
                         )
                         logger.debug("aware_et: %s", aware_et)
 
-                        wv = "I agree" in row["waiver"].strip()
-
-                        eb = "true" in row["email_blocked"].strip().lower()
-
-                        wm = "true" in row["wear_mask"].strip().lower()
 
                         # todays date
                         today = date.today()
@@ -227,55 +222,15 @@ class Command(BaseCommand):
                         logger.debug("points: %f", points)
                         logger.debug("full_address: %s", row["full_address"].strip())
 
-                        # Check if phone1 is empty or None, use user.phone1 if so
-                        logger.debug("phone1: %s, user phone1 %s", row["phone1"], user.phone1)
-                        raw_phone1 = row.get("phone1", "")
-                        if raw_phone1 is None or raw_phone1.strip() == "":
-                            phone1 = user.phone1
-                        else:
-                            phone1 = raw_phone1.strip()
-                        logger.debug("after phone1 test: %s", phone1)
-
-                        ice_name = ""
-                        if row["ice_name"] is None or row["ice_name"] == "":
-                            ice_name = user.ice_name
-                        else:
-                            ice_name = row["ice_name"].strip()
-
-                        ice_relationship = ""
-                        if (
-                            row["ice_relationship"] is None
-                            or row["ice_relationship"] == ""
-                        ):
-                            ice_relationship = user.ice_relationship
-                        else:
-                            ice_relationship = row["ice_relationship"].strip()
-
-                        ice_phone = ""
-                        if row["ice_phone"] is None or row["ice_phone"] == "":
-                            ice_phone = user.ice_phone
-                        else:
-                            ice_phone = row["ice_phone"].strip()
-                        logger.debug("ice_name: %s", ice_name)
-                        logger.debug("ice_relationship: %s", ice_relationship)
-                        logger.debug("ice_phone: %s", ice_phone)
-
-
                         # use date_of_birth to determine if user is over 16
                         logger.debug("points: %f", points)
                         logger.debug("haunt_experience: %s", row["haunt_experience"])
                         logger.debug("original birth date %s", original_bd)
-                        logger.debug("email_blocked: %s", eb)
-                        logger.debug("wear_mask: %s", wm)
-                        logger.debug("waiver: %s", wv)
-
 
                         ev, created = EventVolunteers.objects.update_or_create(
                             volunteer_id=user.id,
                             event_id=event.id,
                             defaults={
-                                "first_name": row["first_name"].strip(),
-                                "last_name": row["last_name"].strip(),
                                 "volunteer_id": user.id,
                                 "event_id": event.id,
                                 "event_name": event.event_name.strip(),
@@ -285,24 +240,17 @@ class Command(BaseCommand):
                                 "task": row["task"].strip(),
                                 "slot_column": row["slot_column"].strip(),
                                 "slot_row": row["slot_row"].strip(),
-                                "phone1": phone1,
+                                #"phone1": phone1,
                                 "full_address": row["full_address"].strip(),
                                 "under_16": under_16,
                                 "under_18": under_18,
-                                "date_of_birth": dob,
+                                #"date_of_birth": dob,
                                 "conflict": conflict,
                                 "waitlist": waitlist,
                                 "signed_in": signed_in,
                                 "confirmed": confirmed,
                                 "start_time": aware_st,
                                 "end_time": aware_et,
-                                "waiver": wv,
-                                "wear_mask": wm,
-                                "ice_name": ice_name,
-                                "ice_relationship": ice_relationship,
-                                "ice_phone": ice_phone,
-                                "allergies": row["allergies"].strip(),
-                                "email_blocked": eb,
                             },
                         )
 

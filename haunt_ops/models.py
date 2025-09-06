@@ -52,6 +52,20 @@ class AppUserManager(BaseUserManager):
         extra_fields.setdefault("is_active", True)
         return self.create_user(email=email, password=password, **extra_fields)
 
+SIZE_CHOICES = [
+    ("Unknown", "Unknown"),
+    ("Xsmall", "Xsmall"),
+    ("Small", "Small"),
+    ("Medium", "Medium"),
+    ("Large", "Large"),
+    ("Large/Tall", "Large/Tall"),
+    ("XLarge", "XLarge"),
+    ("XLarge/Tall", "XLarge/Tall"),
+    ("XXLarge", "XXLarge"),
+    ("XXXLarge", "XXXLarge"),
+]
+
+
 
 class AppUser(AbstractUser):
     """
@@ -84,6 +98,11 @@ class AppUser(AbstractUser):
     allergies =  models.CharField(max_length=100, null=True, blank=True, default="none")
     waiver = models.BooleanField(default=False)
     point_total = models.FloatField(null=False,blank=False,default=0.0)
+    safety_class = models.BooleanField(default=False)
+    line_actor_training = models.BooleanField(default=False)
+    room_actor_training = models.BooleanField(default=False)
+    costume_size = models.CharField(max_length=12, choices=SIZE_CHOICES, blank=False, default="Unknown")
+
 
 
 
@@ -222,33 +241,19 @@ class EventVolunteers(models.Model):
     event_name = models.TextField(blank=True, null=True)
     under_18 = models.BooleanField(blank=True,  default=False)
     under_16 = models.BooleanField(blank=True,  default=False)
-    first_name = models.CharField(max_length=30, blank=True)
-    last_name = models.CharField(max_length=30, blank=True, null=True)
     hours = models.FloatField(blank=True,null=True)
     date = models.DateField(null=True, blank=True)
-    phone1 = models.CharField(max_length=12, default="unknown")
     full_address = models.CharField(max_length=100, default="unknown")
-    date_of_birth = models.DateField(null=True, blank=True)
-    wear_mask = models.BooleanField(blank=True,  default=False)
     waiver = models.BooleanField(blank=True,  default=False)
-    ice_name = models.CharField(max_length=100, default="unknown")
-    ice_relationship = models.CharField(max_length=100, default="unknown")
-    ice_phone = models.CharField(max_length=12, default="unknown")
-    allergies =  models.CharField(max_length=100, blank=True, null=True, default="none")
-    email_blocked = models.BooleanField(default=False)
     makeup = models.BooleanField(default=False)
     costume = models.BooleanField(default=False)
 
 
 
     def save(self, *args, **kwargs):
-        self.first_name = default_if_blank(self.first_name, "Zack")
-        self.last_name = default_if_blank(self.last_name, "DeMon")
         self.start_time = default_if_blank(self.start_time,(1999, 10, 31, 9, 0, 0))
         self.end_time = default_if_blank(self.end_time,(1999, 10, 31, 12, 0, 0))
         self.date = default_if_blank(self.date, (1999, 10, 31), date_only=True)
-        self.date_of_birth = default_if_blank(self.date_of_birth, (1999, 10, 31), date_only=True)
-
         super().save(*args, **kwargs)
 
     class Meta:
@@ -259,6 +264,13 @@ class EventVolunteers(models.Model):
         #
         db_table = 'event_volunteers'
         ordering = ['date']
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=["event", "volunteer"],
+                name="uniq_event_volunteer",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.volunteer.email} - {self.event.event_name} - {self.task}"

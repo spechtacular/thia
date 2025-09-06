@@ -89,7 +89,7 @@ class Command(BaseCommand):
                         )
 
                         wv = False
-                        if "I agree" in row["waiver"].strip():
+                        if "i agree" in row["waiver"].strip().lower():
                             wv = True
                         else:
                             wv = False
@@ -101,18 +101,19 @@ class Command(BaseCommand):
                             eb = False
 
                         wm = False
-                        if "true" in row["wear_mask"].strip().lower():
+                        if "1.0" in row["wear_mask"].strip():
                             wm = True
                         else:
                             wm = False
 
+                        logger.debug("---processing user_email: %s", user_email)
                         logger.debug("haunt_experience: %s", row["haunt_experience"])
                         logger.debug("events: %s", row["events"])
                         logger.debug("original birth date %s", original_bd)
                         logger.debug("date_of_birth after split %s", bd[0])
                         logger.debug("original email_blocked: %s", row["email_blocked"])
                         logger.debug("email_blocked after test: %s", eb)
-                        logger.debug("wear_mask: %s", row["wear_mask"])
+                        logger.debug("wear_mask: %s", wm)
                         logger.debug("waiver: %s", row["waiver"])
                         logger.debug("waiver after test: %s", wv)
                         logger.debug("naive_date_joined before tz added %s", dt)
@@ -132,15 +133,11 @@ class Command(BaseCommand):
                                 "country": row["country"].strip(),
                                 "phone1": row["phone1"].strip(),
                                 "phone2": row["phone2"].strip(),
-                                # under_18:row['under_18'].strip()
                                 "date_of_birth": bd[0],
                                 "password": bd[0],
-                                # notes:row['notes'].strip(),
                                 "date_joined": aware_dt,
-                                # last_activity:row['last_activity'].strip(),
                                 "waiver": wv,
                                 "referral_source": row["referral_source"].strip(),
-                                #'haunt_experience':row['haunt_experience'].strip(),
                                 "wear_mask": wm,
                                 "tshirt_size": row["tshirt_size"].strip(),
                                 "ice_name": row["ice_name"].strip(),
