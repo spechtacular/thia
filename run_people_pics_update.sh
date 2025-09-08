@@ -4,7 +4,8 @@ python3 manage.py update_user_profile_pic emmafay@gmail.com
 python3 manage.py update_user_profile_pic eadege4@gmail.com 
 # Jelly_Nava.png 
 python3 manage.py update_user_profile_pic nfrangelica@gmail.com
-#### python3 manage.py update_user_profile_pic jimmybeatty , cant find this user
+# James_Beatty.png
+python3 manage.py update_user_profile_pic jrbeatty69@gmail.com
 #  Kai_Ridley.png 
 python3 manage.py update_user_profile_pic kai.ridley.02@gmail.com 
 # Katie_Pena.png 

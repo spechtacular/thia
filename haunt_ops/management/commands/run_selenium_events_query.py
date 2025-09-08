@@ -50,6 +50,7 @@ class CmdConfig:
     iv_url: str
     iv_admin_email: str
     iv_password: str
+    iv_org: str
     headless: bool
     dump_frames: bool
     timeout: int
@@ -64,6 +65,7 @@ class Command(BaseCommand):
         parser.add_argument("--iv-url", dest="iv_url", default=os.environ.get("IVOLUNTEER_URL", ""))
         parser.add_argument("--email", dest="iv_admin_email", default=os.environ.get("IVOLUNTEER_ADMIN_EMAIL", ""))
         parser.add_argument("--password", dest="iv_password", default=os.environ.get("IVOLUNTEER_PASSWORD", ""))
+        parser.add_argument("--iv_org", dest="iv_org", default=os.environ.get("IVOLUNTEER_ORG", ""))
         parser.add_argument("--headless", action="store_true", default=False)
         parser.add_argument("--dump-frames", action="store_true", default=False)
         parser.add_argument("--timeout", type=int, default=60)
@@ -107,6 +109,7 @@ class Command(BaseCommand):
             iv_url=options["iv_url"],
             iv_admin_email=options["iv_admin_email"],
             iv_password=options["iv_password"],
+            iv_org=options["iv_org"],
             headless=options["headless"],
             dump_frames=options["dump_frames"],
             timeout=max(15, int(options["timeout"])),
@@ -119,6 +122,7 @@ class Command(BaseCommand):
             missing = [k for k, v in [
                 ("IVOLUNTEER_URL", cfg.iv_url),
                 ("IVOLUNTEER_ADMIN_EMAIL", cfg.iv_admin_email),
+                ("IVOLUNTEER_ORG", cfg.iv_org),
                 ("IVOLUNTEER_PASSWORD", cfg.iv_password),
             ] if not v]
             raise CommandError(f"❌ Missing required inputs: {', '.join(missing)}. Provide flags or set env vars.")

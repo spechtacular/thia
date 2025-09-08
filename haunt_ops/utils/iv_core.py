@@ -137,6 +137,137 @@ def dump_all_frames(driver, prefix: str) -> None:
     except Exception:
         pass
 
+
+def _locate_login_in_context(driver) -> Tuple[object | None, object | None, object | None, object | None]:
+    """
+    Best-effort:
+      1) If an 'org admin' gate is present, fill it from IVOLUNTEER_ORG and advance.
+      2) Locate email input, password input, submit button.
+      3) Optionally locate an error banner.
+    Returns: (email_el, password_el, submit_el, error_banner_el)
+    """
+    # --- 1) Optional org gate ---
+    try:
+        # short wait so we don't stall when the gate isn't used
+        WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.ID, "org_admin_login")))
+        org_val = (os.environ.get("IVOLUNTEER_ORG") or "").strip()
+        if org_val:
+            org_input = None
+            try:
+                org_input = driver.find_element(By.ID, "action0")
+            except Exception:
+                # fallback selectors if ID changes
+                cand = [
+                    "input#action0",
+                    "input[name='action0']",
+                    "input[name='org']",
+                    "input[type='text']",
+                ]
+                for sel in cand:
+                    try:
+                        elems = [e for e in driver.find_elements(By.CSS_SELECTOR, sel) if e.is_displayed()]
+                        if elems:
+                            org_input = elems[0]
+                            break
+                    except Exception:
+                        pass
+            if org_input:
+                try:
+                    org_input.clear()
+                except Exception:
+                    pass
+                org_input.send_keys(org_val)
+
+                # try a likely continue/submit on the org gate
+                try:
+                    cont = None
+                    # common IDs or labels we've seen
+                    ids = {"action1", "continue", "submit"}
+                    for e in driver.find_elements(By.XPATH, "//button|//input[@type='submit' or @type='button']"):
+                        if not e.is_displayed():
+                            continue
+                        eid = (e.get_attribute("id") or "").lower()
+                        val = (e.get_attribute("value") or "").strip().lower()
+                        txt = (e.text or "").strip().lower()
+                        if eid in ids or val in {"go", "continue"} or txt in {"go", "continue"}:
+                            cont = e
+                            break
+                    if cont:
+                        cont.click()
+                        # wait until org gate disappears or email field shows up
+                        WebDriverWait(driver, 5).until(
+                            lambda d: not d.find_elements(By.ID, "org_admin_login")
+                            or d.find_elements(By.CSS_SELECTOR, "input[autocomplete='username']")
+                        )
+                except Exception:
+                    # non-fatal; we'll still try to find the login fields
+                    pass
+    except Exception:
+        # org gate not present; continue normally
+        pass
+
+    # --- 2) Find email, password, submit ---
+    email = None; pwd = None; submit = None; err = None
+
+    for sel in ["input[autocomplete='username']", "input[type='email']", "input[type='text']"]:
+        try:
+            elems = [e for e in driver.find_elements(By.CSS_SELECTOR, sel) if e.is_displayed()]
+            if elems:
+                email = elems[0]
+                break
+        except Exception:
+            pass
+
+    for sel in ["input[type='password'][autocomplete='current-password']", "input[type='password']"]:
+        try:
+            elems = [e for e in driver.find_elements(By.CSS_SELECTOR, sel) if e.is_displayed()]
+            if elems:
+                pwd = elems[0]
+                break
+        except Exception:
+            pass
+
+    for xp in [
+        "//button[normalize-space()='Login']",
+        "//input[@type='submit' or @type='button'][contains(@value,'Login')]",
+        "//button[contains(@class,'gwt-Button')][normalize-space()='Login']",
+        "//*[@role='button' and normalize-space()='Login']",
+    ]:
+        try:
+            elems = [e for e in driver.find_elements(By.XPATH, xp) if e.is_displayed()]
+            if elems:
+                submit = elems[0]
+                break
+        except Exception:
+            pass
+
+    # --- 3) Optional error banner ---
+    try:
+        err = next(
+            (e for e in driver.find_elements(By.CSS_SELECTOR, "div.gwt-Label.GKEPJM3CBJB") if e.is_displayed()),
+            None
+        )
+    except Exception:
+        err = None
+    if not err:
+        try:
+            err = next(
+                (
+                    e for e in driver.find_elements(
+                        By.XPATH,
+                        "//*[contains(translate(normalize-space(.),"
+                        "'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'invalid')]"
+                    )
+                    if e.is_displayed()
+                ),
+                None
+            )
+        except Exception:
+            err = None
+
+    return email, pwd, submit, err
+
+
 def _normalize_login_url(iv_url: str) -> str:
     p = urlparse(iv_url.strip())
     path = p.path
@@ -154,7 +285,7 @@ def _body_text(driver) -> str:
 
 # ---------- Login helpers ----------
 
-def _locate_login_in_context(driver) -> Tuple[object | None, object | None, object | None, object | None]:
+def _locate_login_in_context_save(driver) -> Tuple[object | None, object | None, object | None, object | None]:
     email = None; pwd = None; submit = None; err = None
     for sel in ["input[autocomplete='username']", "input[type='email']", "input[type='text']"]:
         try:
