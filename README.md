@@ -8,8 +8,8 @@
       1. In the project root directory type "python manage.py createsuperuser"
       2. We use the SUPERUSER_ACCOUNT name in .env  as the username along with the password is stored in the .env file as SUPERUSER_PASSWORD.
    3. User and Event Data must be queried from ivolunteer site and store in the local postgresql database tables.
-      1. **bulk_load_groups_from_config.py** : this loads group labels from a project config file instead of scraping the iVolunteer web page. There are options to use a custom configuration file and a dry-run.
-         1. python manage.py bulk_load_groups_from_config
+      1. **run_selenium_groups_query.py** : this loads group labels from a project config file instead of scraping the iVolunteer web page. There are options to use a custom configuration file and a dry-run.
+         1. python manage.py run_selenium_groups_query
       2. **run_selenium_events_query.py** : scrapes all iVolunteer event labels and stores them in the postgresql events table.
          1. python manage.py run_selenium_events_query
       3. **run_selenium_users_query.py** : runs the iVolunteer DB users XLS formatted report.
@@ -25,10 +25,10 @@
             5. The file extension must be png, jpg, or jpeg.
          2. The script to label the user images is in the utils folder:
             1. **label_people_pics.py** adds the name used int he image file name to the actual image.
-      6. **run_selenium_participation_query.py** : runs the event participation iVoulnteer database report.
-         1. python manage.py run_selenium_participation_query
-      7. **bulk_load_events_from_ivolunteer.py** : inserts new report data from the converted csv report file into the postgresql event_volunteers table.
-         1. python manage.py bulk_load_events_from_ivolunteer --csv path/to/users.csv
+      6. **run_selenium_event_participation_query.py** : runs the event participation iVoulnteer database report.
+         1. python manage.py run_selenium_event_participation_query
+      7. **bulk_load_events_from_ivolunteers.py** : inserts new report data from the converted csv report file into the postgresql event_volunteers table.
+         1. python manage.py bulk_load_events_from_ivolunteers --csv path/to/users.csv
 - This is the sequence used to update the existing Django postgresql database contents. An internet connection is required to connect to the ivolunteer website.
    1. **run_selenium_users_query.py** : runs the iVolunteer DB users XLS formatted report.
       1. python manage.py run_selenium_users_query
@@ -43,20 +43,24 @@
             5. The file extension must be png, jpg, or jpeg.
          2. The script to label the user images is in the utils folder:
             1. **label_people_pics.py** adds the name used int he image file name to the actual image.
-   4. **run_selenium_participation_query.py** : runs the event participation iVoulnteer database report.
-      1. python manage.py run_selenium_participation_query
-   5. **bulk_load_events_from_ivolunteer.py** : inserts or updates new report data from the converted csv report file into the postgresql event_volunteers table.
-      1. python manage.py bulk_load_events_from_ivolunteer --csv path/to/replaced_users.csv
+   4. **run_selenium_event_participation_query.py** : runs the event participation iVoulnteer database report.
+      1. python manage.py run_selenium_event_participation_query
+   5. **bulk_load_events_from_ivolunteers.py** : inserts or updates new report data from the converted csv report file into the postgresql event_volunteers table.
+      1. python manage.py bulk_load_events_from_ivolunteers --csv path/to/replaced_users.csv
 
 
 
 ## Roadmap / TODO
 - [x] remove duplicate profile_view page in views.py
-- [ ] format logout, login, reset_password pages
+- [x] format logout, login, reset_password pages
 - [x] Resolve Django makemigration issues
 - [x] Implement list volunteers by event
 - [x] Implement list volunteers by group
-- [ ] Add user profile image upload to profile page
+- [x] Add Safety Training checkbox
+- [x] Add actor costume_size field
+- [x] Add room_actor_training checkbox
+- [x] Add line_actor_training checkbox
+- [x] Add user profile image upload to profile page
 - [ ] Breakup selenium code and create shared libraries for common functions
 - [ ] Add Docker support for easier deployment
 - [ ] Add Selenium automation to create test events
