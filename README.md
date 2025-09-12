@@ -1,3 +1,5 @@
+# The Haunt In Atascadero (thia) Test Project
+
 - Secret project values are stored in a **.env** file in the project root directory, this file is not in the repo for security reasons.
 - **requirements.txt** : file contains the pip modules to be installed for the Django  project.
 - **setup_venv.py** : script will create a local file named **.venv** in the project root directory to be used for a local development environment.
@@ -34,7 +36,7 @@
       1. python manage.py run_selenium_users_query
    2. **bulk_load_users_from_ivolunteers.py** : inserts or updates new report data from the converted csv file into the postgresql app_user table.
       1. python manage.py bulk_load_users_from_ivolunteers --csv path/to/users.csv
-   3.  **update_user_profile_pic.py** : matches volunteer images to database users and create the users profile image url. This script only processes one user at a time, it is faster to create a bash script using this Django script to load multiple image links.
+   3. **update_user_profile_pic.py** : matches volunteer images to database users and create the users profile image url. This script only processes one user at a time, it is faster to create a bash script using this Django script to load multiple image links.
          1. All of the user image files must follow these requirements:
             1. The image file name should be in the following format "first_last_pic.ext"
             2. There must be an underscore between the first and last name.
@@ -48,9 +50,8 @@
    5. **bulk_load_events_from_ivolunteers.py** : inserts or updates new report data from the converted csv report file into the postgresql event_volunteers table.
       1. python manage.py bulk_load_events_from_ivolunteers --csv path/to/replaced_users.csv
 
-
-
 ## Roadmap / TODO
+
 - [x] remove duplicate profile_view page in views.py
 - [x] format logout, login, reset_password pages
 - [x] Resolve Django makemigration issues
@@ -67,5 +68,3 @@
 - [ ] Add automated testing
 - [ ] Add CI/CD
 - [ ] Add react support
-
-
