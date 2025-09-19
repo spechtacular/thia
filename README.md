@@ -64,6 +64,7 @@
 - [x] Add user profile image upload to profile page
 - [ ] Breakup selenium code and create shared libraries for common functions
 - [ ] Add Docker support for easier deployment
+- [ ] migrate code to Linux mini computer
 - [ ] Add Selenium automation to create test events
 - [ ] Add automated testing
 - [ ] Add CI/CD
