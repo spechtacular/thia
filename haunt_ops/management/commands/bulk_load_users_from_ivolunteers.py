@@ -6,8 +6,9 @@ Allows for dry-run and variable logging level options.
 
 import logging
 import csv
+import os
 from datetime import datetime
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from django.conf import settings
 from haunt_ops.models import AppUser
@@ -17,45 +18,57 @@ from haunt_ops.utils.logging_utils import configure_rotating_logger
 
 # pylint: disable=no-member
 
+LOG_LEVELS = {
+    "DEBUG": logging.DEBUG, "INFO": logging.INFO,
+    "WARNING": logging.WARNING, "ERROR": logging.ERROR, "CRITICAL": logging.CRITICAL
+}
 
 class Command(BaseCommand):
     """
     start command
-        python manage.py bulk_load_users_from_ivolunteers --csv path/to/users.csv
+        python manage.py bulk_load_users_from_ivolunteers --csv haunt_ops/download/replaced_users.csv
     or with dry-run
-        python manage.py bulk_load_users_from_ivolunteers --csv path/to/users.csv --dry-run
+        python manage.py bulk_load_users_from_ivolunteers --csv haunt_ops/download/replaced_users.csv --dry-run
     or with log-level
-        python manage.py bulk_load_users_from_ivolunteers --csv path/to/users.csv --log-level DEBUG
+        python manage.py bulk_load_users_from_ivolunteers --csv haunt_ops/download/replaced_users.csv --log-level DEBUG
     """
 
     help = "Insert or update ivolunteer users from a CSV file with optional dry-run feature."
 
     def add_arguments(self, parser):
-        parser.add_argument("--csv", type=str, help="Path to the CSV file.")
+        parser.add_argument("--csv", type=str, help="Path to the CSV file.(Default download to haunt_ops/download/ folder).")
         parser.add_argument(
-            "--dry-run",
+            '--dry-run',
             action="store_true",
             help="Simulate updates without saving to database.",
         )
         parser.add_argument(
-            "--log-level",
+            '--log-level','--log',
+            dest="log_level",
             type=str,
-            default="INFO",
-            choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+            default="DEBUG",
+            choices=list(LOG_LEVELS.keys()),
             help="Set the log level (default: INFO)",
         )
 
     def handle(self, *args, **kwargs):
         file_path = kwargs["csv"]
-        dry_run = kwargs["dry_run"]
-        log_level = kwargs["log_level"]
+        if not file_path:
+            raise CommandError("--csv is required")
+        dry_run = kwargs['dry_run']
+        level_name = (kwargs['log_level'] or 'INFO').upper()
+        level = LOG_LEVELS[level_name]
 
-        # Get a unique log file using __file__
+        # 2) make sure log dir exists
+        os.makedirs(settings.LOG_DIR, exist_ok=True)
+
+        # 3) configure your rotating logger (you already have this util)
         logger = configure_rotating_logger(
-            __file__, log_dir=settings.LOG_DIR, log_level=log_level
-        )
+            __file__, log_dir=settings.LOG_DIR, log_level=level)
 
-        logger.info("Starting load users command.")
+        logger.debug("Options: %r", kwargs)
+
+        logger.info("Starting bulk load of users data from ivolunteer.")
 
         try:
             with open(file_path, newline="", encoding="utf-8") as csvfile:
@@ -68,6 +81,7 @@ class Command(BaseCommand):
                 for row in reader:
                     total += 1
                     user_email = row["email"].strip()
+                    logger.debug("---processing user_email: %s", user_email)
                     if not user_email:
                         message = f"Skipping row {total}: missing email {user_email}."
                         self.stdout.write(message)
@@ -80,44 +94,49 @@ class Command(BaseCommand):
                         logger.info("%s user: %s", action, user_email)
                     else:
                         original_bd = row["date_of_birth"].strip()
+                        logger.debug("original birth date %s", original_bd)
+
                         bd = original_bd.split(" ", 1)
+                        logger.debug("date_of_birth after split %s", bd[0])
+
 
                         dt = row["start_date"].strip()
                         naive_dt = datetime.strptime(dt, "%Y-%m-%d %H:%M:%S")
+                        logger.debug("naive_date_joined before tz added %s", dt)
+
                         aware_dt = timezone.make_aware(
                             naive_dt, timezone=timezone.get_current_timezone()
                         )
+                        logger.debug("aware_date_joined after tz added %s", aware_dt)
+
 
                         wv = False
+                        logger.debug("waiver: %s", row["waiver"])
                         if "i agree" in row["waiver"].strip().lower():
                             wv = True
                         else:
                             wv = False
+                        logger.debug("waiver after test: %s", wv)
 
                         eb = False
                         if "true" in row["email_blocked"].strip().lower():
                             eb = True
                         else:
                             eb = False
+                        logger.debug("email_blocked: %s", eb)
 
                         wm = False
                         if "1.0" in row["wear_mask"].strip():
                             wm = True
                         else:
                             wm = False
+                        logger.debug("wear_mask: %s", wm)
 
-                        logger.debug("---processing user_email: %s", user_email)
                         logger.debug("haunt_experience: %s", row["haunt_experience"])
                         logger.debug("events: %s", row["events"])
-                        logger.debug("original birth date %s", original_bd)
-                        logger.debug("date_of_birth after split %s", bd[0])
-                        logger.debug("original email_blocked: %s", row["email_blocked"])
-                        logger.debug("email_blocked after test: %s", eb)
-                        logger.debug("wear_mask: %s", wm)
-                        logger.debug("waiver: %s", row["waiver"])
-                        logger.debug("waiver after test: %s", wv)
-                        logger.debug("naive_date_joined before tz added %s", dt)
-                        logger.debug("aware_date_joined after tz added %s", aware_dt)
+
+
+
 
                         user, created = AppUser.objects.update_or_create(
                             email=user_email,

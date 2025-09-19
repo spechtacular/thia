@@ -159,8 +159,8 @@ class Groups(models.Model) :
             UniqueConstraint(Lower('group_name'), name='uniq_group_name_ci')
         ]
 
-    def __str__(self)->str:
-        return self.group_name or "Unnamed Group"
+    def __str__(self) -> str:
+        return str(self.group_name) if self.group_name is not None else "Unnamed Group"
 
 class Events(models.Model) :
     """
@@ -274,4 +274,41 @@ class EventVolunteers(models.Model):
 
     def __str__(self):
         return f"{self.volunteer.email} - {self.event.event_name} - {self.task}"
+
+class TicketSales(models.Model):
+    """
+    Model representing ticket sales in the HauntOps application.
+    It includes fields for sale date, purchaser details, ticket type, and amount.
+    """
+    id = models.BigAutoField(primary_key=True)
+    event_name= models.CharField(max_length=500, blank=False,null=False)
+    event_date = models.DateField(null=False,blank=False, default=timezone.now)
+    event_start_time = models.DateTimeField(null=False, default=timezone.now)
+    event_end_time = models.DateTimeField(null=False, default=timezone.now)
+    tickets_purchased = models.IntegerField(blank=False,null=False, default=1)
+    tickets_remaining = models.IntegerField(blank=False,null=False, default=1)
+    source_event_time_id = models.BigIntegerField(null=True, blank=True, unique=True, db_index=True)
+    # event_id is a foreign key to the Events model
+    # This establishes a many-to-one relationship between TicketSales and Events.
+    # This means that each TicketSales instance is associated with one Events,
+    # but an Events can have multiple TicketSales instances.
+    event_id = models.ForeignKey(Events,
+                                  on_delete=models.CASCADE)
+
+    class Meta:
+        """
+        Meta class for TicketSales.
+        It specifies the database table name for the model.
+        This model is not managed by Django migrations,
+            meaning it is expected to be created and managed by the database directly.
+        This is useful for legacy tables or when the
+            table structure is controlled outside of Django.
+        """
+        db_table = 'ticket_sales'
+        ordering = ['event_date','event_start_time']
+        
+
+    def __str__(self):
+        return f"{self.id} - {self.event_date} - {self.tickets_purchased}"
+
 

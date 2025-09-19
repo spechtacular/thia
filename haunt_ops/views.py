@@ -12,12 +12,16 @@ from django.db import transaction
 from django.contrib.auth import logout
 from django.db.models import Count
 from django.urls import reverse
+from django.db.models.functions import Coalesce
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.db.models import Sum, Min, Max
 
 
 from .forms import PublicSignupForm, AppUserChangeForm
 from .forms import EventPrepForm, UserPrepForm
 
-from .models import AppUser, Events, Groups, EventVolunteers, GroupVolunteers
+from .models import AppUser, Events, Groups, EventVolunteers, GroupVolunteers, TicketSales
+
 
 # use for debugging only
 logger = logging.getLogger(__name__)
@@ -241,9 +245,20 @@ def event_detail(request, pk):
         .order_by('volunteer__last_name', 'volunteer__first_name')
     )
 
+     # Validate the caller-provided return URL; fall back to events_list
+    return_to = request.GET.get("return_to")
+    if not return_to or not url_has_allowed_host_and_scheme(
+        url=return_to,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return_to = reverse("events_list")
+
+
     return render(request, 'haunt_ops/event_detail.html', {
         'event': event,
         'signups': signups,
+        'return_to': return_to,
     })
 
 def event_prep(request, event_pk, vol_pk):
@@ -354,6 +369,74 @@ def group_volunteers_view(request, pk):
         "group": group,
         "volunteers_page": volunteers_page,
     })
+
+def ticket_sales_list(request):
+    """
+    Paginated listing of Events that have TicketSales.
+    Each row is an Event annotated with totals from its TicketSales rows.
+    Links to /events/<event_id>/ (event_detail.html).
+    """
+    qs = (
+        Events.objects
+        .filter(ticketsales__isnull=False)
+        .annotate(
+            total_shows=Count("ticketsales", distinct=True),
+            total_purchased=Sum("ticketsales__tickets_purchased"),
+            total_remaining=Sum("ticketsales__tickets_remaining"),
+            first_start_time=Min("ticketsales__event_start_time"),
+            last_end_time=Max("ticketsales__event_end_time"),
+        )
+        .order_by("first_start_time", "event_name")
+    )
+
+    # Total across ALL TicketSales rows (not just current page)
+    total_tickets_sold = TicketSales.objects.aggregate(
+        total=Coalesce(Sum("tickets_purchased"), 0)
+    )["total"]
+
+    paginator = Paginator(qs, 25)  # 25 events per page
+    page = request.GET.get("page", 1)
+    try:
+        events_page = paginator.page(page)
+    except PageNotAnInteger:
+        events_page = paginator.page(1)
+    except EmptyPage:
+        events_page = paginator.page(paginator.num_pages)
+
+    return render(request, "haunt_ops/ticket_sales_list.html", {
+        "events_page": events_page,
+        "total_tickets_sold": total_tickets_sold,
+    })
+
+def ticket_sales_detail(request, event_pk):
+    """
+    Show all TicketSales rows for a single Event, including start/end times,
+    tickets sold/remaining, and link to the event_detail page.
+    """
+    event = get_object_or_404(Events, pk=event_pk)
+
+    rows = (
+        TicketSales.objects
+        .filter(event_id=event)
+        .select_related("event_id")
+        .order_by("event_start_time", "id")
+    )
+
+    totals = rows.aggregate(
+        total_purchased=Sum("tickets_purchased"),
+        total_remaining=Sum("tickets_remaining"),
+    )
+
+    return render(
+        request,
+        "haunt_ops/ticket_sales_detail.html",
+        {
+            "event": event,
+            "rows": rows,
+            "totals": totals,
+        },
+    )
+
 
 @login_required
 def logout_view(request):

@@ -36,6 +36,10 @@ urlpatterns = [
     path("events/<int:event_pk>/volunteer/<int:vol_pk>/prep/", views.event_prep_view, name="event_prep"),
     path("event-volunteers/", views.event_volunteers_list, name="event_volunteers_list"),
 
+    # Ticket Sales
+    path("ticket-sales/", views.ticket_sales_list, name="ticket_sales_list"),
+    path("ticket-sales/<int:event_pk>/",views.ticket_sales_detail, name="ticket_sales_detail"),
+
     # Groups
     path("groups/", views.groups_list, name="groups_list"),
     path("groups/<int:pk>/volunteers/", views.group_volunteers_view, name="group_volunteers"),

@@ -17,7 +17,7 @@ This version:
 - Adds navigation for **Events ▸ Upcoming** via the top navbar dropdown.
 - Fixes a syntax error in `navigate_to_admin` and a test string literal.
 - NEW: Scrape the **Upcoming Events** table across **all pagination pages**
-  and optionally save to CSV with `--scrape-upcoming` and `--output-csv`.
+  and automatically save a CSV (unique timestamped name) to your OS "Downloads" folder by default. You can override with `--output-csv`.
 
 NOTE: The SSL shim is a pragmatic fallback and not a security best practice.
 """
@@ -717,7 +717,7 @@ def export_report(driver: webdriver.Chrome, timeout: int = 20):
 
 # ---------------------- Django management command ----------------------
 class Command(BaseCommand):
-    help = "Automate GoPassage via Selenium: login, open Events ▸ Upcoming, scrape it, or download a report."
+    help = "Automate GoPassage via Selenium: login, open Events ▸ Upcoming, scrape Upcoming Events to CSV (default), or optionally run a report."
 
     def add_arguments(self, parser):
         parser.add_argument("--email", default=os.environ.get("GOPASSAGE_EMAIL"),
@@ -727,23 +727,21 @@ class Command(BaseCommand):
         parser.add_argument("--base-url",
                             default=os.environ.get("GOPASSAGE_URL", "https://app.gopassage.com/users/sign_in"),
                             help="Base URL or sign-in URL for GoPassage")
-        parser.add_argument("--report-type", default=os.environ.get("GOPASSAGE_REPORT", None),
+        parser.add_argument("--report-type", default=os.environ.get("GOPASSAGE_REPORT"),
                             help="Visible text of the report selector (if applicable)")
         parser.add_argument("--start-date", default=None, help="Report start date (e.g., 2025-09-01)")
         parser.add_argument("--end-date", default=None, help="Report end date (e.g., 2025-09-10)")
+        parser.add_argument("--export-report", action="store_true", default=False,
+                            help="On the Reports flow, click Export then wait for the file to download.")
         parser.add_argument("--download-dir", default=os.environ.get("SELENIUM_DOWNLOAD_DIR"),
                             help="Directory to save the downloaded file")
         parser.add_argument("--timeout", type=int, default=int(os.environ.get("SELENIUM_TIMEOUT", 60)))
         parser.add_argument("--headless", action="store_true", default=False, help="Run Chrome headless")
         parser.add_argument("--no-headless", action="store_true", default=False, help="Force GUI Chrome")
-        parser.add_argument("--parse-csv", action="store_true", default=False,
-                            help="Parse the downloaded CSV and print row count")
         parser.add_argument("--open-upcoming", action="store_true", default=False,
-                            help="After login, open Events ▸ Upcoming and exit.")
-        parser.add_argument("--scrape-upcoming", action="store_true", default=False,
-                            help="Scrape Events ▸ Upcoming across all pages and print a summary.")
-        parser.add_argument("--output-csv", default=os.environ.get("GOPASSAGE_UPCOMING_CSV", None),
-                            help="If set, save scraped Upcoming Events to this CSV path.")
+                            help="After login, open Events ▸ Upcoming and exit (skip scraping).")
+        parser.add_argument("--output-csv", default=os.environ.get("GOPASSAGE_UPCOMING_CSV"),
+                            help="If set, save scraped Upcoming Events to this CSV path (overrides the auto-named file in the Downloads folder).")
 
     def handle(self, *args, **opts):
         email = opts["email"]
@@ -762,8 +760,7 @@ class Command(BaseCommand):
         # Download directory
         download_dir = opts["download_dir"]
         if not download_dir:
-            base_dir = getattr(settings, "BASE_DIR", None) or os.getcwd()
-            download_dir = os.path.join(base_dir, "tmp", "selenium_downloads")
+            download_dir = os.path.join(os.path.expanduser("~"), "Downloads")
         os.makedirs(download_dir, exist_ok=True)
 
         if not email or not password:
@@ -778,37 +775,6 @@ class Command(BaseCommand):
             # --- Login ---
             login_gopassage(driver, base_url, email, password, timeout=timeout)
 
-            # --- Primary flows ---
-            if opts.get("open_upcoming") or opts.get("scrape_upcoming"):
-                # Admin first so the admin navbar (Events dropdown) is present
-                navigate_to_admin(driver, timeout=timeout)
-                navigate_to_events_upcoming(driver, timeout=timeout)
-
-                if opts.get("open_upcoming") and not opts.get("scrape_upcoming"):
-                    self.stdout.write(self.style.SUCCESS("Opened Events ▸ Upcoming successfully."))
-                    return
-
-                # Scrape all pages
-                rows = scrape_upcoming_events(driver, timeout=timeout)
-                self.stdout.write(f"Scraped {len(rows)} upcoming rows.")
-
-                out_csv = opts.get("output_csv")
-                if out_csv:
-                    os.makedirs(os.path.dirname(out_csv) or ".", exist_ok=True)
-                    with open(out_csv, "w", newline="", encoding="utf-8") as f:
-                        writer = csv.DictWriter(f, fieldnames=REQUIRED_FIELDS)
-                        writer.writeheader()
-                        for r in rows:
-                            writer.writerow({k: r.get(k, "") for k in REQUIRED_FIELDS})
-                    self.stdout.write(self.style.SUCCESS(f"Wrote CSV: {out_csv}"))
-                else:
-                    # Print the first few rows for quick verification
-                    for r in rows[:5]:
-                        preview = ", ".join(
-                            f"{k}={r.get(k, '')}" for k in ("Event", "Start Time", "Tickets Purchased")
-                        )
-                        self.stdout.write(" - " + preview)
-                return
 
             # Reports flow (only if filters provided)
             if report_type or start_date or end_date:
@@ -837,9 +803,30 @@ class Command(BaseCommand):
                         self.stdout.write(self.style.WARNING(f"Failed to parse CSV: {e}"))
                 return
 
-            # Default behavior: just land in Admin to prove login/navigation works
+            # Default behavior: navigate to Events ▸ Upcoming and scrape to CSV
             navigate_to_admin(driver, timeout=timeout)
-            self.stdout.write(self.style.SUCCESS("Login + Admin navigation successful."))
+            navigate_to_events_upcoming(driver, timeout=timeout)
+
+            if opts.get("open_upcoming"):
+                self.stdout.write(self.style.SUCCESS("Opened Events ▸ Upcoming successfully."))
+                return
+
+            rows = scrape_upcoming_events(driver, timeout=timeout)
+
+            out_csv = opts.get("output_csv")
+            if not out_csv:
+                ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                out_csv = os.path.join(download_dir, f"upcoming_events_{ts}.csv")
+
+            os.makedirs(os.path.dirname(out_csv) or ".", exist_ok=True)
+            with open(out_csv, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=REQUIRED_FIELDS)
+                writer.writeheader()
+                for r in rows:
+                    writer.writerow({k: r.get(k, "") for k in REQUIRED_FIELDS})
+
+            self.stdout.write(self.style.SUCCESS(f"Wrote CSV ({len(rows)} rows): {out_csv}"))
+            return
 
         finally:
             try:
@@ -858,7 +845,7 @@ def _test_event_id_regex():
     ]
     expected = ["26952", "12345", "98765"]
     for s, e in zip(samples, expected):
-        m = re.search(r"/events/(\d+)", s)
+        m = re.search(r"/events/([0-9]+)", s)
         assert m and m.group(1) == e, f"Regex failed for {s}"
 
 
@@ -869,13 +856,18 @@ def _test_signin_url_normalization():
     assert "app.gopassage.com" in u2
 
 
+
+def _test_normalize_header():
+    assert _normalize_header("Revenue Generated") == "Revenue"
+    assert _normalize_header("Start Time") == "Start Time"
+
 if __name__ == "__main__":
     # Run mini-tests when executing this file directly (not via Django manage)
     try:
         _test_event_id_regex()
         _test_signin_url_normalization()
+        _test_normalize_header()
         print("Mini-tests passed.")
     except AssertionError as err:
         print("Mini-tests failed:", err)
         sys.exit(1)
-

@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     'haunt_ops',
 ]
 
@@ -170,7 +171,7 @@ LOGGING = {
             "backupCount": 7,
             "formatter": "verbose_with_scriptname",
             "encoding": "utf-8",
-            "utc": False,   
+            "utc": False,
         },
     },
     "loggers": {

@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>{% block title %}The Haunt in Atascadero{% endblock %}</title>
+  <title>{% block title %}ScareWare{% endblock %}</title>
   <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
   <link rel="shortcut icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -22,9 +22,9 @@
     <div class="container-fluid">
       <a class="navbar-brand"
         href="{% if user.is_authenticated %}{% url 'user_list' %}{% else %}{% url 'home' %}{% endif %}">
-          <img src="{% static 'favicon.ico' %}" alt="The Haunt" width="24" height="24"
+          <img src="{% static 'favicon.ico' %}" alt="ScareWare" width="24" height="24"
             class="d-inline-block align-text-top me-2">
-        The Haunt
+        ScareWare
       </a>
 
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
@@ -39,6 +39,7 @@
             <a class="nav-link dropdown-toggle" href="#" id="eventsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Events</a>
             <ul class="dropdown-menu" aria-labelledby="eventsDropdown">
               <li><a class="dropdown-item" href="{% url 'events_list' %}">All Haunt Events</a></li>
+              <li><a class="dropdown-item" href="{% url 'ticket_sales_list' %}">Ticket Sales</a></li>
               <li><a class="dropdown-item" href="{% url 'event_volunteers_list' %}">Event Volunteers</a></li>
             </ul>
           </li>

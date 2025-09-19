@@ -2,11 +2,15 @@
 This file contains the admin configuration for the AppUser model.
 It customizes the admin interface for managing user profiles.
 """
+# Register your models here.
+from .models import AppUser
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .forms import AppUserCreationForm, AppUserChangeForm
-# Register your models here.
-from .models import AppUser
+admin.site.site_header = "Scareware Admin"
+admin.site.site_title = "Scareware Portal"
+admin.site.index_title = "Welcome to Scareware by The Haunt in Atascadero"
+
 
 
 class AppUserAdmin(UserAdmin):

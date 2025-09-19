@@ -26,11 +26,6 @@
           <td>{{ ev.task }}</td>
           <td>{{ ev.slot_column }}</td>
           <td>{{ ev.slot_row }}</td>
-
-
-
-
-
         </tr>
       {% endfor %}
       </tbody>
@@ -39,5 +34,5 @@
     <p>No volunteers signed up for this event yet.</p>
   {% endif %}
 
-  <p><a href="{% url 'events_list' %}">&laquo; Back to all events</a></p>
+  <p><a href="{{ return_to }}">&laquo; Back</a></p>
 {% endblock %}
