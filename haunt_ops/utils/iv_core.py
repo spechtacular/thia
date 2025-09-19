@@ -357,7 +357,7 @@ def _type_and_fire(driver, el, text, delay=0.05):
 @dataclass
 class DriverConfig:
     browser: str = "firefox"        # "firefox" or "chrome"
-    headless: bool = False
+    headless: bool = True
     ua_firefox: str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:141.0) Gecko/20100101 Firefox/141.0"
     ua_chrome: str = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) "
                       "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -371,23 +371,40 @@ def build_driver(cfg: DriverConfig):
         opts = ChromeOptions()
         if cfg.headless: opts.add_argument("--headless=new")
         opts.add_argument("--window-size=1280,900")
-        opts.add_argument("--disable-gpu"); opts.add_argument("--no-sandbox"); opts.add_argument("--disable-dev-shm-usage")
-        opts.add_experimental_option("excludeSwitches", ["enable-automation"])
-        opts.add_experimental_option("useAutomationExtension", False)
+        opts.add_argument("--disable-gpu")
+        opts.add_argument("--no-sandbox")
+        opts.add_argument("--disable-dev-shm-usage")
         opts.add_argument(f"--lang={cfg.lang}")
         opts.add_argument(f"--user-agent={cfg.ua_chrome}")
-        opts.add_experimental_option("prefs", {"download.default_directory": cfg.download_dir})
+        opts.add_experimental_option("excludeSwitches", ["enable-automation"])
+        opts.add_experimental_option("useAutomationExtension", False)
+        prefs = {
+                "credentials_enable_service": False,
+                "profile.password_manager_enabled": False,
+                "autofill.profile_enabled": False,
+                "autofill.credit_card_enabled": False,
+                "download.default_directory": cfg.download_dir,
+                "download.prompt_for_download": False,
+                "download.directory_upgrade": True,
+                "safebrowsing.enabled": True,
+        }
+        opts.add_experimental_option("prefs", prefs)
         drv = webdriver.Chrome(options=opts)
     else:
         opts = FFOptions()
         if cfg.headless: opts.add_argument("-headless")
+        opts.set_preference("signon.rememberSignons", False)
+        opts.set_preference("signon.autofillForms", False)
+        opts.set_preference("signon.generation.enabled", False)
+        opts.set_preference("extensions.formautofill.creditCards.enabled", False)
+        opts.set_preference("dom.webnotifications.enabled", False)
+        opts.set_preference("geo.enabled", False)
         opts.set_preference("general.useragent.override", cfg.ua_firefox)
         opts.set_preference("intl.accept_languages", cfg.lang)
         opts.set_preference("javascript.enabled", True)
         opts.set_preference("browser.download.folderList", 2)
         opts.set_preference("browser.download.dir", cfg.download_dir)
         opts.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-
         drv = webdriver.Firefox(options=opts)
     drv.set_page_load_timeout(cfg.page_load_timeout)
     return drv

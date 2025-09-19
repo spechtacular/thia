@@ -3,7 +3,6 @@ browser_config:
     - "--disable-gpu"
     - "--enable-logging"
     - "--v=1"
-    - "--headless=new"
    download_directory: "haunt_ops/downloads/"
 
 login:

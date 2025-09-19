@@ -19,7 +19,6 @@ from haunt_ops.utils.logging_utils import configure_rotating_logger
 
 
 # pylint: disable=no-member
-logger = logging.getLogger("haunt_ops")  # Uses logger config from settings.py
 
 
 class Command(BaseCommand):
@@ -67,7 +66,7 @@ class Command(BaseCommand):
             __file__, log_dir=settings.LOG_DIR, log_level=log_level
         )
 
-        logger.info("Starting load events command.")
+        logger.info("loading ivolunteer events data.")
 
 
         try:

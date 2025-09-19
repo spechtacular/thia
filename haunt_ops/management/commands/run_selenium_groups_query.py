@@ -6,11 +6,11 @@ It supports dry-run mode to simulate updates without saving to the database.
 """
 
 from __future__ import annotations
-import logging
 import os
-
+import argparse
 from dataclasses import dataclass
 from django.core.management.base import BaseCommand, CommandError
+from django.conf import settings
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -27,13 +27,10 @@ from haunt_ops.utils.iv_core import (
     ADMIN_IFRAME_ID,
     scrape_groups_from_filter_dropdown,
     scrape_database_group_list,
-    click_database_group_by_name,
     wait_for_overlay_to_clear,
 )
 
-
-logger = logging.getLogger("haunt_ops")
-
+from haunt_ops.utils.logging_utils import configure_rotating_logger
 
 @dataclass
 class CmdConfig:
@@ -56,27 +53,44 @@ class Command(BaseCommand):
         parser.add_argument("--email", dest="iv_admin_email", default=os.environ.get("IVOLUNTEER_ADMIN_EMAIL", ""))
         parser.add_argument("--password", dest="iv_password", default=os.environ.get("IVOLUNTEER_PASSWORD", ""))
         parser.add_argument("--iv_org", dest="iv_org", default=os.environ.get("IVOLUNTEER_ORG", ""))
-        parser.add_argument("--headless", action="store_true", default=False)
+        parser.add_argument("--headless",action=argparse.BooleanOptionalAction,default=True)
+        parser.add_argument("--log", type=str, default="INFO",
+                            choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+                            help="Set the log level (default: INFO) ")
         parser.add_argument("--dump-frames", action="store_true", default=False)
-        parser.add_argument("--timeout", type=int, default=60)
-        parser.add_argument("--browser", choices=["firefox","chrome"], default=os.environ.get("BROWSER","firefox"))
+        parser.add_argument("--timeout", type=int, default=20)
+        parser.add_argument("--browser", choices=["firefox","chrome"], default=os.environ.get("BROWSER","chrome"))
         parser.add_argument("--log-pw-hash", action="store_true", default=False)
         parser.add_argument("--dry-run", action="store_true", help="Simulate updates without saving to database.")
 
 
     def handle(self, *args, **options):
+        headless=options.get("headless", True)
+        dry_run = options["dry_run"]
+        log_level=options.get("log", "INFO").upper()
+
         cfg = CmdConfig(
             iv_url=options["iv_url"],
             iv_admin_email=options["iv_admin_email"],
             iv_password=options["iv_password"],
             iv_org=options["iv_org"],
-            headless=options["headless"],
+            headless=headless,
             dump_frames=options["dump_frames"],
             timeout=max(15, int(options["timeout"])),
             browser=options["browser"],
             log_pw_hash=options["log_pw_hash"],
         )
-        dry_run = options["dry_run"]
+
+
+         # Get a unique log file using __file__
+        logger = configure_rotating_logger(
+            __file__, log_dir=settings.LOG_DIR, log_level=log_level
+        )
+
+        logger.info("querying and parsing ivolunteer group list.")
+        logger.info("Log level set to: %s", log_level)
+        logger.info("Headless mode: %s", headless)
+        logger.debug("Log directory: %s", settings.LOG_DIR)
 
         if not (cfg.iv_url and cfg.iv_admin_email and cfg.iv_password):
             missing = [k for k, v in [

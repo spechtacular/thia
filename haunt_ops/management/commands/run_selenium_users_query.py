@@ -5,8 +5,7 @@ It uses configuration data from a configuration file named ./config/selenium_con
 
 import os
 import time
-
-import logging
+import argparse
 import yaml
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -15,19 +14,23 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from django.conf import settings
 from haunt_ops.management.commands.base_utils import BaseUtilsCommand
-
+from haunt_ops.utils.logging_utils import configure_rotating_logger
 
 # pylint: disable=no-member
-
-logger = logging.getLogger("haunt_ops")
 
 
 class Command(BaseUtilsCommand):
     """
-    start command
+    start command using default config file and default headless mode on and log level INFO
         python manage.py run_selenium_users_query
     or with custom config
         python manage.py run_selenium_users_query --config=config/custom_config.yaml
+    or with headless off
+        python manage.py run_selenium_users_query --no-headless
+    or with headless on (default)
+        python manage.py run_selenium_users_query --headless
+    or with log level DEBUG
+        python manage.py run_selenium_users_query --log DEBUG
 
     """
 
@@ -39,9 +42,27 @@ class Command(BaseUtilsCommand):
             type=str,
             default="config/selenium_config.yaml",
         )
+        parser.add_argument("--headless",action=argparse.BooleanOptionalAction,default=True)
+        parser.add_argument("--log", type=str, default="INFO",
+                            choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+                            help="Set the log level (default: INFO) ")
 
     def handle(self, *args, **kwargs):
         config_file = kwargs.get("config", "config/selenium_config.yaml")
+        headless=options.get("headless", True)
+        log_level=options.get("log", "INFO").upper()
+
+                 # Get a unique log file using __file__
+        logger = configure_rotating_logger(
+            __file__, log_dir=settings.LOG_DIR, log_level=log_level
+        )
+
+        logger.info("querying and parsing ivolunteer user data.")
+        logger.info("Log level set to: %s", log_level)
+        logger.info("Headless mode: %s", headless)
+        logger.debug("Log directory: %s", settings.LOG_DIR)
+
+
 
         # Load configuration from YAML file
         with open(config_file, encoding="UTF-8") as f:
@@ -56,6 +77,9 @@ class Command(BaseUtilsCommand):
         for arg in config["browser_config"]["chrome_options"]:
             options.add_argument(arg)
 
+        if headless:
+            options.add_argument("--headless=new")
+
         # preferences used
         prefs = {
             "download.default_directory": download_dir,
@@ -67,10 +91,6 @@ class Command(BaseUtilsCommand):
 
         # initialize webdriver with options and preferences
         driver = webdriver.Chrome(options=options)
-
-        # optional driver specification
-        # driver = webdriver.Chrome(service=webdriver.ChromeService(
-        #   executable_path='/path/to/chromedriver'), options=options)
 
 
         wait = WebDriverWait(driver, 30)

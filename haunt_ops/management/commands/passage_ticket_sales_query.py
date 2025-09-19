@@ -1,6 +1,6 @@
 # haunt_ops/management/commands/passage_ticket_sales_query.py
 import os
-import re
+import logging
 from datetime import datetime, time, timezone
 from zoneinfo import ZoneInfo
 from typing import Any, Dict, List, Optional
@@ -9,6 +9,8 @@ from dateutil import parser, tz as dtu_tz
 from django.apps import apps
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.conf import settings
+from haunt_ops.utils.logging_utils import configure_rotating_logger
 from django.db.models import Q
 
 # If these utils live elsewhere, adjust the imports:
@@ -27,6 +29,15 @@ PACIFIC = dtu_tz.gettz("America/Los_Angeles")
 
 
 def parse_passage_dt(s: str):
+    """
+    Parse a GoPassage date/time string, which may be ISO 8601 or a more freeform format.
+    Examples:
+      - '2023-10-31T19:00:00-07:00' (ISO 8601 with offset)
+      - '2023-10-31T19:00:00' (ISO 8601 without offset, assume Pacific)
+      - 'October 31, 2023 7:00 PM PDT' (freeform with tz abbrev)
+      - 'October 31, 2023 7:00 PM' (freeform without tz, assume Pacific)
+    Returns a timezone-aware datetime in UTC.
+    """
     tzinfos = {"PDT": PACIFIC, "PST": PACIFIC}
     dt_local = parser.parse(s, tzinfos=tzinfos)
     if dt_local.tzinfo is None:
@@ -100,7 +111,12 @@ def _parse_event_date(val: Any) -> Optional[datetime.date]:
     return None
 
 
+
 class Command(BaseCommand):
+    """
+    Django management command to scrape ticket sales data from GoPassage
+    and upsert it into the TicketSales and the Events model when necessary.
+    """
     help = "Login to GoPassage, open Events→Upcoming, scrape ticket sales (paginated), and upsert into TicketSales."
 
     def add_arguments(self, parser):
@@ -126,7 +142,14 @@ class Command(BaseCommand):
             "--dry-run",
             action="store_true",
             default=False,
-            help="Only print scraped rows, do not write to DB.",
+            help="Only print scraped rows, does not write to DB.",
+        )
+        parser.add_argument(
+            "--log",
+            type=str,
+            default="INFO",
+            choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+            help="Set the log level (default: INFO)",
         )
 
     def handle(self, *args, **opts):
@@ -137,6 +160,16 @@ class Command(BaseCommand):
         )
         if not username or not password:
             raise CommandError("Set GOPASSAGE_EMAIL and GOPASSAGE_PASSWORD env vars.")
+
+        log_level = opts["log"].upper()
+
+        # Get a unique log file using __file__
+        logger = configure_rotating_logger(
+            __file__, log_dir=settings.LOG_DIR, log_level=log_level
+        )
+
+        logger.info("✅parsing and loading passage ticket sales data.")
+
 
         headed = bool(opts["headed"])
         timeout = int(opts["timeout"])
@@ -151,16 +184,20 @@ class Command(BaseCommand):
             )
 
         # Show what we scraped (always)
-        for r in rows:
-            self.stdout.write(str(r))
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f"Scraped {len(rows)} total rows:")
+            for r in rows:
+                logger.debug(str(r))
 
         if dry_run:
-            self.stdout.write(self.style.WARNING("Print-only mode: no DB writes."))
+            logger.warning(self.style.WARNING("Dry-Run mode: no DB writes."))
             return
 
         TicketSales = apps.get_model("haunt_ops", "TicketSales")
         Events = apps.get_model("haunt_ops", "Events")
 
+        new_sales_events = 0
+        updated_sales_events = 0
         upserts = 0
         links = 0
         created_events = 0
@@ -168,7 +205,7 @@ class Command(BaseCommand):
 
         @transaction.atomic
         def do_upserts(scraped_rows: List[Dict[str, Any]]):
-            nonlocal upserts, links, created_events, skipped_bad_date
+            nonlocal upserts, links, created_events, skipped_bad_date, new_sales_events, updated_sales_events
 
             for row in scraped_rows:
                 # Expected keys (varying presence):
@@ -180,7 +217,7 @@ class Command(BaseCommand):
                 local_tz = _tz_from_label(row.get("time_zone"))  # ZoneInfo
                 start_text = row.get("start_time")
                 end_text   = row.get("end_time")
-                self.stdout.write(f"start={start_text} end={end_text} tz={local_tz}")
+                logger.debug(f"start={start_text} end={end_text} tz={local_tz}")
                 start_dt_utc = None
                 end_dt_utc = None
                 event_date = None
@@ -192,7 +229,7 @@ class Command(BaseCommand):
                     end_dt_utc = parse_passage_dt(end_text)
 
                 if not start_dt_utc or not end_dt_utc:
-                    self.stdout.write(self.style.WARNING(
+                    logger.warning(self.style.WARNING(
                         f"[parse-miss] id={row.get('event_time_id') or row.get('id')} "
                         f"date={row.get('event_date')} start='{row.get('start_time')}' "
                         f"end='{row.get('end_time')}'"
@@ -207,7 +244,7 @@ class Command(BaseCommand):
 
                 if not event_date:
                     skipped_bad_date += 1
-                    self.stdout.write(
+                    logger.warning(
                         self.style.WARNING(
                             f"Skipping row — bad/unknown event_date: {row.get('event_date')}"
                         )
@@ -255,7 +292,7 @@ class Command(BaseCommand):
                         event_date=event_date,
                     )
                     created_events += 1
-                    self.stdout.write(self.style.SUCCESS(f"Created Events row: '{new_name}' ({event_date})"))
+                    logger.debug(f"✅Created new Events row: '{new_name}' ({event_date})")
 
                 # Use source_event_time_id as natural key when present
                 if event_time_id is not None:
@@ -284,6 +321,17 @@ class Command(BaseCommand):
                             "tickets_remaining": tickets_remaining,
                         },
                     )
+                if _created:
+                    logger.info(
+                        f"✅Created TicketSales row: id={ts.id} event='{ts.event_name}' date={ts.event_date}"
+                    )
+                    new_sales_events += 1
+                else:
+                    logger.info(
+                        f"✅Updated TicketSales row: id={ts.id} event='{ts.event_name}' date={ts.event_date}"
+                    )
+                    updated_sales_events += 1
+
 
                 upserts += 1
 
@@ -295,9 +343,7 @@ class Command(BaseCommand):
 
         do_upserts(rows)
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Upserts: {upserts}; Linked to Events: {links}; "
-                f"Created Events: {created_events}; Skipped (bad date): {skipped_bad_date}"
-            )
+        logger.info(
+                f"✅Ticket sales results: Upserts: {upserts}; Linked to Events: {links}; New Sales Events: {new_sales_events}; "
+                f"Created Events: {created_events}; Updated Sales Event: {updated_sales_events}; Skipped (bad date): {skipped_bad_date}"
         )

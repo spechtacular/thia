@@ -7,10 +7,10 @@ It supports dry-run mode to simulate updates without saving to the database.
 import os
 import time
 import traceback
-
-
 import logging
 import yaml
+import argparse
+from haunt_ops.utils.logging_utils import configure_rotating_logger
 
 from django.core.management.base import CommandError
 from selenium import webdriver
@@ -22,9 +22,6 @@ from django.conf import settings
 from haunt_ops.management.commands.base_utils import BaseUtilsCommand
 
 # pylint: disable=no-member
-
-
-logger = logging.getLogger("haunt_ops")
 
 
 class Command(BaseUtilsCommand):
@@ -45,9 +42,41 @@ class Command(BaseUtilsCommand):
             default="config/selenium_config.yaml",
             help="Path to YAML configuration file (default: config/selenium_config.yaml)",
         )
+        parser.add_argument(
+            "--log",
+            type=str,
+            default="INFO",
+            choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+            help="Set the log level (default: INFO) ",
+        )
+
+        parser.add_argument(
+            "--headless",
+            action=argparse.BooleanOptionalAction,
+            default=True,
+            help="Run browser in headless mode (default: True) ",
+        )
+
 
     def handle(self, *args, **kwargs):
         config_file = kwargs.get("config", "config/selenium_config.yaml")
+        log_level = kwargs.get("log", "INFO").upper()
+        headless = kwargs.get("headless", True)
+
+
+        # Get a unique log file using __file__
+        logger = configure_rotating_logger(
+            __file__, log_dir=settings.LOG_DIR, log_level=log_level
+        )
+
+        logger.info("querying and parsing ivolunteer event participation data.")
+        logger.info("Using config file: %s", config_file)
+        logger.info("Log level set to: %s", log_level)
+        logger.info("Headless mode: %s", headless)
+        logger.debug("Log directory: %s", settings.LOG_DIR)
+
+
+
 
         try:
             with open(config_file, "r", encoding="utf-8") as f:
@@ -58,9 +87,9 @@ class Command(BaseUtilsCommand):
             download_dir = os.path.join(settings.BASE_DIR, download_directory)
             os.makedirs(download_dir, exist_ok=True)
 
-            options = Options()
+            opts = Options()
             for arg in config["browser_config"]["chrome_options"]:
-                options.add_argument(arg)
+                opts.add_argument(arg)
 
             prefs = {
                 "download.default_directory": download_dir,
@@ -68,14 +97,17 @@ class Command(BaseUtilsCommand):
                 "download.directory_upgrade": True,
                 "safebrowsing.enabled": True,
             }
-            options.add_experimental_option("prefs", prefs)
-            driver = webdriver.Chrome(options=options)
+
+            if headless:
+                opts.add_argument("--headless=new")
+
+            opts.add_experimental_option("prefs", prefs)
+
+            driver = webdriver.Chrome(options=opts)
 
             try:
                 # Login
-                iv_password = config["login"]["password"]
-                if iv_password == "ENV":
-                    iv_password = os.environ.get("IVOLUNTEER_PASSWORD")
+                iv_password = os.environ.get("IVOLUNTEER_PASSWORD")
 
                 wait = WebDriverWait(driver, 30)
                 driver.get(os.environ.get("IVOLUNTEER_URL"))

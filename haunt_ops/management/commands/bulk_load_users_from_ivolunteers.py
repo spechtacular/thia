@@ -68,7 +68,7 @@ class Command(BaseCommand):
 
         logger.debug("Options: %r", kwargs)
 
-        logger.info("Starting bulk load of users data from ivolunteer.")
+        logger.info("loading users data from ivolunteer")
 
         try:
             with open(file_path, newline="", encoding="utf-8") as csvfile:

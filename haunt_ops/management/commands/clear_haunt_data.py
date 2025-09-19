@@ -1,20 +1,20 @@
 """
 Command to clear haunt-related operational data.
 Deletes data from key tables like AppUser, Events, Groups,
-    EventChecklist, GroupVolunteers, and EventVolunteers.
+     GroupVolunteers, and EventVolunteers.
 Can be run in dry-run mode to preview deletions without actually
     removing data.
 """
 
 import logging
-
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.contrib.auth import get_user_model
 from haunt_ops.models import (
     Events,
     Groups,
-    EventChecklist,
+    TicketSales,
+    AppUser,
     GroupVolunteers,
     EventVolunteers,
 )
@@ -22,6 +22,27 @@ from haunt_ops.models import (
 # pylint: disable=no-member
 logger = logging.getLogger("haunt_ops")  # Uses logger config from settings.py
 
+import sys
+
+def confirm(prompt: str, default: bool = False) -> bool:
+    """
+    Ask user to confirm. Returns True/False.
+    default=False -> [y/N]; default=True -> [Y/n]
+    """
+    suffix = " [Y/n] " if default else " [y/N] "
+    while True:
+        try:
+            ans = input(prompt + suffix).strip().lower()
+        except EOFError:
+            # No stdin (e.g., piped/CI) -> choose default
+            return default
+        if ans == "":
+            return default
+        if ans in ("y", "yes"):
+            return True
+        if ans in ("n", "no"):
+            return False
+        print("Please enter 'y' or 'n'.")
 
 class Command(BaseCommand):
     """
@@ -43,6 +64,12 @@ class Command(BaseCommand):
             help="Preview which tables will be cleared without deleting any data",
         )
 
+        parser.add_argument(
+            "-y", "--yes",
+            action="store_true",
+            help="Skip confirmation prompt and proceed."
+        )
+
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
 
@@ -50,14 +77,24 @@ class Command(BaseCommand):
         tables = [
             ("EventVolunteers", EventVolunteers),
             ("GroupVolunteers", GroupVolunteers),
-            ("EventChecklist", EventChecklist),
+            ("TicketSales", TicketSales),
+            ("AppUser", AppUser),
             ("Groups", Groups),
             ("Events", Events),
         ]
 
+        # refuse to run interactively if no TTY and no --yes
+        if not sys.stdin.isatty() and not options["yes"]:
+            raise CommandError("No TTY available; re-run with --yes to proceed non-interactively.")
+
+        if not options["yes"]:
+            if not confirm("This will delete all Haunt data from the Postgresql database. Continue?", default=False):
+                self.stdout.write(self.style.WARNING("Aborted by user."))
+                return
+
         # dont clear required accounts
-        # dont delete these accounts, these are used as sysadmin and test accounts
-        keep_ids = [614]
+        # dont delete these accounts, these are used for sysadmin, test accounts, etc.
+        keep_ids = [1]
         logger.info("🔍 Checking for AppUser deletions...")
         user = get_user_model()
 
