@@ -7,6 +7,7 @@ Can be run in dry-run mode to preview deletions without actually
 """
 
 import logging
+import sys
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.contrib.auth import get_user_model
@@ -22,7 +23,6 @@ from haunt_ops.models import (
 # pylint: disable=no-member
 logger = logging.getLogger("haunt_ops")  # Uses logger config from settings.py
 
-import sys
 
 def confirm(prompt: str, default: bool = False) -> bool:
     """
