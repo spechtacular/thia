@@ -45,3 +45,7 @@ urllib3==2.5.0
 websocket-client==1.8.0
 wsproto==1.2.0
 xlrd==2.0.2
+djangorestframework>=3.15
+django-filter>=24.2
+python-dotenv>=1.0
+psycopg[binary,pool]>=3.1

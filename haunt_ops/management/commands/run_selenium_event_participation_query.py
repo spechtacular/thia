@@ -69,10 +69,10 @@ class Command(BaseUtilsCommand):
             __file__, log_dir=settings.LOG_DIR, log_level=log_level
         )
 
-        logger.info("querying and parsing ivolunteer event participation data.")
-        logger.info("Using config file: %s", config_file)
-        logger.info("Log level set to: %s", log_level)
-        logger.info("Headless mode: %s", headless)
+        logger.debug("querying and parsing ivolunteer event participation data.")
+        logger.debug("Using config file: %s", config_file)
+        logger.debug("Log level set to: %s", log_level)
+        logger.debug("Headless mode: %s", headless)
         logger.debug("Log directory: %s", settings.LOG_DIR)
 
 
@@ -121,7 +121,7 @@ class Command(BaseUtilsCommand):
                 driver.find_element(By.ID, "action2").send_keys(iv_password)
                 driver.find_element(By.ID, "Submit").click()
 
-                logger.info(
+                logger.debug(
                     "✅ Successfully logged in as %s ", config["login"]["admin_email"]
                 )
 
@@ -157,7 +157,7 @@ class Command(BaseUtilsCommand):
                         if option.get_attribute("value") == "DbParticipationReport":
                             if option.is_enabled():
                                 report_dropdown.select_by_value("DbParticipationReport")
-                                logger.info("✅ Successfully selected after wait")
+                                logger.debug("✅ Successfully selected after wait")
                                 break
                     else:
                         time.sleep(1)
@@ -174,7 +174,7 @@ class Command(BaseUtilsCommand):
                     By.XPATH, "//span[text()='Sort/Group:']/following::select[1]"
                 )
                 Select(sort_group_dropdown).select_by_value("EMAIL")
-                logger.info("Selected EMAIL sort option")
+                logger.debug("Selected EMAIL sort option")
 
                 # select report Format
                 format_select = driver.find_element(
@@ -184,14 +184,14 @@ class Command(BaseUtilsCommand):
 
                 # Wait for the format select to be present
                 Select(format_select).select_by_value("EXCEL")
-                logger.info("Selected EXCEL format option")
+                logger.debug("Selected EXCEL format option")
 
                 # Select Page Size (safe fallback)
                 page_size_dropdown = driver.find_element(
                     By.XPATH, "//select[@class='GKEPJM3CLLB'][option[@value='LTR']]"
                 )
                 Select(page_size_dropdown).select_by_value("LTR")
-                logger.info("Selected LTR page size")
+                logger.debug("Selected LTR page size")
 
                 # Select Date Range
                 date_range_select = driver.find_element(
@@ -199,7 +199,7 @@ class Command(BaseUtilsCommand):
                     "//span[text()='Date Range:']/ancestor::tr/following-sibling::tr[1]//select",
                 )
                 Select(date_range_select).select_by_visible_text("All Dates")
-                logger.info("Selected All Dates option")
+                logger.debug("Selected All Dates option")
 
                 # Select report options
                 labels = driver.find_elements(
@@ -214,7 +214,7 @@ class Command(BaseUtilsCommand):
                         and not checkbox.is_selected()
                     ):
                         checkbox.click()
-                logger.info("Selected signed in participants option")
+                logger.debug("Selected signed in participants option")
 
                 # Select All Database Participants
                 radio = driver.find_element(
@@ -224,7 +224,7 @@ class Command(BaseUtilsCommand):
                     "/preceding-sibling::input[@type='radio']",
                 )
                 driver.execute_script("arguments[0].checked = true;", radio)
-                logger.info("Selected All Database Participants option")
+                logger.debug("Selected All Database Participants option")
 
                 # Run Report
                 run_button = WebDriverWait(driver, 10).until(
@@ -233,13 +233,13 @@ class Command(BaseUtilsCommand):
                     )
                 )
                 run_button.click()
-                logger.info("Selected Run Report option")
+                logger.debug("Selected Run Report option")
 
                 # Wait for report results to download
                 downloaded_file = self.wait_for_new_download(
                     download_dir, timeout=60
                 )
-                logging.info("✅ ivolunteer Report File downloaded: %s", downloaded_file)
+                logger.debug("✅ ivolunteer Report File downloaded: %s", downloaded_file)
                 # Convert XLS to CSV and
                 # replace ivolunteer column names with postgresql column names
                 self.convert_xls_to_csv(downloaded_file)

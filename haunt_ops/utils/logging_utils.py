@@ -38,7 +38,7 @@ def configure_rotating_logger(script_file: str,
     """
     # Derive log filename
     command_name = os.path.splitext(os.path.basename(script_file))[0]
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    timestamp = datetime.now().strftime("%m-%d-%Y_%H-%M-%S")
     log_filename = f"{command_name}_{timestamp}.log"
 
     os.makedirs(log_dir, exist_ok=True)

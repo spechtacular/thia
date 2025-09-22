@@ -59,7 +59,7 @@ class BaseUtilsCommand(BaseCommand):
             df = pd.read_excel(input_path, sheet_name=sheet_name)
             output_path = Path(input_path).with_suffix(".csv")
             df.to_csv(output_path, index=False, encoding="utf-8")
-            logger.info("✅ Converted %s → %s", input_path, output_path)
+            logger.debug("✅ Converted %s → %s", input_path, output_path)
 
             # Chain into header‐replace step
             self.replace_column_names(output_path)
@@ -78,7 +78,7 @@ class BaseUtilsCommand(BaseCommand):
             raise CommandError(f"❌ Unexpected error: {e}") from e
         finally:
             if output_path and output_path.exists():
-                logger.info("CSV ready at %s", output_path)
+                logger.debug("CSV ready at %s", output_path)
             else:
                 logger.error("Failed to produce CSV from %s", input_path)
 
@@ -103,7 +103,7 @@ class BaseUtilsCommand(BaseCommand):
             df = pd.read_csv(csv_path, dtype=str)
             df = df.rename(columns=mapping)
             df.to_csv(out_path, index=False)
-            logger.info("✅ Replaced columns, saved to %s", out_path)
+            logger.info("✅ Bulk loader input file is named %s", out_path)
         except FileNotFoundError:
             logger.error("❌ CSV not found: %s", csv_path)
         except Exception as e:
@@ -179,7 +179,7 @@ class BaseUtilsCommand(BaseCommand):
 
                     # Build destination name
                     cmd = os.path.basename(sys.argv[1]) if len(sys.argv) > 1 else "download"
-                    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+                    ts = datetime.now().strftime("%m%d%Y-%H%M%S")
                     ext = os.path.splitext(newest)[1]
                     new_name = f"{cmd}-{ts}{ext}"
                     new_path = os.path.join(download_dir, new_name)

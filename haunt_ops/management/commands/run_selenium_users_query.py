@@ -49,8 +49,8 @@ class Command(BaseUtilsCommand):
 
     def handle(self, *args, **kwargs):
         config_file = kwargs.get("config", "config/selenium_config.yaml")
-        headless=options.get("headless", True)
-        log_level=options.get("log", "INFO").upper()
+        headless=kwargs.get("headless", True)
+        log_level=kwargs.get("log", "INFO").upper()
 
                  # Get a unique log file using __file__
         logger = configure_rotating_logger(
@@ -96,7 +96,7 @@ class Command(BaseUtilsCommand):
         wait = WebDriverWait(driver, 30)
 
         try:
-            logger.info("🔐 Logging in...")
+            logger.debug("🔐 Logging in...")
             iv_password = os.environ.get("IVOLUNTEER_PASSWORD")
             driver.get(os.environ.get("IVOLUNTEER_URL"))
             wait.until(EC.presence_of_element_located((By.ID, "org_admin_login")))
@@ -107,7 +107,7 @@ class Command(BaseUtilsCommand):
             driver.find_element(By.ID, "action2").send_keys(iv_password)
             driver.find_element(By.ID, "Submit").click()
 
-            logger.info(
+            logger.debug(
                 "✅ Successfully logged in as %s ", config["login"]["admin_email"]
             )
 
@@ -138,9 +138,9 @@ class Command(BaseUtilsCommand):
             )
             reports_tab.click()
 
-            logger.info("selecting dropdowns")
+            logger.debug("selecting dropdowns")
 
-            logger.info("📑 Selecting Report type...")
+            logger.debug("📑 Selecting Report type...")
 
             wait.until(
                 EC.element_to_be_clickable((By.XPATH, "//div[text()='Reports']"))
@@ -166,7 +166,7 @@ class Command(BaseUtilsCommand):
                     if option.get_attribute("value") == "DbParticipantReportExcel":
                         if option.is_enabled():
                             report_dropdown.select_by_value("DbParticipantReportExcel")
-                            logger.info(
+                            logger.debug(
                                 "✅ Successfully selected DbParticipantReportExcel after wait"
                             )
                             break
@@ -213,11 +213,11 @@ class Command(BaseUtilsCommand):
 
             if not checkbox.is_selected():
                 checkbox.click()
-                logger.info(
+                logger.debug(
                     "✅ 'List events for each participant' checkbox is now checked."
                 )
             else:
-                logger.info(
+                logger.debug(
                     "ℹ️ 'List events for each participant' checkbox was already checked."
                 )
 
@@ -235,7 +235,7 @@ class Command(BaseUtilsCommand):
 
             driver.execute_script("arguments[0].checked = true;", radio_button)
 
-            logger.info(
+            logger.debug(
                 "✅ Selected Run Report option, Radio button force-selected via JS"
             )
 
@@ -247,15 +247,15 @@ class Command(BaseUtilsCommand):
                 )
             )
             run_report_button.click()
-            logger.info("✅ 'Run Report' button clicked via text match.")
+            logger.debug("✅ 'Run Report' button clicked via text match.")
 
             # the POST triggers a new tab — Selenium doesn't auto-switch to new tabs/windows.
-            logger.info("📤 Submitting report form...")
+            logger.debug("📤 Submitting report form...")
             new_file_path = self.wait_for_new_download(
                 download_dir, timeout=60
             )  # Wait for the file to download
 
-            logging.info("✅ ivolunteer Report File downloaded: %s", new_file_path)
+            logger.info("✅ ivolunteer Report File downloaded: %s", new_file_path)
 
             # Convert the downloaded file to CSV
             # and replace ivolunteer column names with postgresql column names

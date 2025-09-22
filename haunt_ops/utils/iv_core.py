@@ -35,7 +35,7 @@ ADMIN_IFRAME_ID = "ivo__admin"
 # ---------- Small utilities ----------
 
 def _ts() -> str:
-    return datetime.now().strftime("%Y%m%d_%H%M%S")
+    return datetime.now().strftime("%m%d%Y_%H%M%S")
 
 def _wait_ready(driver, timeout: int = 30) -> None:
     WebDriverWait(driver, timeout).until(

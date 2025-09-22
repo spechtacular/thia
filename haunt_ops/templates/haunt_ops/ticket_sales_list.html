@@ -28,7 +28,7 @@
             {% for e in events_page.object_list %}
                 <tr>
                 <td><a href="{% url 'ticket_sales_detail' e.pk %}">{{ e.event_name }}</a></td>
-                <td>{{ e.event_date|date:"Y-m-d" }}</td>
+                <td>{{ e.event_date|date:"m-d-Y" }}</td>
 
                 {% timezone "America/Los_Angeles" %}
                     <td>

@@ -2,7 +2,7 @@
 This file contains URL patterns for the HauntOps application.
 It maps URLs to views for user profiles, signup, and the home page.
 """
-from django.urls import path, reverse_lazy
+from django.urls import path, reverse_lazy, include
 from django.contrib.auth.views import (
     LoginView,
     LogoutView,
@@ -108,3 +108,5 @@ urlpatterns = [
         name="password_reset_complete",
     ),
 ]
+
+path("api/", include("haunt_ops.api_urls"))

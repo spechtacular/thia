@@ -14,11 +14,17 @@ import logging
 from pathlib import Path
 from datetime import datetime
 import environ
+from dotenv import load_dotenv
 
 
+# App mode: server (default), api, or hybrid
+APP_MODE = os.getenv("APP_MODE", "server")
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load .env from project root
+#load_dotenv(BASE_DIR / ".env")
 
 # Initialise environment variables
 env = environ.Env()
@@ -32,7 +38,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = 'django-insecure-)-7_z97p)$d3^ry!ejlvjm$u204^gj5o($ei64*r(b-ceiqjbh'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DJANGO_DEBUG", "0") == "1"
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.195.59", "[::1]"]
 
@@ -40,6 +46,7 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.195.59", "[::1]"]
 # Application definition
 
 INSTALLED_APPS = [
+    'rest_framework',       # NEW: DRF available in all modes
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -187,6 +194,16 @@ LOGGING = {
         },
     },
 }
+
+
+# Minimal DRF settings (safe defaults; extend as needed)
+REST_FRAMEWORK = {
+    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 25,
+}
+
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
