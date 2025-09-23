@@ -47,7 +47,7 @@
     </li>
   </ul>
 
-  <h3>Event Checkin/Prep </h3>
+  <h3>Prep Checklist </h3>
   <form method="post" class="mb-4" action="{% url 'event_prep' event.pk ev_signup.pk %}">
     {% csrf_token %}
 
@@ -96,7 +96,7 @@
 
     <!-- Event-specific flags (EventVolunteers) -->
     <fieldset class="mb-3">
-      <legend class="h5">Event Check-in & Status</legend>
+      <legend class="h5">Event Checkin</legend>
       <div class="row">
         {% for field in ev_form %}
           <div class="col-md-3 mb-2">

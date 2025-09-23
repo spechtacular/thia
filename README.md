@@ -63,9 +63,9 @@
 - [x] Add line_actor_training checkbox
 - [x] Add user profile image upload to profile page
 - [x] Verify the date_of_birth field is valid before conversion in bulk loader scripts
-- [ ] Add individual checkin fields to event_volunteers page
+- [x] Add individual checkin fields to event_volunteers page
 - [x] rendered Date formats are inconsistent, event_date differs from date_of_birth
-- [ ] event_volunteer_id is used in link from event_volunteers_list page to event_prep page.
+- [x] event_volunteer_id is used in link from event_volunteers_list page to event_prep page.
 
 - [ ] Breakup selenium code and create shared libraries for common functions
 - [ ] Add Docker support for easier deployment
