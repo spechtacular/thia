@@ -7,7 +7,6 @@ from django.contrib.auth import authenticate, login
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required
-from django.contrib import messages
 from django.db import transaction
 from django.contrib.auth import logout
 from django.db.models import Count
@@ -15,6 +14,7 @@ from django.urls import reverse
 from django.db.models.functions import Coalesce
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.db.models import Sum, Min, Max
+from datetime import date, datetime
 
 
 from .forms import PublicSignupForm, AppUserChangeForm
@@ -130,7 +130,7 @@ def event_volunteers_list(request):
     It retrieves all event volunteers from the database and paginates them."""
     evols = EventVolunteers.objects.all().order_by('date')
     # Paginate with 20 event volunteers per page
-    paginator = Paginator(evols, 20)
+    paginator = Paginator(evols, 25)
     page = request.GET.get('page', 1)
 
     try:
@@ -174,7 +174,7 @@ def events_list(request):
     """
     events = Events.objects.all().order_by('event_date')
     # Paginate with 10 events per page
-    paginator = Paginator(events, 20)
+    paginator = Paginator(events, 25)
     page = request.GET.get('page', 1)
 
     try:
@@ -200,7 +200,7 @@ def groups_list(request):
     )
 
     # Paginate with 10 groups per page
-    paginator = Paginator(groups, 20)
+    paginator = Paginator(groups, 25)
     page = request.GET.get('page', 1)
 
     try:
@@ -227,25 +227,28 @@ def user_detail(request, pk):
                     "back_url": request.META.get("HTTP_REFERER", reverse("user_list")),
                 })
 
+
+@login_required
 def event_detail(request, pk):
     """
-    page that lists all volunteers for a specific event
+    Page that lists all volunteers for a specific event,
+    and shows a quick-inline EventPrepForm on the far right per volunteer.
     """
-    # Grab the event or 404
     event = get_object_or_404(Events, pk=pk)
 
-    # All volunteers for this event:
-     # Order by volunteer last name (case-insensitive), then first name
+    # All volunteers for this event (ordered by volunteer name)
     signups = (
         EventVolunteers.objects
         .filter(event=event)
-        .select_related('volunteer')  # joins AppUser for efficiency
-        #.annotate(last_lower=Lower('volunteer__last_name'))
-        #.order_by('last_lower')
+        .select_related('volunteer')
         .order_by('volunteer__last_name', 'volunteer__first_name')
     )
 
-     # Validate the caller-provided return URL; fall back to events_list
+    # Build a per-row EventPrepForm (no prefix; each form is in its own <form>)
+    for ev in signups:
+        ev.ev_form = EventPrepForm(instance=ev)
+
+    # Validate the caller-provided return URL; fall back to events_list
     return_to = request.GET.get("return_to")
     if not return_to or not url_has_allowed_host_and_scheme(
         url=return_to,
@@ -254,13 +257,47 @@ def event_detail(request, pk):
     ):
         return_to = reverse("events_list")
 
-
     return render(request, 'haunt_ops/event_detail.html', {
         'event': event,
         'signups': signups,
         'return_to': return_to,
     })
 
+
+def event_prep_quick_update(request, event_pk, vol_pk):
+    """
+    Lightweight POST endpoint to update only EventVolunteers flags
+    from the inline form on the event_detail page.
+    """
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    event = get_object_or_404(Events, pk=event_pk)
+    ev_signup = get_object_or_404(
+        EventVolunteers.objects.select_related("event"),
+        pk=vol_pk,
+    )
+    if ev_signup.event_id != event.pk:
+        raise Http404("Volunteer signup does not belong to this event.")
+
+    form = EventPrepForm(request.POST, instance=ev_signup)
+    if form.is_valid():
+        form.save()
+
+    # optional: respect ?return_to=...
+    next_url = request.POST.get("return_to") or reverse("event_detail", kwargs={"pk": event_pk})
+    # prevent open redirect
+    if not url_has_allowed_host_and_scheme(
+        url=next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_url = reverse("event_detail", kwargs={"pk": event_pk})
+
+    return redirect(next_url)
+
+
+@login_required
 def event_prep(request, event_pk, vol_pk):
     """
     Page related to each volunteers prep for a specific event
@@ -270,70 +307,119 @@ def event_prep(request, event_pk, vol_pk):
         EventVolunteers.objects.select_related('volunteer','event'),
         pk=vol_pk, event_id=event_pk
     )
+    user = ev_signup.volunteer
 
     if request.method == 'POST':
-        form = EventPrepForm(request.POST, instance=ev_signup)
-        if form.is_valid():
-            form.save()
+        user_form = UserPrepForm(request.POST, instance=user)
+        ev_form = EventPrepForm(request.POST, instance=ev_signup)
+        if user_form.is_valid() and ev_form.is_valid():
+            user_form.save()
+            ev_form.save()
             return redirect('event_detail', pk=event_pk)
     else:
-        form = EventPrepForm(instance=ev_signup)
+        ev_form = EventPrepForm(instance=ev_signup)
+        user_form = UserPrepForm(instance=user)
+
 
     return render(request, 'event_prep.html', {
         'event':  event,
         'ev_signup': ev_signup,
         'user':   ev_signup.volunteer,
-        'form':   form,
+        'user_form':   user_form,
+        'ev_form':     ev_form,
     })
 
+def _as_date(value):
+    if value is None:
+        return None
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if isinstance(value, datetime):
+        return value.date()
+    try:
+        return value.date()
+    except Exception:
+        return None
+
+
+def _age_at_least(dob, years, ref_date):
+    if not dob or not ref_date:
+        return None
+    age = ref_date.year - dob.year - ((ref_date.month, ref_date.day) < (dob.month, dob.day))
+    return age >= years
+
 def event_prep_view(request, event_pk, vol_pk):
+    """
+    Page related to each volunteer's prep for a specific event.
+
+    URL is called with:
+      - event_pk = Events.pk
+      - vol_pk   = EventVolunteers.pk  (NOT AppUser.pk)
+    """
     event = get_object_or_404(Events, pk=event_pk)
-    app_user = get_object_or_404(AppUser, pk=vol_pk)
     # pick the specific signup row; if multiples exist, you may want filter(...) + select one explicitly
     ev_signup = get_object_or_404(
         EventVolunteers.objects.select_related('volunteer','event'),
         pk=vol_pk, event_id=event_pk
     )
 
-    if request.method == "POST":
-        ev_form = EventPrepForm(request.POST, instance=ev_signup, prefix="ev")
-        user_form = UserPrepForm(request.POST, instance=app_user, prefix="user")
+    if ev_signup.event_id != event.pk:
+        raise Http404("Volunteer signup does not belong to this event.")
 
-        if ev_form.is_valid() and user_form.is_valid():
+    user = ev_signup.volunteer  # AppUser instance
+
+    # Use prefixes to avoid any naming collisions between two forms
+    user_prefix = "user"
+    ev_prefix = "ev"
+
+
+    if request.method == "POST":
+        user_form = UserPrepForm(request.POST, instance=user, prefix=user_prefix)
+        ev_form = EventPrepForm(request.POST, instance=ev_signup, prefix=ev_prefix)
+
+        if user_form.is_valid() and ev_form.is_valid():
             with transaction.atomic():
-                ev_form.save()
                 user_form.save()
-            messages.success(request, "Event volunteer status updated.")
-            return redirect(reverse("event_prep", args=[event.pk, app_user.pk]))
-        else:
-            messages.error(request, "Fix the errors below and resubmit.")
+                # ev_form.save()  # do below instead
+                saved_ev = ev_form.save(commit=False)
+                # Force-link (paranoid guard)
+                saved_ev.event_id = event.pk
+                saved_ev.volunteer_id = user.pk
+                saved_ev.pk = ev_signup.pk  # ensure PK stays same
+                saved_ev.save()
+            return redirect(reverse("event_detail", kwargs={"pk": event_pk}))
     else:
         ev_form = EventPrepForm(instance=ev_signup, prefix="ev")
-        if not app_user.costume_size:
-            default = AppUser._meta.get_field("costume_size").default
-            if default not in (None, ""):
-                app_user.costume_size = str(default)  # not saved yet
-        user_form = UserPrepForm(instance=app_user, prefix="user")
+        user_form = UserPrepForm(instance=user, prefix="user")
 
-        #user_form = UserPrepForm(instance=app_user, prefix="user")
+    # ---- Age flags as of event date ----
+    event_day = _as_date(event.event_date)
+    is_16_plus = _age_at_least(user.date_of_birth, 16, event_day)  # True/False/None
+    is_18_plus = _age_at_least(user.date_of_birth, 18, event_day)  # True/False/None
+
+    # Under = NOT over (None propagates to None)
+    under_16 = None if is_16_plus is None else (not is_16_plus)
+    under_18 = None if is_18_plus is None else (not is_18_plus)
+
+    # Colors: yellow if under_18 True or Unknown; red if under_16 True
+    highlight_under_18 = (under_18 is True) or (under_18 is None)
+    highlight_under_16 = (under_16 is True)
+
+
 
     return render(
         request,
         "haunt_ops/event_prep.html",
         {
             "event": event,
-            "user": ev_signup.volunteer,   # your template expects 'user' to be the AppUser
+            "user": user,
             "ev_signup": ev_signup,
             "ev_form": ev_form,
             "user_form": user_form,
-            "user_field_names": [
-                    "costume_size",
-                    "safety_class",
-                    "waiver",
-                    "room_actor_training",
-                    "line_actor_training",
-                    "wear_mask",
-                    ]
+            "under_16": under_16,
+            "under_18": under_18,
+            "highlight_under_16": highlight_under_16,
+            "highlight_under_18": highlight_under_18,
         },
     )
 

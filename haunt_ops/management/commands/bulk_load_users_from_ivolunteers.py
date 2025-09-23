@@ -94,6 +94,12 @@ class Command(BaseCommand):
                         logger.info("%s user: %s", action, user_email)
                     else:
                         original_bd = row["date_of_birth"].strip()
+                        if not original_bd:
+                            message = f"Skipping row {total}: missing date_of_birth for {user_email}."
+                            self.stdout.write(message)
+                            logging.warning(message)
+                            continue
+
                         logger.debug("original birth date %s", original_bd)
 
                         bd = original_bd.split(" ", 1)
@@ -101,6 +107,12 @@ class Command(BaseCommand):
 
 
                         dt = row["start_date"].strip()
+                        if not dt:
+                            message = f"Skipping row {total}: missing start_date for {user_email}."
+                            self.stdout.write(message)
+                            logging.warning(message)
+                            continue
+                        logger.debug("original start_date %s", dt)
                         naive_dt = datetime.strptime(dt, "%Y-%m-%d %H:%M:%S")
                         logger.debug("naive_date_joined before tz added %s", dt)
 

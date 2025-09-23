@@ -111,17 +111,12 @@ class ProfileForm(UserChangeForm):
 class EventPrepForm(forms.ModelForm):
     class Meta:
         model = EventVolunteers
-        fields = ["confirmed", "signed_in", "makeup", "costume", "waitlist", "conflict"]
-        widgets = {name: forms.CheckboxInput(attrs={"class": "form-check-input"}) for name in fields}
-        labels = {
-            "under_16": "Under 16",
-            "under_18": "Under 18",
-            "confirmed": "Confirmed",
-            "signed_in": "Signed In",
-            "makeup": "Makeup",
-            "costume": "Costume",
-            "waitlist": "Waitlist",
-            "conflict": "Conflict",
+        fields = ["confirmed", "signed_in", "makeup", "costume"]
+        widgets = {
+            "confirmed": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "signed_in": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "makeup": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "costume": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 
 class UserPrepForm(forms.ModelForm):
@@ -152,15 +147,6 @@ class UserPrepForm(forms.ModelForm):
             "line_actor_training": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "wear_mask": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
-
-        #labels = {
-        #    "costume_size": "Costume Size",
-        #    "safety_class": "Safety Class Completed",
-        #    "waiver": "Waiver Signed",
-        #    "room_actor_training": "Room Actor Training Completed",
-        #    "line_actor_training": "Line Actor Training Completed",
-        #    "wear_mask": "Wear Mask",
-        #}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

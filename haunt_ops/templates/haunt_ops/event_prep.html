@@ -3,7 +3,6 @@
 {% block title %}Prep – {{ user.get_full_name }}{% endblock %}
 
 {% block content %}
-
   <div class="d-flex align-items-center mb-3">
       <div class="ratio" style="--bs-aspect-ratio: 133.333%; max-width: 320px;">
         <img src="{% static 'people_pics/' %}{{ user.image_url }}"
@@ -34,18 +33,36 @@
     <li><strong>ICE Contact:</strong> {{ user.ice_name }} ({{ user.ice_relationship }}) – {{ user.ice_phone }}</li>
     <li><strong>Allergies:</strong> {{ user.allergies|default:"None" }}</li>
     <li><strong>Date of birth:</strong> {{ user.date_of_birth|date:"m-d-Y"}}</li>
+    <li>
+      <strong>Under 16:</strong>
+        <span class="{% if highlight_under_16 %}text-danger fw-semibold{% endif %}">
+          {{ under_16|yesno:"Yes,No,Unknown" }}
+        </span>
+    </li>
+    <li>
+      <strong>Under 18:</strong>
+      <span class="{% if highlight_under_18 %}text-warning fw-semibold{% endif %}">
+        {{ under_18|yesno:"Yes,No,Unknown" }}
+      </span>
+    </li>
   </ul>
 
-
   <h3>Event Checkin/Prep </h3>
-  <form method="post" class="mb-4">
+  <form method="post" class="mb-4" action="{% url 'event_prep' event.pk ev_signup.pk %}">
     {% csrf_token %}
+
+    {% if user_form.non_field_errors %}
+      <div class="alert alert-danger py-2">{{ user_form.non_field_errors }}</div>
+    {% endif %}
+    {% if ev_form.non_field_errors %}
+      <div class="alert alert-danger py-2">{{ ev_form.non_field_errors }}</div>
+    {% endif %}
 
     <!-- User profile flags (AppUser) -->
     <fieldset>
       <legend class="h5">Volunteer Training &amp; Safety Items</legend>
       <div class="row g-3 align-items-center">
-        {# --- costume_size: label and control inline on one line --- #}
+
         <div class="col-md-auto d-flex align-items-center mb-2">
           <label class="form-label mb-0 me-2" for="{{ user_form.costume_size.id_for_label }}">
             {{ user_form.costume_size.label }}
@@ -56,8 +73,6 @@
           {% endif %}
         </div>
 
-        {# --- inline checkboxes; force a line break after the first TWO --- #}
-        {# no-op placeholders if your engine doesn't support set; we rely on forloop.counter below #}
         {% for field in user_form.visible_fields %}
           {% if field.name != "costume_size" %}
             <div class="col-auto form-check form-check-inline mb-2">
@@ -68,7 +83,6 @@
               {% endif %}
             </div>
 
-            {# Force a hard line break after the second checkbox in THIS loop #}
             {% if forloop.counter == 3 %}
                 <div class="w-100"></div>
             {% endif %}

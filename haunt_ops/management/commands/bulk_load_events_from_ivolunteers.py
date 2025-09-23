@@ -146,21 +146,28 @@ class Command(BaseCommand):
                         logger.debug("Processing row %s", total)
                         original_bd = row["date_of_birth"].strip()
                         if not original_bd:
+                            message = f"row {total}: date_of_birth is not defined in the query result."
+                            logging.warning(message)
                             obd = user.date_of_birth
+                            if obd is None:
+                                message = f"Skipping row {total}: date_of_birth is not specified in the user table either."
+                                logging.warning(message)
+                                continue
+                            logger.debug("user date_of_birth: %s", obd)
                             obd_year = obd.year
                             obd_month = obd.month
                             obd_day = obd.day
                             original_bd = f"{obd_month:02}/{obd_day:02}/{obd_year:04}"
-                        logger.debug("1original_bd: %s", original_bd)
-                        if not original_bd:
-                            message = f"Skipping row {total}: missing date_of_birth."
-                            logging.warning(message)
-                            continue
                         logger.debug("2original_bd: %s", original_bd)
                         dob = datetime.strptime(original_bd, "%m/%d/%Y")
 
                         logger.debug("dob: %s", dob)
                         dt = row["start_time"].strip()
+                        if not dt:
+                            message = f"Skipping row {total}: missing start_time."
+                            logging.warning(message)
+                            continue
+                        logger.debug("dt: %s", dt)
                         naive_dt = datetime.strptime(dt, "%Y-%m-%d %H:%M:%S")
                         aware_st = timezone.make_aware(
                             naive_dt, timezone=timezone.get_current_timezone()
