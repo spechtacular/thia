@@ -3,6 +3,8 @@ This file contains views for the HauntOps application.
 It includes views for user profiles, signup, and the home page.
 """
 import logging
+from datetime import date, datetime, time
+
 from django.contrib.auth import authenticate, login
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -14,10 +16,12 @@ from django.urls import reverse
 from django.db.models.functions import Coalesce
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.db.models import Sum, Min, Max
-from datetime import date, datetime
+from django.conf import settings
+from django.utils import timezone
 
 
-from .forms import PublicSignupForm, AppUserChangeForm
+
+from .forms import PublicSignupForm, AppUserChangeForm, EventVolunteerFilterForm
 from .forms import EventPrepForm, UserPrepForm
 
 from .models import AppUser, Events, Groups, EventVolunteers, GroupVolunteers, TicketSales
@@ -126,23 +130,93 @@ def user_list(request):
 
 def event_volunteers_list(request):
     """
-    View for listing all event volunteers.
-    It retrieves all event volunteers from the database and paginates them."""
-    evols = EventVolunteers.objects.all().order_by('date')
-    # Paginate with 20 event volunteers per page
-    paginator = Paginator(evols, 25)
-    page = request.GET.get('page', 1)
+    Paginated list of EventVolunteers with optional event-date filtering:
+    - future_only=True: lower bound is 'now'/'today' and start_date is ignored
+    - start_date only used when future_only is False
+    - end_date always respected as upper bound
+    """
+    qs = (
+        EventVolunteers.objects
+        .select_related('event', 'volunteer')
+        .order_by('event__event_date', 'event__event_name',
+                  'volunteer__last_name', 'volunteer__first_name')
+    )
 
+    # --- Filters ---
+    filter_form = EventVolunteerFilterForm(request.GET or None)
+    if filter_form.is_valid():
+        start_date = filter_form.cleaned_data.get("start_date")
+        end_date = filter_form.cleaned_data.get("end_date")
+        future_only = filter_form.cleaned_data.get("future_only")
+
+        # Detect field type for proper bounds
+        event_date_field = Events._meta.get_field('event_date')
+        is_datetime = event_date_field.get_internal_type() == "DateTimeField"
+
+        def make_aware(dt):
+            if not getattr(settings, "USE_TZ", False):
+                return dt
+            return timezone.make_aware(dt, timezone.get_current_timezone()) if timezone.is_naive(dt) else dt
+
+        # Lower bound:
+        if future_only:
+            # Ignore start_date, use now/today as the lower bound
+            if is_datetime:
+                lower = timezone.now()
+                qs = qs.filter(event__event_date__gte=lower)
+            else:
+                lower = timezone.localdate() if hasattr(timezone, "localdate") else timezone.now().date()
+                qs = qs.filter(event__event_date__gte=lower)
+        elif start_date:
+            if is_datetime:
+                start_dt = make_aware(datetime.combine(start_date, time.min))
+                qs = qs.filter(event__event_date__gte=start_dt)
+            else:
+                qs = qs.filter(event__event_date__gte=start_date)
+
+        # Upper bound (always applied if provided)
+        if end_date:
+            if is_datetime:
+                end_dt = make_aware(datetime.combine(end_date, time(23, 59, 59, 999999)))
+                qs = qs.filter(event__event_date__lte=end_dt)
+            else:
+                qs = qs.filter(event__event_date__lte=end_date)
+
+    # --- Pagination ---
+    per_page_param = request.GET.get("per_page")
     try:
-        evols_page = paginator.page(page)
-    except PageNotAnInteger:
-        evols_page = paginator.page(1)
-    except EmptyPage:
-        evols_page = paginator.page(paginator.num_pages)
+        per_page = int(per_page_param)
+        if per_page <= 0 or per_page > 200:
+            per_page = 25
+    except (TypeError, ValueError):
+        per_page = 25
 
-    return render(request, 'haunt_ops/event_volunteers_list.html', {
-        'evols_page': evols_page
-    })
+    paginator = Paginator(qs, per_page)
+    page = request.GET.get("page", 1)
+    try:
+        signups = paginator.page(page)
+    except PageNotAnInteger:
+        signups = paginator.page(1)
+    except EmptyPage:
+        signups = paginator.page(paginator.num_pages)
+
+    # Preserve filters in pager links
+    params = request.GET.copy()
+    params.pop("page", None)
+    qs_no_page = params.urlencode()
+    qs_prefix = (qs_no_page + "&") if qs_no_page else ""
+
+    context = {
+        "signups": signups,
+        "per_page": per_page,
+        "per_page_options": [10, 25, 50, 100],
+        "filter_form": filter_form,
+        "qs_no_page": qs_no_page,
+        "qs_prefix": qs_prefix,
+    }
+    return render(request, "haunt_ops/event_volunteers_list.html", context)
+
+
 
 def group_volunteers_list(request):
     """

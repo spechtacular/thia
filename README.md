@@ -16,8 +16,8 @@
          1. python manage.py run_selenium_events_query
       3. **run_selenium_users_query.py** : runs the iVolunteer DB users XLS formatted report.
          1. python manage.py run_selenium_users_query
-      4. **bulk_load_users_from_ivolunteers.py** : inserts report data from the converted csv file into the postgresql app_user table.
-         1. python manage.py bulk_load_users_from_ivolunteers --csv replaced_users.csv
+      4. **bulk_load_users_from_ivolunteer.py** : inserts report data from the converted csv file into the postgresql app_user table.
+         1. python manage.py bulk_load_users_from_ivolunteer --csv replaced_users.csv
       5. **update_user_profile_pic.py** : matches volunteer images to database users and create the users profile image url. This script only processes one user at a time, it is faster to create a bash script using this Django script to load multiple image links.
          1. All of the user image files must follow these requirements:
             1. The image file name should be in the following format "first_last_pic.ext"
@@ -29,13 +29,15 @@
             1. **label_people_pics.py** adds the name used int he image file name to the actual image.
       6. **run_selenium_event_participation_query.py** : runs the event participation iVoulnteer database report.
          1. python manage.py run_selenium_event_participation_query
-      7. **bulk_load_events_from_ivolunteers.py** : inserts new report data from the converted csv report file into the postgresql event_volunteers table.
-         1. python manage.py bulk_load_events_from_ivolunteers --csv path/to/users.csv
+      7. **bulk_load_events_from_ivolunteer.py** : inserts new report data from the converted csv report file into the postgresql event_volunteers table.
+         1. python manage.py bulk_load_events_from_ivolunteer --csv path/to/users.csv
+      8. **run_selenium_passage_ticket_sales_query.py : runs the ticket sales report on the Passage web site.
+         1. python manage.py run_selenium_passage_ticket_sales_query --headed
 - This is the sequence used to update the existing Django postgresql database contents. An internet connection is required to connect to the ivolunteer website.
    1. **run_selenium_users_query.py** : runs the iVolunteer DB users XLS formatted report.
       1. python manage.py run_selenium_users_query
-   2. **bulk_load_users_from_ivolunteers.py** : inserts or updates new report data from the converted csv file into the postgresql app_user table.
-      1. python manage.py bulk_load_users_from_ivolunteers --csv path/to/users.csv
+   2. **bulk_load_users_from_ivolunteer.py** : inserts or updates new report data from the converted csv file into the postgresql app_user table.
+      1. python manage.py bulk_load_users_from_ivolunteer --csv path/to/users.csv
    3. **update_user_profile_pic.py** : matches volunteer images to database users and create the users profile image url. This script only processes one user at a time, it is faster to create a bash script using this Django script to load multiple image links.
          1. All of the user image files must follow these requirements:
             1. The image file name should be in the following format "first_last_pic.ext"
@@ -47,8 +49,8 @@
             1. **label_people_pics.py** adds the name used int he image file name to the actual image.
    4. **run_selenium_event_participation_query.py** : runs the event participation iVoulnteer database report.
       1. python manage.py run_selenium_event_participation_query
-   5. **bulk_load_events_from_ivolunteers.py** : inserts or updates new report data from the converted csv report file into the postgresql event_volunteers table.
-      1. python manage.py bulk_load_events_from_ivolunteers --csv path/to/replaced_users.csv
+   5. **bulk_load_events_from_ivolunteer.py** : inserts or updates new report data from the converted csv report file into the postgresql event_volunteers table.
+      1. python manage.py bulk_load_events_from_ivolunteer --csv path/to/replaced_users.csv
 
 ## Roadmap / TODO
 
@@ -66,6 +68,7 @@
 - [x] Add individual checkin fields to event_volunteers page
 - [x] rendered Date formats are inconsistent, event_date differs from date_of_birth
 - [x] event_volunteer_id is used in link from event_volunteers_list page to event_prep page.
+- [x] fix event-volunteers page display of volunteer data
 
 - [ ] Breakup selenium code and create shared libraries for common functions
 - [ ] Add Docker support for easier deployment

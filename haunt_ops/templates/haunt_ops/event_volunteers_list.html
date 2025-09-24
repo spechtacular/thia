@@ -1,76 +1,147 @@
 {% extends "base.html" %}
-{% block title %}Event Volunteers{% endblock %}
+{% block title %}All Event Volunteers{% endblock %}
 
 {% block content %}
-   <h1 class="mb-4">Haunt Event Volunteers</h1>
+  <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+    <h2 class="mb-0"> Event Volunteers by Event Date</h2>
 
-  <table class="table table-striped table-hover">
-    <thead class="table-dark">
-      <tr>
-        <th>Event Name</th>
-        <th>Volunteer First Name</th>
-        <th>Volunteer Last Name</th>
-        <th>Volunteer Date of birth</th>
-        <th>Volunteer Phone</th>
-        <th>Volunteer ICE Name</th>
-        <th>Volunteer ICE Relationship</th>
-        <th>Volunteer ICE Phone</th>
-      </tr>
-    </thead>
-    <tbody>
-    {% for evols in evols_page %}
-      <tr>
-        <td>{{ evols.event_name }}</td>
-        <td>{{ evols.first_name }}</td>
-        <td>{{ evols.last_name }}</td>
-        <td>{{ evols.date_of_birth|date:"m-d-Y" }}</td>
-        <td>{{ evols.phone1 }}</td>
-        <td>{{ evols.ice_name }}</td>
-        <td>{{ evols.ice_relationship }}</td>
-        <td>{{ evols.ice_phone }}</td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="6">No volunteers found.</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
+    {# Unified GET form: date filters + future only + per-page selector #}
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-auto">
+        <label for="id_start_date" class="form-label mb-1 small text-muted">Start date</label>
+        {{ filter_form.start_date }}
+      </div>
 
-  <!-- Pagination -->
-  <nav aria-label="Event Volunteer list navigation">
-    <ul class="pagination justify-content-center">
-      {% if users_page.has_previous %}
-        <li class="page-item">
-          <a class="page-link" href="?page=1">&laquo; First</a>
-        </li>
-        <li class="page-item">
-          <a class="page-link" href="?page={{ evols_page.previous_page_number }}">Previous</a>
-        </li>
-      {% else %}
-        <li class="page-item disabled"><span class="page-link">&laquo; First</span></li>
-        <li class="page-item disabled"><span class="page-link">Previous</span></li>
-      {% endif %}
+      <div class="col-auto">
+        <label for="id_end_date" class="form-label mb-1 small text-muted">End date</label>
+        {{ filter_form.end_date }}
+      </div>
 
-      {% for num in evols_page.paginator.page_range %}
-        {% if num == evols_page.number %}
-          <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-        {% elif num > evols_page.number|add:-3 and num < evols_page.number|add:3 %}
-          <li class="page-item">
-            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-          </li>
-        {% endif %}
-      {% endfor %}
+      <div class="col-auto">
+        <div class="form-check mt-4">
+          {{ filter_form.future_only }}
+          <label class="form-check-label" for="{{ filter_form.future_only.id_for_label }}">Future only</label>
+        </div>
+      </div>
 
-      {% if evols_page.has_next %}
-        <li class="page-item">
-          <a class="page-link" href="?page={{ evols_page.next_page_number }}">Next</a>
-        </li>
-        <li class="page-item">
-          <a class="page-link" href="?page={{ evols_page.paginator.num_pages }}">Last &raquo;</a>
-        </li>
-      {% else %}
-        <li class="page-item disabled"><span class="page-link">Next</span></li>
-        <li class="page-item disabled"><span class="page-link">Last &raquo;</span></li>
-      {% endif %}
-    </ul>
-  </nav>
+      <div class="col-auto">
+        <label for="per_page" class="form-label mb-1 small text-muted">Per page</label>
+        <select id="per_page" name="per_page" class="form-select form-select-sm w-auto">
+          {% for n in per_page_options %}
+            <option value="{{ n }}" {% if per_page == n %}selected{% endif %}>{{ n }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+        <a href="{% url 'event_volunteers_list' %}" class="btn btn-sm btn-outline-secondary">Reset</a>
+      </div>
+    </form>
+  </div>
+
+  {% if signups %}
+    <table class="table table-striped align-middle">
+      <thead>
+        <tr>
+          <th>Event</th>
+          <th>Date</th>
+          <th>Volunteer</th>
+          <th>Confirmed</th>
+          <th>Signed In</th>
+          <th>Makeup</th>
+          <th>Costume</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ev in signups %}
+          <tr>
+            <td>{{ ev.event.event_name }}</td>
+            <td>{{ ev.event.event_date|date:"m-d-Y" }}</td>
+            <td>
+              <a href="{% url 'event_prep' ev.event.pk ev.pk %}">
+                {{ ev.volunteer.first_name }} {{ ev.volunteer.last_name }}
+              </a>
+            </td>
+            <td>
+              {% if ev.confirmed %}
+                <span class="text-success">✓</span> Yes
+              {% else %}
+                <span class="text-danger">✗</span> No
+              {% endif %}
+            </td>
+            <td>
+              {% if ev.signed_in %}
+                <span class="text-success">✓</span> Yes
+              {% else %}
+                <span class="text-danger">✗</span> No
+              {% endif %}
+            </td>
+            <td>
+              {% if ev.makeup %}
+                <span class="text-success">✓</span> Yes
+              {% else %}
+                <span class="text-danger">✗</span> No
+              {% endif %}
+            </td>
+            <td>
+              {% if ev.costume %}
+                <span class="text-success">✓</span> Yes
+              {% else %}
+                <span class="text-danger">✗</span> No
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {# Pagination: keeps filters via qs_prefix #}
+    <div class="d-flex justify-content-between align-items-center mt-3">
+      <div class="small text-muted">
+        Showing {{ signups.start_index }}–{{ signups.end_index }} of {{ signups.paginator.count }}
+      </div>
+
+      <nav aria-label="Pagination">
+        <ul class="pagination mb-0">
+          {% if signups.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?{{ qs_prefix }}page=1" aria-label="First">« First</a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="?{{ qs_prefix }}page={{ signups.previous_page_number }}" aria-label="Previous">‹ Prev</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">« First</span></li>
+            <li class="page-item disabled"><span class="page-link">‹ Prev</span></li>
+          {% endif %}
+
+          {% with current=signups.number %}
+            {% for num in signups.paginator.page_range %}
+              {% if num >= current|add:'-2' and num <= current|add:'2' %}
+                <li class="page-item {% if num == current %}active{% endif %}">
+                  <a class="page-link" href="?{{ qs_prefix }}page={{ num }}">{{ num }}</a>
+                </li>
+              {% endif %}
+            {% endfor %}
+          {% endwith %}
+
+          {% if signups.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?{{ qs_prefix }}page={{ signups.next_page_number }}" aria-label="Next">Next ›</a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="?{{ qs_prefix }}page={{ signups.paginator.num_pages }}" aria-label="Last">Last »</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Next ›</span></li>
+            <li class="page-item disabled"><span class="page-link">Last »</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+
+  {% else %}
+    <p>No volunteer signups found.</p>
+  {% endif %}
 {% endblock %}

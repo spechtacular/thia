@@ -87,6 +87,22 @@ class PublicSignupForm(UserCreationForm):
             # Password fields already render as <input type="password">
             fld.widget.attrs.update({'class': 'form-control'})
 
+class EventVolunteerFilterForm(forms.Form):
+    start_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control form-control-sm"})
+    )
+    end_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control form-control-sm"})
+    )
+    future_only = forms.BooleanField(
+        required=False,
+        label="Future only",
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
+    )
+
+
 class ProfileForm(UserChangeForm):
     """
     user profile page , updates to the user info is made here

@@ -22,7 +22,7 @@
         <td><a href="{% url 'user_detail' user.pk %}">{{ user.email }}</a></td>
         <td>{% if user.groups_count %}
               <a href="{% url 'user_group_memberships' user.pk %}">
-                {{ user.groups_count }} membership{{ user.groups_count|pluralize }}
+                {{ user.groups_count }} group{{ user.groups_count|pluralize }}
               </a>
             {% else %}
               None
@@ -31,7 +31,7 @@
 
         <td>{% if user.events_count %}
               <a href="{% url 'user_event_participation' user.pk %}">
-                {{ user.events_count }} participation{{ user.events_count|pluralize }}
+                {{ user.events_count }} event{{ user.events_count|pluralize }}
               </a>
             {% else %}
               None
