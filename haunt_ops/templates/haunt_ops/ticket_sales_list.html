@@ -20,7 +20,6 @@
             <th>End Time</th>
             <th># Shows</th>
             <th>Tickets Purchased</th>
-            <th>Tickets Remaining</th>
             <th>Details</th>
           </tr>
         </thead>
@@ -49,7 +48,6 @@
 
                 <td>{{ e.total_shows|intcomma }}</td>
                 <td>{{ e.total_purchased|default_if_none:0|intcomma }}</td>
-                <td>{{ e.total_remaining|default_if_none:0|intcomma }}</td>
                 <td>
                     <a class="btn btn-primary btn-sm"
                         href="{% url 'event_detail' e.pk %}?return_to={{ request.get_full_path|urlencode }}">

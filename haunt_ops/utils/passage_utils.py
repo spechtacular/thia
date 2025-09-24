@@ -1,12 +1,16 @@
 # haunt_ops/passage/passage_utils.py
 import re
 from contextlib import contextmanager
+import json
+import time as _pytime
 from urllib.parse import urlparse, urljoin
-
-from selenium.webdriver import Chrome, ChromeOptions
+from typing import Any, Dict, List
+from selenium.webdriver import ActionChains
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver import Chrome, ChromeOptions
 
 try:
     from webdriver_manager.chrome import ChromeDriverManager
@@ -260,129 +264,156 @@ def _safe_int(text):
     m = re.search(r"-?\d+", text)
     return int(m.group(0)) if m else None
 
-def scrape_upcoming_events_paginated(driver, timeout: int = 25, max_pages: int | None = None):
+def scrape_upcoming_events_paginated(
+    driver, timeout: int = 30, max_pages: int = 20
+) -> List[Dict[str, Any]]:
     """
-    Assumes you are already on /user_account/events/upcoming_events.
-    Returns a list of dicts with event_date, event_name, event_id, event_time_id,
-    start_time, end_time, tickets_purchased, tickets_remaining, revenue, notes.
+    Scrape Upcoming Events tables across pages.
+
+    - Reads counts from the DOM (not react props).
+    - Finds columns by header name (robust to column order/visibility).
+    - For 'Tickets Purchased', waits a bit for React hydration and prefers non-zero.
     """
     wait = WebDriverWait(driver, timeout)
-    base = _base(driver.current_url)
+    rows: List[Dict[str, Any]] = []
+    page_num = 1
 
-    results = []
-    seen = set()  # dedupe by event_time_id if we have it; else by (event_id,event_name,start_time)
+    def idx_of(headers: list[str], label: str) -> int | None:
+        target = label.lower()
+        for i, h in enumerate(headers):
+            hh = (h or "").strip().lower()
+            if hh == target or target in hh:
+                return i
+        return None
 
-    def collect_current_page():
-        # Ensure at least one UpcomingEventsTable has rendered
-        wait.until(EC.presence_of_element_located(
-            (By.CSS_SELECTOR, "div[data-react-class='UpcomingEventsTable']")
+    def wait_for_purchased(td, per_cell_timeout: float = 8.0, stable_for: float = 0.5) -> str:
+        """
+        Poll the cell for up to per_cell_timeout seconds.
+        - Prefer a non-zero integer if it appears.
+        - Require 'stable_for' seconds of no change before accepting.
+        - Fall back to whatever's there at timeout (possibly '0').
+        """
+        deadline = _pytime.time() + per_cell_timeout
+        last_txt = (td.text or "").strip()
+        last_change = _pytime.time()
+        best_nonzero = None
+
+        def is_inty(s: str) -> bool:
+            return bool(re.fullmatch(r"[\d,]+", s))
+
+        # scroll into view (some tables hydrate on visibility)
+        try:
+            td.parent.execute_script("arguments[0].scrollIntoView({block:'center'});", td)
+        except Exception:
+            pass
+
+        while _pytime.time() < deadline:
+            cur = (td.text or "").strip()
+            if cur != last_txt:
+                last_txt = cur
+                last_change = _pytime.time()
+                # track the first non-zero we see
+                if is_inty(cur) and cur.replace(",", "") != "0" and best_nonzero is None:
+                    best_nonzero = cur
+
+            # If we’ve had a non-zero and it’s been stable for a moment, take it
+            if best_nonzero and (_pytime.time() - last_change) >= stable_for:
+                return best_nonzero
+
+            # If we’ve seen *any* int and it’s stable for a bit, accept it (could be legit 0)
+            if is_inty(cur) and (_pytime.time() - last_change) >= stable_for:
+                # prefer returning a remembered non-zero if exists; else return cur
+                return best_nonzero or cur
+
+            _pytime.sleep(0.1)
+
+        # Timeout: prefer the best non-zero we saw; else return whatever’s there
+        return best_nonzero or last_txt
+
+    while page_num <= max_pages:
+        wait.until(EC.presence_of_all_elements_located(
+            (By.CSS_SELECTOR, 'div[data-react-class="UpcomingEventsTable"]')
         ))
+        containers = driver.find_elements(By.CSS_SELECTOR, 'div[data-react-class="UpcomingEventsTable"]')
+        if not containers:
+            break
 
-        containers = driver.find_elements(By.CSS_SELECTOR, "div[data-react-class='UpcomingEventsTable']")
-        for c in containers:
-            # Each container has an h2 date heading right inside it
+        for container in containers:
+            # Date label (e.g., "Friday, September 26, 2025")
             try:
-                event_date = c.find_element(By.CSS_SELECTOR, "h2").get_text() if hasattr(c, "get_text") else c.find_element(By.CSS_SELECTOR, "h2").text
-                event_date = event_date.strip()
+                date_label = container.find_element(By.CSS_SELECTOR, "h2").text.strip()
             except Exception:
-                event_date = None
+                date_label = None
 
-            # Rows inside the table
-            rows = c.find_elements(By.CSS_SELECTOR, "tbody > tr")
-            for tr in rows:
-                tds = tr.find_elements(By.TAG_NAME, "td")
-                if len(tds) < 4:
+            # Time zone label via react props
+            tz_label = None
+            try:
+                props = container.get_attribute("data-react-props")
+                if props:
+                    tz_label = json.loads(props).get("timeZone")
+            except Exception:
+                pass
+
+            table = container.find_element(By.CSS_SELECTOR, "table")
+            header_cells = table.find_elements(By.CSS_SELECTOR, "thead tr td, thead tr th")
+            headers = [hc.text.strip() for hc in header_cells]
+
+            i_event = idx_of(headers, "Event") or 0
+            i_start = idx_of(headers, "Start Time") or 1
+            i_end   = idx_of(headers, "End Time") or 2
+            i_pur   = idx_of(headers, "Tickets Purchased")
+
+            for tr in table.find_elements(By.CSS_SELECTOR, "tbody tr"):
+                tds = tr.find_elements(By.CSS_SELECTOR, "td")
+                if len(tds) < 3:
                     continue
 
-                # Event name + numeric event_id (if link is like /events/26952)
-                event_name, event_id = None, None
-                try:
-                    link = tds[0].find_element(By.CSS_SELECTOR, "a[href*='/events/']")
-                    event_name = link.text.strip()
-                    href = link.get_attribute("href") or ""
-                    m = re.search(r"/events/(\d+)", href)
-                    if m:
-                        event_id = int(m.group(1))
-                except Exception:
-                    event_name = (tds[0].text or "").strip()
+                event_name = (tds[i_event].text or "").strip() if i_event is not None else ""
+                start_text = (tds[i_start].text or "").strip() if i_start is not None else ""
+                end_text   = (tds[i_end].text or "").strip()   if i_end   is not None else ""
 
-                # Try to capture event_time_id from the Sell/Comp dropdown anchor id="widget-trigger-<id>"
+                purchased_text = ""
+                if i_pur is not None and i_pur < len(tds):
+                    # IMPORTANT: wait for hydration, prefer non-zero
+                    purchased_text = wait_for_purchased(tds[i_pur])
+
+                # Extract event_time_id from Sell/Comp widget button id
                 event_time_id = None
                 try:
-                    w = tr.find_element(By.CSS_SELECTOR, "a[id^='widget-trigger-']")
-                    m = re.search(r"widget-trigger-(\d+)", w.get_attribute("id") or "")
+                    widget = tr.find_element(By.CSS_SELECTOR, 'a[id^="widget-trigger-"]')
+                    m = re.search(r"widget-trigger-(\d+)", widget.get_attribute("id") or "")
                     if m:
                         event_time_id = int(m.group(1))
                 except Exception:
-                    # If private, there may be a "Private" link with /event_times/<id>
-                    try:
-                        priv = tds[0].find_element(By.CSS_SELECTOR, "a[href*='/event_times/']")
-                        m = re.search(r"/event_times/(\d+)", priv.get_attribute("href") or "")
-                        if m:
-                            event_time_id = int(m.group(1))
-                    except Exception:
-                        pass
+                    pass
 
-                start_time = (tds[1].text or "").strip()
-                end_time   = (tds[2].text or "").strip()
-                purchased  = _safe_int(tds[3].text)
-                remaining  = _safe_int(tds[4].text)  # "N/A" → None
-                revenue    = (tds[5].text or "").strip() if len(tds) > 5 else None
-                notes      = (tds[6].text or "").strip() if len(tds) > 6 else None
-
-                # Dedupe key
-                key = event_time_id if event_time_id is not None else (event_id, event_name, start_time)
-                if key in seen:
+                # If the purchased cell is still empty, skip rather than zeroing
+                if purchased_text == "":
                     continue
-                seen.add(key)
 
-                results.append({
-                    "event_date": event_date,
-                    "event_name": event_name,
-                    "event_id": event_id,
+                rows.append({
                     "event_time_id": event_time_id,
-                    "start_time": start_time,
-                    "end_time": end_time,
-                    "tickets_purchased": purchased,
-                    "tickets_remaining": remaining,
-                    "revenue": revenue,
-                    "notes": notes,
+                    "event_name": event_name,
+                    "event_date": date_label,
+                    "start_time": start_text,
+                    "end_time": end_text,
+                    "tickets_purchased": purchased_text,
+                    "time_zone": tz_label,
                 })
 
-    # page 1
-    collect_current_page()
-    pages_done = 1
-
-    # Walk pages using the "Next →" link href (safer than clicking)
-    while True:
-        if max_pages and pages_done >= max_pages:
+        # Next page
+        next_links = driver.find_elements(By.CSS_SELECTOR, 'a.next_page[rel="next"]')
+        if next_links:
+            old = containers[0]
+            next_links[0].click()
+            wait.until(EC.staleness_of(old))
+            page_num += 1
+        else:
             break
 
-        try:
-            next_a = driver.find_element(By.CSS_SELECTOR, "div.pagination a.next_page[rel='next']")
-            next_href = next_a.get_attribute("href")
-            if not next_href:
-                break
-        except Exception:
-            break
+    return rows
 
-        prev_url = driver.current_url
-        driver.get(next_href if next_href.startswith("http") else urljoin(base, next_href))
 
-        # Wait for URL and page number to change
-        try:
-            wait.until(lambda d: d.current_url != prev_url)
-            wait.until(EC.presence_of_element_located(
-                (By.CSS_SELECTOR, "div[data-react-class='UpcomingEventsTable']")
-            ))
-        except Exception:
-            # If something hiccups, stop to avoid loops
-            break
-
-        pages_done += 1
-        collect_current_page()
-
-    return results
 
 
 def click_admin_from_account(driver, timeout: int = 20):
@@ -642,7 +673,7 @@ def navigate_to_ticket_sales_report(driver, timeout: int = 25):
 def parse_ticket_sales_table(driver):
     """
     Return list of dicts:
-      {"event_date": "YYYY-MM-DD", "event_name": "…", "tickets_purchased": int, "tickets_remaining": int}
+      {"event_date": "YYYY-MM-DD", "event_name": "…", "tickets_purchased": int}
     Adjust header matching if Passage labels differ.
     """
     table = driver.find_element(By.CSS_SELECTOR, "table, .report-table, [role='table']")
@@ -706,6 +737,5 @@ def parse_ticket_sales_table(driver):
             "event_date": parsed.isoformat(),
             "event_name": raw_name,
             "tickets_purchased": purchased,
-            "tickets_remaining": remaining,
         })
     return out

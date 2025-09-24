@@ -29,7 +29,6 @@
             <th>Start Time</th>
             <th>End Time</th>
             <th class="text-end">Tickets Sold</th>
-            <th class="text-end">Tickets Remaining</th>
           </tr>
         </thead>
         <tbody>
@@ -39,7 +38,6 @@
             <td>{{ r.event_start_time|date:"m-d-Y H:i" }}</td>
             <td>{{ r.event_end_time|date:"m-d-Y H:i" }}</td>
             <td class="text-end">{{ r.tickets_purchased|default_if_none:0|intcomma }}</td>
-            <td class="text-end">{{ r.tickets_remaining|default_if_none:0|intcomma }}</td>
           </tr>
           {% endfor %}
         </tbody>

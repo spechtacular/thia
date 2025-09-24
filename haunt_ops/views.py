@@ -542,7 +542,6 @@ def ticket_sales_list(request):
         .annotate(
             total_shows=Count("ticketsales", distinct=True),
             total_purchased=Sum("ticketsales__tickets_purchased"),
-            total_remaining=Sum("ticketsales__tickets_remaining"),
             first_start_time=Min("ticketsales__event_start_time"),
             last_end_time=Max("ticketsales__event_end_time"),
         )
@@ -584,7 +583,6 @@ def ticket_sales_detail(request, event_pk):
 
     totals = rows.aggregate(
         total_purchased=Sum("tickets_purchased"),
-        total_remaining=Sum("tickets_remaining"),
     )
 
     return render(

@@ -1,7 +1,8 @@
 # haunt_ops/management/commands/passage_ticket_sales_query.py
 import os
+import re
 import logging
-from datetime import datetime, time, timezone
+import datetime as dt
 from zoneinfo import ZoneInfo
 from typing import Any, Dict, List, Optional
 from dateutil import parser, tz as dtu_tz
@@ -10,8 +11,10 @@ from django.apps import apps
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.conf import settings
-from haunt_ops.utils.logging_utils import configure_rotating_logger
+from django.utils import timezone as dj_tz
 from django.db.models import Q
+
+from haunt_ops.utils.logging_utils import configure_rotating_logger
 
 # If these utils live elsewhere, adjust the imports:
 from haunt_ops.utils.passage_utils import (
@@ -22,8 +25,8 @@ from haunt_ops.utils.passage_utils import (
 )
 
 # Fallback bounds when only a date is known
-DEFAULT_START = time(0, 0, 0)
-DEFAULT_END = time(23, 59, 59)
+DEFAULT_START = dt.time(0, 0, 0)
+DEFAULT_END = dt.time(23, 59, 59)
 PACIFIC = dtu_tz.gettz("America/Los_Angeles")
 
 
@@ -42,7 +45,7 @@ def parse_passage_dt(s: str):
     dt_local = parser.parse(s, tzinfos=tzinfos)
     if dt_local.tzinfo is None:
         dt_local = dt_local.replace(tzinfo=PACIFIC)
-    return dt_local.astimezone(timezone.utc)
+    return dt_local.astimezone(dt.timezone.utc)
 
 
 
@@ -67,7 +70,8 @@ def _tz_from_label(label: Optional[str]) -> ZoneInfo:
 
 def _coerce_int(val: Any, default_if_none: int = 0) -> int:
     """
-    Convert 'N/A'/'None'/''/None to default_if_none, otherwise int().
+    Robustly parse integers from strings like '1,234', ' 11 ', 'N/A'.
+    Returns default_if_none for None/empty/'N/A'.
     """
     if val is None:
         return default_if_none
@@ -76,13 +80,15 @@ def _coerce_int(val: Any, default_if_none: int = 0) -> int:
     s = str(val).strip()
     if not s or s.upper() == "N/A":
         return default_if_none
+    # keep only leading sign and digits
+    s = re.sub(r"[^\d\-]+", "", s)
     try:
-        return int(float(s))
+        return int(s) if s else default_if_none
     except Exception:
         return default_if_none
 
 
-def _parse_event_date(val: Any) -> Optional[datetime.date]:
+def _parse_event_date(val: Any) -> Optional[dt.datetime.date]:
     """
     Accept several formats for event_date:
       - date object
@@ -98,13 +104,13 @@ def _parse_event_date(val: Any) -> Optional[datetime.date]:
     s = str(val).strip()
 
     try:
-        return datetime.strptime(s, "%Y-%m-%d").date()
+        return dt.datetime.strptime(s, "%Y-%m-%d").date()
     except Exception:
         pass
 
     for fmt in ("%A, %B %d, %Y", "%m/%d/%Y"):
         try:
-            return datetime.strptime(s, fmt).date()
+            return dt.datetime.strptime(s, fmt).date()
         except Exception:
             continue
 
@@ -180,7 +186,7 @@ class Command(BaseCommand):
             login_passage(driver, username, password, gopassage_url, timeout=timeout)
             go_to_events_upcoming(driver, timeout=timeout)
             rows: List[Dict[str, Any]] = scrape_upcoming_events_paginated(
-                driver, timeout=timeout, max_pages=max_pages
+                driver, timeout=timeout, max_pages=max_pages,
             )
 
         # Show what we scraped (always)
@@ -211,7 +217,7 @@ class Command(BaseCommand):
                 # Expected keys (varying presence):
                 # event_time_id / id, event_name, event_date
                 # start_time, end_time,
-                # tickets_purchased, tickets_remaining
+                # tickets_purchased, 
                 event_time_id = row.get("event_time_id") or row.get("id")
                 event_name_raw = (row.get("event_name") or "").strip()
                 local_tz = _tz_from_label(row.get("time_zone"))  # ZoneInfo
@@ -255,16 +261,43 @@ class Command(BaseCommand):
                 event_start_time = (
                     start_dt_utc
                     if start_dt_utc
-                    else datetime.combine(event_date, DEFAULT_START, tzinfo=local_tz).astimezone(timezone.utc)
+                    else dt.datetime.combine(event_date, DEFAULT_START, tzinfo=local_tz).astimezone(dt.timezone.utc)
                 )
                 event_end_time = (
                     end_dt_utc
                     if end_dt_utc
-                    else datetime.combine(event_date, DEFAULT_END, tzinfo=local_tz).astimezone(timezone.utc)
+                    else dt.datetime.combine(event_date, DEFAULT_END, tzinfo=local_tz).astimezone(dt.timezone.utc)
                 )
 
+                # inside do_upserts loop BEFORE _coerce_int(...)
+                raw_pur = row.get("tickets_purchased")
+
+                # Skip if scraper still empty
+                if raw_pur is None or str(raw_pur).strip() == "":
+                    logger.debug("⏭️ Skip empty purchased to avoid zeroing: id=%s name=%s date=%s",
+                        row.get("event_time_id"), event_name_raw, row.get("event_date"))
+                    continue
+
+
                 tickets_purchased = _coerce_int(row.get("tickets_purchased"), default_if_none=0)
-                tickets_remaining = _coerce_int(row.get("tickets_remaining"), default_if_none=0)
+
+                # --- Pull existing row (by event_time_id when available) to apply monotonic rule for future shows ---
+                ts_prev = None
+                if event_time_id is not None:
+                    ts_prev = TicketSales.objects.filter(source_event_time_id=int(event_time_id)).first()
+                else:
+                    ts_prev = TicketSales.objects.filter(event_id=evt, event_date=event_date).first()
+
+
+                # For FUTURE showtimes, avoid decreasing purchased due to transient UI zeros
+                now_utc = dj_tz.now()
+                is_future = event_start_time > now_utc
+                if ts_prev and is_future and tickets_purchased < (ts_prev.tickets_purchased or 0):
+                    logger.info(
+                        "🔒 Keeping higher previous tickets_purchased (%s) over scraped (%s) for future show id=%s",
+                        ts_prev.tickets_purchased, tickets_purchased, event_time_id
+                    )
+                    tickets_purchased = ts_prev.tickets_purchased or tickets_purchased
 
                 # Resolve FK to Events by same date; create if missing.
                 evt = None
@@ -294,7 +327,6 @@ class Command(BaseCommand):
                     created_events += 1
                     logger.debug(f"✅Created new Events row: '{new_name}' ({event_date})")
 
-                # Use source_event_time_id as natural key when present
                 if event_time_id is not None:
                     ts, _created = TicketSales.objects.update_or_create(
                         source_event_time_id=int(event_time_id),
@@ -304,12 +336,10 @@ class Command(BaseCommand):
                             "event_start_time": event_start_time,
                             "event_end_time": event_end_time,
                             "tickets_purchased": tickets_purchased,
-                            "tickets_remaining": tickets_remaining,
                             "event_id": evt,
                         },
                     )
                 else:
-                    # Fallback approximate key
                     ts, _created = TicketSales.objects.update_or_create(
                         event_id=evt,
                         event_date=event_date,
@@ -318,9 +348,9 @@ class Command(BaseCommand):
                             "event_start_time": event_start_time,
                             "event_end_time": event_end_time,
                             "tickets_purchased": tickets_purchased,
-                            "tickets_remaining": tickets_remaining,
                         },
                     )
+
                 if _created:
                     logger.info(
                         f"✅Created TicketSales row: id={ts.id} event='{ts.event_name}' date={ts.event_date}"

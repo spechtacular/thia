@@ -286,7 +286,6 @@ class TicketSales(models.Model):
     event_start_time = models.DateTimeField(null=False, default=timezone.now)
     event_end_time = models.DateTimeField(null=False, default=timezone.now)
     tickets_purchased = models.IntegerField(blank=False,null=False, default=1)
-    tickets_remaining = models.IntegerField(blank=False,null=False, default=1)
     source_event_time_id = models.BigIntegerField(null=True, blank=True, unique=True, db_index=True)
     # event_id is a foreign key to the Events model
     # This establishes a many-to-one relationship between TicketSales and Events.
@@ -306,7 +305,7 @@ class TicketSales(models.Model):
         """
         db_table = 'ticket_sales'
         ordering = ['event_date','event_start_time']
-        
+
 
     def __str__(self):
         return f"{self.id} - {self.event_date} - {self.tickets_purchased}"
