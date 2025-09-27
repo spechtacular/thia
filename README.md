@@ -69,6 +69,7 @@
 - [x] rendered Date formats are inconsistent, event_date differs from date_of_birth
 - [x] event_volunteer_id is used in link from event_volunteers_list page to event_prep page.
 - [x] fix event-volunteers page display of volunteer data
+- [x] fix tickets_purchased updates
 
 - [ ] Breakup selenium code and create shared libraries for common functions
 - [ ] Add Docker support for easier deployment
