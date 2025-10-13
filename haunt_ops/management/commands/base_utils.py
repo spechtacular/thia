@@ -62,7 +62,10 @@ class BaseUtilsCommand(BaseCommand):
             logger.debug("✅ Converted %s → %s", input_path, output_path)
 
             # Chain into header‐replace step
-            self.replace_column_names(output_path)
+            modified_xls_file=self.replace_column_names(output_path)
+            if modified_xls_file is None:
+                raise CommandError(f"❌ Failed to replace column names in {input_path}")
+            return modified_xls_file
 
         except FileNotFoundError as exc:
             raise CommandError(f"❌ File not found: {input_path}") from exc
@@ -77,10 +80,8 @@ class BaseUtilsCommand(BaseCommand):
         except Exception as e:
             raise CommandError(f"❌ Unexpected error: {e}") from e
         finally:
-            if output_path and output_path.exists():
-                logger.debug("CSV ready at %s", output_path)
-            else:
-                logger.error("Failed to produce CSV from %s", input_path)
+            if modified_xls_file is None:
+                logger.error("❌ Failed to produce CSV from %s", input_path)
 
     def replace_column_names(self, csv_path):
         """Rename headers in a CSV based on config/etl_config.yaml mapping."""
@@ -94,20 +95,29 @@ class BaseUtilsCommand(BaseCommand):
             mapping = cfg.get("csv_header_name_mapping", {})
         except FileNotFoundError:
             logger.error("❌ config/etl_config.yaml not found")
-            return
+            return None
         except yaml.YAMLError as e:
             logger.error("❌ YAML parse error: %s", e)
-            return
+            return None
 
         try:
             df = pd.read_csv(csv_path, dtype=str)
             df = df.rename(columns=mapping)
             df.to_csv(out_path, index=False)
-            logger.info("✅ Bulk loader input file is named %s", out_path)
+            logger.info("✅ Bulk loader input file is named: %s", out_path)
+            return out_path
         except FileNotFoundError:
             logger.error("❌ CSV not found: %s", csv_path)
+            return None
+        except pd.errors.EmptyDataError:
+            logger.error("❌ No data in CSV: %s", csv_path)
+            return None
+        except pd.errors.ParserError as e:
+            logger.error("❌ CSV parse error in %s: %s", csv_path, e)
+            return None
         except Exception as e:
             logger.error("❌ Error processing CSV %s: %s", csv_path, e)
+            return None
 
     def wait_for_new_download(self, download_dir, timeout=60, stable_secs=2):
         """

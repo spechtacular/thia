@@ -7,19 +7,22 @@ It supports dry-run mode to simulate updates without saving to the database.
 import os
 import time
 import traceback
-import logging
-import yaml
 import argparse
-from haunt_ops.utils.logging_utils import configure_rotating_logger
+import yaml
+
 
 from django.core.management.base import CommandError
+from django.core.management import call_command
+from django.conf import settings
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
-from django.conf import settings
 from haunt_ops.management.commands.base_utils import BaseUtilsCommand
+from haunt_ops.utils.logging_utils import configure_rotating_logger
+
 
 # pylint: disable=no-member
 
@@ -242,9 +245,19 @@ class Command(BaseUtilsCommand):
                 logger.debug("✅ ivolunteer Report File downloaded: %s", downloaded_file)
                 # Convert XLS to CSV and
                 # replace ivolunteer column names with postgresql column names
-                self.convert_xls_to_csv(downloaded_file)
+                modified_xls_file=self.convert_xls_to_csv(downloaded_file)
+                if modified_xls_file is None:
+                    raise CommandError(f"❌ Failed to convert XLS to CSV for {downloaded_file}")
+
+                call_command(
+                    "bulk_load_events_from_ivolunteer",
+                    csv=modified_xls_file,
+                    dry_run=False,
+                    log="INFO"
+                )
+
                 logger.info(
-                    "✅ ivolunteer participation report completed successfully."
+                    "✅ ivolunteer participation report processed successfully."
                 )
 
             except Exception as e:

@@ -13,6 +13,8 @@ from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from django.conf import settings
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from haunt_ops.management.commands.base_utils import BaseUtilsCommand
 from haunt_ops.utils.logging_utils import configure_rotating_logger
 
@@ -251,16 +253,28 @@ class Command(BaseUtilsCommand):
 
             # the POST triggers a new tab — Selenium doesn't auto-switch to new tabs/windows.
             logger.debug("📤 Submitting report form...")
-            new_file_path = self.wait_for_new_download(
+            downloaded_file = self.wait_for_new_download(
                 download_dir, timeout=60
             )  # Wait for the file to download
 
-            logger.info("✅ ivolunteer Report File downloaded: %s", new_file_path)
+            logger.info("✅ ivolunteer Report File downloaded: %s", downloaded_file)
 
             # Convert the downloaded file to CSV
             # and replace ivolunteer column names with postgresql column names
-            self.convert_xls_to_csv(new_file_path)
-            logger.info("✅ ivolunteer users report completed successfully.")
+            modified_xls_file=self.convert_xls_to_csv(downloaded_file)
+            if modified_xls_file is None:
+                raise CommandError(f"❌ Failed to convert XLS to CSV for {downloaded_file}")
+
+            call_command(
+                "bulk_load_users_from_ivolunteer",
+                csv=modified_xls_file,
+                dry_run=False,
+                log="DEBUG"
+            )
+
+            logger.info(
+                "✅ ivolunteer user report processed successfully."
+            )
 
         except Exception as e:
             logger.error("❌ Error occurred: %s ", str(e))
