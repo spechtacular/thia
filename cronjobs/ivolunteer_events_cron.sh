@@ -1,23 +1,31 @@
-#!/usr/bin/env bash
-# /Users/tedspecht/haunt-test/thia/cron_run_django.sh
-set -Eeuo pipefail
+#!/bin/bash
 
-### ——— CONFIG ———
-PROJECT_DIR="/Users/tedspecht/haunt-test/thia"        # e.g. /Users/you/haunt-test/thia
+PROJECT_DIR="/Users/tedspecht/haunt-test/thia"       # e.g. /Users/you/haunt-test/thia
 VENV_DIR="${PROJECT_DIR}/.venv"                      # e.g. /Users/you/haunt-test/thia/.venv
 MANAGE_PY="${PROJECT_DIR}/manage.py"
-LOG_DIR="${PROJECT_DIR}/var/cron-logs"          # create this dir
-DJANGO_SETTINGS_MODULE="thia.settings"          # change if needed
+LOG_DIR="${PROJECT_DIR}/logs/"                       # create this dir
+DJANGO_SETTINGS_MODULE="thia.settings"               # change if needed
 # If you use .env, uncomment:
 set -a; source "${PROJECT_DIR}/.env"; set +a
-### ————————————
+ 
+# Activate virtualenv
+source /Users/tedspecht/haunt-test/thia/.venv/bin/activate
 
-mkdir -p "$LOG_DIR" "${PROJECT_DIR}/.locks"
-cd "$PROJECT_DIR"
+# source environment variables
+source /Users/tedspecht/haunt-test/thia/.env
+
+
+# Move to project directory
+cd /Users/tedspecht/haunt-test/thia/
+
+# log file 
+CMD=$1
+LOG_FILE="${LOG_DIR}/${CMD}.log" 
 
 # Activate venv
 # shellcheck disable=SC1091
 source "${VENV_DIR}/bin/activate"
+
 
 export DJANGO_SETTINGS_MODULE
 
@@ -48,4 +56,8 @@ trap 'rmdir "$LOCK_PATH"' EXIT
     exit $rc
   fi
 } >> "$LOG_FILE" 2>&1
+
+
+# Run Django command and log output
+python manage.py run_selenium_event_participation_query --log DEBUG >> /Users/tedspecht/haunt-test/thia/logs/ivolunteer_users_cron.log 2>&1
 

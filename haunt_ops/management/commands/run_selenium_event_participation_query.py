@@ -30,9 +30,9 @@ from haunt_ops.utils.logging_utils import configure_rotating_logger
 class Command(BaseUtilsCommand):
     """
     start command
-        python manage.py run_selenium_participation_query
+        python manage.py run_selenium_event_participation_query
     or with custom config
-        python manage.py run_selenium_participation_query --config=config/custom_config.yaml
+        python manage.py run_selenium_event_participation_query --config=config/custom_config.yaml
 
     """
 
