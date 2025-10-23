@@ -18,6 +18,8 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.db.models import Sum, Min, Max
 from django.conf import settings
 from django.utils import timezone
+from django.views.decorators.http import require_POST
+
 
 
 
@@ -25,7 +27,7 @@ from .forms import PublicSignupForm, AppUserChangeForm, EventVolunteerFilterForm
 from .forms import EventPrepForm, UserPrepForm
 
 from .models import AppUser, Events, Groups, EventVolunteers, GroupVolunteers, TicketSales
-
+from .tasks import sync_signed_in_to_ivolunteer
 
 # use for debugging only
 logger = logging.getLogger(__name__)
@@ -594,6 +596,22 @@ def ticket_sales_detail(request, event_pk):
             "totals": totals,
         },
     )
+
+@require_POST
+def update_signed_in(request, event_id, volunteer_id):
+    # Get form data
+    signed_in = request.POST.get("signed_in") == "on"
+
+    ev = EventVolunteers.objects.get(pk=volunteer_id)
+    ev.signed_in = signed_in
+    ev.save()
+
+    if signed_in:
+        # Kick off background task
+        sync_signed_in_to_ivolunteer.delay(ev.id)
+
+    return redirect("event_volunteers_list", event_id=event_id)
+
 
 
 @login_required
