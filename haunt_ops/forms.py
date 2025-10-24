@@ -147,7 +147,8 @@ class UserPrepForm(forms.ModelForm):
             "wear_mask",
         ]
         widgets = {
-            # If costume_size has choices in your model, Django will render a <select> automatically.
+            # If costume_size has choices in your model,
+            # Django will render a <select> automatically.
             # Otherwise, you can force a select or leave TextInput:
             # "costume_size": forms.Select(attrs={"class": "form-select"}),
              "costume_size": forms.Select(
@@ -219,4 +220,3 @@ class StyledPasswordChangeForm(PasswordChangeForm):
         self.fields["old_password"].widget.attrs.update({"class": "form-control"})
         self.fields["new_password1"].widget.attrs.update({"class": "form-control"})
         self.fields["new_password2"].widget.attrs.update({"class": "form-control"})
-

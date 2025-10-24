@@ -78,8 +78,18 @@ class Command(BaseUtilsCommand):
         logger.debug("Headless mode: %s", headless)
         logger.debug("Log directory: %s", settings.LOG_DIR)
 
+        # Define the allowed options (only these should be selected)
+        allowed_options = {
+            "Include emails",
+            "Only show signed-up participants",
+            "Include hours per task+slot",
+            "List events for each participant",
+            "Include custom prompts",
+            "Include custom database fields"
+        }
 
-
+        # Store selected checkbox labels for logging
+        selected_labels = []
 
         try:
             with open(config_file, "r", encoding="utf-8") as f:
@@ -143,20 +153,19 @@ class Command(BaseUtilsCommand):
 
                 # Select Report Type
                 wait.until(
-                    EC.presence_of_all_elements_located((By.CLASS_NAME, "GKEPJM3CLLB"))
+                    EC.presence_of_all_elements_located((By.CLASS_NAME, "GCTNM2LCAMB"))
                 )
-                dropdowns = driver.find_elements(By.CLASS_NAME, "GKEPJM3CLLB")
-                if len(dropdowns) < 5:
-                    raise ValueError(
-                        "Expected at least 5 dropdowns, found: " + str(len(dropdowns))
+                
+                report_dropdown_elem = driver.find_element(
+                    By.XPATH,
+                    "//span[contains(text(),'Report:')]/ancestor::tr/following-sibling::tr[1]//select"
                     )
-
-                report_dropdown_elem = dropdowns[4]
                 report_dropdown = Select(report_dropdown_elem)
 
                 # Find the option you want
                 for i in range(10):  # retry for up to 10 seconds
                     for option in report_dropdown.options:
+                        print("Option:", option.text, "| Value:", option.get_attribute("value"))
                         if option.get_attribute("value") == "DbParticipationReport":
                             if option.is_enabled():
                                 report_dropdown.select_by_value("DbParticipationReport")
@@ -191,7 +200,7 @@ class Command(BaseUtilsCommand):
 
                 # Select Page Size (safe fallback)
                 page_size_dropdown = driver.find_element(
-                    By.XPATH, "//select[@class='GKEPJM3CLLB'][option[@value='LTR']]"
+                    By.XPATH, "//select[@class='GCTNM2LCAMB'][option[@value='LTR']]"
                 )
                 Select(page_size_dropdown).select_by_value("LTR")
                 logger.debug("Selected LTR page size")
@@ -209,15 +218,22 @@ class Command(BaseUtilsCommand):
                     By.XPATH, "//span[contains(@class,'gwt-CheckBox')]"
                 )
                 for label_span in labels:
-                    checkbox = label_span.find_element(By.TAG_NAME, "input")
-                    label_text = label_span.text.strip()
-                    if (
-                        label_text
-                        in ["Include emails", "Only show signed-in participants"]
-                        and not checkbox.is_selected()
-                    ):
-                        checkbox.click()
-                logger.debug("Selected signed in participants option")
+                    try:
+                        checkbox = label_span.find_element(By.TAG_NAME, "input")
+                        label_text = label_span.text.strip()
+
+                        if label_text in allowed_options:
+                            if not checkbox.is_selected():
+                                checkbox.click()
+                            selected_labels.append(label_text)
+                        else:
+                            if checkbox.is_selected():
+                                checkbox.click()
+                    except Exception as e:
+                        logger.warning("⚠️ Error processing checkbox: %s", e)
+
+                logger.debug("✅ Selected checkboxes: %s", ", ".join(selected_labels))
+
 
                 # Select All Database Participants
                 radio = driver.find_element(
