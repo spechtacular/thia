@@ -90,6 +90,7 @@ class Command(BaseUtilsCommand):
 
         # Store selected checkbox labels for logging
         selected_labels = []
+        unselected_labels = []
 
         try:
             with open(config_file, "r", encoding="utf-8") as f:
@@ -155,7 +156,7 @@ class Command(BaseUtilsCommand):
                 wait.until(
                     EC.presence_of_all_elements_located((By.CLASS_NAME, "GCTNM2LCAMB"))
                 )
-                
+
                 report_dropdown_elem = driver.find_element(
                     By.XPATH,
                     "//span[contains(text(),'Report:')]/ancestor::tr/following-sibling::tr[1]//select"
@@ -229,10 +230,12 @@ class Command(BaseUtilsCommand):
                         else:
                             if checkbox.is_selected():
                                 checkbox.click()
+                            unselected_labels.append(label_text)
                     except Exception as e:
                         logger.warning("⚠️ Error processing checkbox: %s", e)
 
                 logger.debug("✅ Selected checkboxes: %s", ", ".join(selected_labels))
+                logger.debug("❌ Unselected checkboxes: %s", ", ".join(unselected_labels))
 
 
                 # Select All Database Participants
