@@ -16,6 +16,7 @@ from django.urls import reverse
 from django.db.models.functions import Coalesce
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.db.models import Sum, Min, Max
+from django.http import Http404
 from django.conf import settings
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -307,24 +308,53 @@ def user_detail(request, pk):
 @login_required
 def event_detail(request, pk):
     """
-    Page that lists all volunteers for a specific event,
-    and shows a quick-inline EventPrepForm on the far right per volunteer.
+    Display and filter all volunteers for a given event.
+    Supports multi-filtering (status, role, prep) and AJAX updates.
     """
     event = get_object_or_404(Events, pk=pk)
 
-    # All volunteers for this event (ordered by volunteer name)
-    signups = (
+    # Base queryset
+    base_qs = (
         EventVolunteers.objects
         .filter(event=event)
         .select_related('volunteer')
         .order_by('volunteer__last_name', 'volunteer__first_name')
     )
 
-    # Build a per-row EventPrepForm (no prefix; each form is in its own <form>)
+    # --- Filter parameters ---
+    status = request.GET.get("status")
+    role = request.GET.get("role")
+    prep = request.GET.get("prep")
+
+    # Start with full queryset
+    signups = base_qs
+
+    # --- Apply Role Filter ---
+    if role == "scare":
+        signups = signups.filter(task__icontains="scare actor")
+    elif role == "line":
+        signups = signups.filter(task__icontains="line entertainment")
+
+    # --- Apply Prep Filter ---
+    if prep == "makeup":
+        signups = signups.filter(makeup=False)
+    elif prep == "costume":
+        signups = signups.filter(costume=False)
+
+    # --- Apply Status Filter ---
+    if status == "confirmed":
+        signups = signups.filter(confirmed=True)
+    elif status == "signed_in":
+        signups = signups.filter(signed_in=True)
+    elif status == "confirmed_not_signed_in":
+        # confirmed but explicitly exclude signed-in volunteers
+        signups = signups.filter(confirmed=True).exclude(signed_in=True)
+
+    # --- Add forms for each volunteer ---
     for ev in signups:
         ev.ev_form = EventPrepForm(instance=ev)
 
-    # Validate the caller-provided return URL; fall back to events_list
+    # --- Return URL (safe redirect fallback) ---
     return_to = request.GET.get("return_to")
     if not return_to or not url_has_allowed_host_and_scheme(
         url=return_to,
@@ -333,44 +363,48 @@ def event_detail(request, pk):
     ):
         return_to = reverse("events_list")
 
-    return render(request, 'haunt_ops/event_detail.html', {
-        'event': event,
-        'signups': signups,
-        'return_to': return_to,
-    })
+    # --- Handle AJAX partial render ---
+    if request.GET.get("ajax") == "1":
+        return render(
+            request,
+            "haunt_ops/partials/_volunteer_table.html",
+            {
+                "event": event,
+                "signups": signups,
+                "request": request,
+                "return_to": return_to,
+            },
+        )
 
-
-def event_prep_quick_update(request, event_pk, vol_pk):
-    """
-    Lightweight POST endpoint to update only EventVolunteers flags
-    from the inline form on the event_detail page.
-    """
-    if request.method != "POST":
-        return HttpResponseNotAllowed(["POST"])
-
-    event = get_object_or_404(Events, pk=event_pk)
-    ev_signup = get_object_or_404(
-        EventVolunteers.objects.select_related("event"),
-        pk=vol_pk,
+    # --- Full page render ---
+    return render(
+        request,
+        "haunt_ops/event_detail.html",
+        {
+            "event": event,
+            "signups": signups,
+            "return_to": return_to,
+        },
     )
-    if ev_signup.event_id != event.pk:
-        raise Http404("Volunteer signup does not belong to this event.")
 
-    form = EventPrepForm(request.POST, instance=ev_signup)
+
+def event_prep_quick_update(request, event_pk, volunteer_pk):
+    # Only accept POST
+    if request.method != "POST":
+        return redirect("event_detail", pk=event_pk)
+
+    volunteer_signup = get_object_or_404(EventVolunteers, pk=volunteer_pk, event_id=event_pk)
+
+    form = EventPrepForm(request.POST, instance=volunteer_signup)
     if form.is_valid():
         form.save()
 
-    # optional: respect ?return_to=...
-    next_url = request.POST.get("return_to") or reverse("event_detail", kwargs={"pk": event_pk})
-    # prevent open redirect
-    if not url_has_allowed_host_and_scheme(
-        url=next_url,
-        allowed_hosts={request.get_host()},
-        require_https=request.is_secure(),
-    ):
-        next_url = reverse("event_detail", kwargs={"pk": event_pk})
+    # Redirect to event detail with filter preserved
+    return_to = request.POST.get("return_to")
+    if not return_to:
+        return_to = reverse("event_detail", args=[event_pk])
+    return redirect(return_to)
 
-    return redirect(next_url)
 
 
 @login_required

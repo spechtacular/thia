@@ -16,7 +16,7 @@
     {% for event in events_page %}
       <tr>
         <td>
-            <a href="{% url 'event_detail' event.pk %}?return={{ request.get_full_path|urlencode }}">
+            <a href="{% url 'event_detail' event.pk %}?return_to={{ request.get_full_path|urlencode }}">
               {{ event.event_name }}
             </a>
         </td>

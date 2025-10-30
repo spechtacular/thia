@@ -6,63 +6,94 @@
   <p><strong>Date:</strong> {{ event.event_date|date:"m-d-Y" }}</p>
 
   <h2>Volunteers</h2>
-  {% if signups %}
-    <form class="d-none"></form> {# prevent browser autocompletion oddities #}
-    <table class="table align-middle">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Start Time</th>
-          <th>End Time</th>
-          <th>Task</th>
-          <th>Slot Column</th>
-          <th>Slot Row</th>
-          {# Keep header for accessibility; shrink column & left align #}
-          <th class="text-start" style="width:1%; white-space:nowrap;">
-            <span class="visually-hidden">Prep Checklist</span>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-      {% for ev in signups %}
-        <tr>
-          <td>
-            <a href="{% url 'event_prep' event.pk ev.pk %}">
-              {{ ev.volunteer.first_name }} {{ ev.volunteer.last_name }}
-            </a>
-          </td>
-          <td>{{ ev.start_time|date:"m-d-Y H:i" }}</td>
-          <td>{{ ev.end_time|date:"m-d-Y H:i" }}</td>
-          <td>{{ ev.task|default:"" }}</td>
-          <td>{{ ev.slot_column|default:"" }}</td>
-          <td>{{ ev.slot_row|default:"" }}</td>
 
-          <td class="text-start align-middle ps-2" style="width:1%; white-space:nowrap;">
-            <form method="post"
-                  action="{% url 'event_prep_quick_update' event.pk ev.pk %}"
-                  class="d-inline-flex flex-wrap align-items-center gap-2">
-              {% csrf_token %}
-              <input type="hidden" name="return_to" value="{% url 'event_detail' event.pk %}">
+  <!-- 🔍 Filter Form -->
+  <form id="filter-form" class="mb-3 row g-2 align-items-center">
+    <div class="col-auto">
+      <label for="status-filter" class="form-label mb-0 fw-bold">Status:</label>
+      <select id="status-filter" class="form-select form-select-sm" name="status">
+        <option value="">-- All --</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="signed_in">Signed In</option>
+        <option value="confirmed_not_signed_in">Confirmed but not Signed In</option>
+      </select>
+    </div>
 
-              <span class="me-1 text-muted small">Prep Checklist:</span>
+    <div class="col-auto">
+      <label for="role-filter" class="form-label mb-0 fw-bold">Role:</label>
+      <select id="role-filter" class="form-select form-select-sm" name="role">
+        <option value="">-- All --</option>
+        <option value="scare">Scare Actor</option>
+        <option value="line">Line Entertainment</option>
+      </select>
+    </div>
 
-              {% for field in ev.ev_form %}
-                <div class="form-check me-2 mb-0">
-                  {{ field }}
-                  <label class="form-check-label ms-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                </div>
-              {% endfor %}
+    <div class="col-auto">
+      <label for="prep-filter" class="form-label mb-0 fw-bold">Prep Missing:</label>
+      <select id="prep-filter" class="form-select form-select-sm" name="prep">
+        <option value="">-- All --</option>
+        <option value="makeup">Needs Makeup</option>
+        <option value="costume">Needs Costume</option>
+      </select>
+    </div>
 
-              <button type="submit" class="btn btn-sm btn-outline-primary">Update</button>
-            </form>
-          </td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p>No volunteers signed up for this event yet.</p>
-  {% endif %}
+    <div class="col-auto">
+      <button type="button" id="clear-filter" class="btn btn-sm btn-outline-secondary">Clear All</button>
+    </div>
+  </form>
+
+
+  <!-- 🔁 AJAX-loaded volunteer table -->
+  <div id="volunteer-table">
+    {% include "haunt_ops/partials/_volunteer_table.html" %}
+  </div>
 
   <p><a href="{{ return_to }}">&laquo; Back</a></p>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  console.log("✅ JS loaded");
+
+  const statusFilter = document.getElementById("status-filter");
+  const roleFilter = document.getElementById("role-filter");
+  const prepFilter = document.getElementById("prep-filter");
+  const clearBtn = document.getElementById("clear-filter");
+
+  function fetchFilteredList() {
+    const url = new URL(window.location.pathname, window.location.origin);
+    url.searchParams.set("ajax", "1");
+
+    if (statusFilter.value) url.searchParams.set("status", statusFilter.value);
+    if (roleFilter.value) url.searchParams.set("role", roleFilter.value);
+    if (prepFilter.value) url.searchParams.set("prep", prepFilter.value);
+
+    console.log("🔄 Fetching:", url.toString());
+
+    fetch(url)
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById("volunteer-table").innerHTML = html;
+      })
+      .catch(error => {
+        console.error("❌ AJAX failed:", error);
+      });
+  }
+
+  statusFilter.addEventListener("change", fetchFilteredList);
+  roleFilter.addEventListener("change", fetchFilteredList);
+  prepFilter.addEventListener("change", fetchFilteredList);
+
+  clearBtn.addEventListener("click", function () {
+    statusFilter.value = "";
+    roleFilter.value = "";
+    prepFilter.value = "";
+    fetchFilteredList();
+  });
+
+  // Optional: auto-fetch on page load with previous state
+});
+</script>
+{% endblock %}
+

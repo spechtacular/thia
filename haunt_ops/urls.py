@@ -33,10 +33,9 @@ urlpatterns = [
     # Events
     path("events/", views.events_list, name="events_list"),
     path("events/<int:pk>/", views.event_detail, name="event_detail"),
-    path(
-        "events/<int:event_pk>/volunteer/<int:vol_pk>/prep/quick/",
-        views.event_prep_quick_update,
-        name="event_prep_quick_update",
+    path("events/<int:event_pk>/volunteer/<int:volunteer_pk>/update/",
+         views.event_prep_quick_update,
+         name="event_prep_quick_update"
     ),
     path("events/<int:event_pk>/volunteer/<int:vol_pk>/prep/", views.event_prep_view, name="event_prep"),
     path("events/volunteers/", views.event_volunteers_list, name="event_volunteers_list"),
@@ -112,6 +111,8 @@ urlpatterns = [
         ),
         name="password_reset_complete",
     ),
+
+
 ]
 
 path("api/", include("haunt_ops.api_urls"))

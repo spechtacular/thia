@@ -1,0 +1,57 @@
+{% if signups %}
+  <table class="table align-middle">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Start Time</th>
+        <th>End Time</th>
+        <th>Task</th>
+        <th>Slot Column</th>
+        <th>Slot Row</th>
+        <th class="text-start" style="width:1%; white-space:nowrap;">
+          <span class="visually-hidden">Prep Checklist</span>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for ev in signups %}
+      <tr>
+        <td>
+          <a href="{% url 'event_prep' event.pk ev.pk %}">
+            {{ ev.volunteer.first_name }} {{ ev.volunteer.last_name }}
+          </a>
+        </td>
+        <td>{{ ev.start_time|date:"m-d-Y H:i" }}</td>
+        <td>{{ ev.end_time|date:"m-d-Y H:i" }}</td>
+        <td>{{ ev.task|default:"" }}</td>
+        <td>{{ ev.slot_column|default:"" }}</td>
+        <td>{{ ev.slot_row|default:"" }}</td>
+
+        <td class="text-start align-middle ps-2" style="width:1%; white-space:nowrap;">
+          <form method="post"
+                action="{% url 'event_prep_quick_update' event.pk ev.pk %}"
+                class="d-inline-flex flex-wrap align-items-center gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="return_to" value="{{ return_to }}">
+
+            <span class="me-1 text-muted small">Prep Checklist:</span>
+
+            {% for field in ev.ev_form %}
+              <div class="form-check me-2 mb-0">
+                {{ field }}
+                <label class="form-check-label ms-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              </div>
+            {% endfor %}
+
+            <button type="submit" class="btn btn-sm btn-outline-primary">Update</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <div class="alert alert-warning">
+    <strong>No volunteers match the selected filters.</strong>
+  </div>
+{% endif %}
