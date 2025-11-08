@@ -33,10 +33,13 @@ CELERY_TASK_REJECT_ON_WORKER_LOST = True
 CELERYD_PREFETCH_MULTIPLIER = 1
 
 
+
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load .env from project root
-#load_dotenv(BASE_DIR / ".env")
+VIDEO_LIBRARY_ROOT = os.path.join(BASE_DIR, 'videos')
+VIDEO_LIBRARY_URL = '/haunt_videos/'
+
 
 # Initialise environment variables
 env = environ.Env()

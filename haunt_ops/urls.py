@@ -112,7 +112,6 @@ urlpatterns = [
         name="password_reset_complete",
     ),
 
-
 ]
 
 path("api/", include("haunt_ops.api_urls"))

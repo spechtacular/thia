@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Media Library{% endblock %}
+
+{% block content %}
+  <h1>Media Folders</h1>
+  <ul class="list-group">
+    {% for folder in folders %}
+      <li class="list-group-item">
+        <a href="{% url 'browse_folder' folder %}">{{ folder }}</a>
+      </li>
+    {% empty %}
+      <li class="list-group-item text-muted">No folders found.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

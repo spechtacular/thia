@@ -1,0 +1,18 @@
+<h1>Browsing: {{ current_path }}</h1>
+
+<ul class="list-group mb-4">
+  {% for item in items %}
+    <li class="list-group-item">
+      {% if item.is_dir %}
+        📁 <a href="{% url 'browse_folder' item.relative_path %}">{{ item.name }}</a>
+      {% elif item.is_video %}
+        🎬 <a href="{{ video_base_url }}{{ item.relative_path }}">{{ item.name }}</a>
+      {% elif item.is_image %}
+        🖼️ {{ item.name }}<br>
+        <img src="{{ video_base_url }}{{ item.relative_path }}" alt="{{ item.name }}" class="img-thumbnail mt-2" style="max-width: 300px;">
+      {% else %}
+        📄 {{ item.name }}
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>

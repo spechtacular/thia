@@ -28,6 +28,10 @@ media/
 staticfiles/
 logs/
 downloads/
+videos/**
+!videos/
+!videos/*.py
+!videos/*.html 
 
 # Django migrations
 */migrations/*.py

@@ -16,10 +16,23 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-import os
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
-    path("", include("haunt_ops.urls")),                 # your app routes
-    path("admin/", admin.site.urls),                     # admin LAST
-    ]
+    # Routes for your main app
+    path("", include("haunt_ops.urls")),
+
+    # ✅ Route for the video browsing app (folder viewer)
+    path("video-browser/", include("videos.urls")),
+
+    # Admin site (keep last is fine)
+    path("admin/", admin.site.urls),
+]
+
+# ✅ Serve actual .mp4 files from the 'videos' folder at '/media_videos/'
+urlpatterns += static(
+    settings.VIDEO_LIBRARY_URL,            # e.g. '/media_videos/'
+    document_root=settings.VIDEO_LIBRARY_ROOT  # e.g. BASE_DIR / 'videos'
+)
 

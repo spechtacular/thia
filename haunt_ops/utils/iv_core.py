@@ -12,6 +12,8 @@ from __future__ import annotations
 import os
 import time
 import hashlib
+import platform
+from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional, Tuple
@@ -27,6 +29,8 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.firefox.options import Options as FFOptions
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.firefox.service import Service as FFService
 
 logger = logging.getLogger("haunt_ops")
 
@@ -148,7 +152,6 @@ def _locate_login_in_context(driver) -> Tuple[object | None, object | None, obje
     """
     # --- 1) Optional org gate ---
     try:
-        # short wait so we don't stall when the gate isn't used
         WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.ID, "org_admin_login")))
         org_val = (os.environ.get("IVOLUNTEER_ORG") or "").strip()
         if org_val:
@@ -156,7 +159,6 @@ def _locate_login_in_context(driver) -> Tuple[object | None, object | None, obje
             try:
                 org_input = driver.find_element(By.ID, "action0")
             except Exception:
-                # fallback selectors if ID changes
                 cand = [
                     "input#action0",
                     "input[name='action0']",
@@ -178,10 +180,8 @@ def _locate_login_in_context(driver) -> Tuple[object | None, object | None, obje
                     pass
                 org_input.send_keys(org_val)
 
-                # try a likely continue/submit on the org gate
                 try:
                     cont = None
-                    # common IDs or labels we've seen
                     ids = {"action1", "continue", "submit"}
                     for e in driver.find_elements(By.XPATH, "//button|//input[@type='submit' or @type='button']"):
                         if not e.is_displayed():
@@ -194,16 +194,13 @@ def _locate_login_in_context(driver) -> Tuple[object | None, object | None, obje
                             break
                     if cont:
                         cont.click()
-                        # wait until org gate disappears or email field shows up
                         WebDriverWait(driver, 5).until(
                             lambda d: not d.find_elements(By.ID, "org_admin_login")
                             or d.find_elements(By.CSS_SELECTOR, "input[autocomplete='username']")
                         )
                 except Exception:
-                    # non-fatal; we'll still try to find the login fields
                     pass
     except Exception:
-        # org gate not present; continue normally
         pass
 
     # --- 2) Find email, password, submit ---
@@ -307,7 +304,6 @@ def _locate_login_in_context_save(driver) -> Tuple[object | None, object | None,
             elems = [e for e in driver.find_elements(By.XPATH, xp) if e.is_displayed()]
             if elems: submit = elems[0]; break
         except Exception: pass
-    # optional error banner
     try:
         err = next((e for e in driver.find_elements(By.CSS_SELECTOR, "div.gwt-Label.GKEPJM3CBJB") if e.is_displayed()), None)
     except Exception:
@@ -366,33 +362,117 @@ class DriverConfig:
     page_load_timeout: int = 60
     download_dir: str = "/tmp"
 
+    # NEW: cross-platform overrides
+    driver_path: Optional[str] = None          # force a specific driver binary
+    chrome_binary: Optional[str] = None        # force a specific Chrome/Chromium binary
+    firefox_binary: Optional[str] = None       # force a specific Firefox binary
+    prefer_chromium_on_linux: bool = True      # on Linux ARM, use Chromium/apt driver by default
+
+def _ensure_dir(p: str | Path) -> str:
+    d = Path(p)
+    d.mkdir(parents=True, exist_ok=True)
+    return str(d)
+
 def build_driver(cfg: DriverConfig):
-    if cfg.browser == "chrome":
+    """
+    Cross-platform driver bootstrap:
+      - macOS: prefers Homebrew chromedriver (/opt/homebrew/bin or /usr/local/bin)
+      - Windows/macOS/x86_64 Linux: Chrome via Selenium Manager (auto driver)
+      - Raspberry Pi / Linux ARM64: Chromium + /usr/bin/chromedriver (or overrides)
+      - Firefox supported everywhere
+    Env overrides:
+      CHROMEDRIVER, CHROME_BINARY, GECKODRIVER can be set to force paths.
+    """
+    system = platform.system().lower()
+    machine = platform.machine().lower()
+
+    # Make sure download dir exists
+    cfg.download_dir = _ensure_dir(cfg.download_dir)
+
+    if cfg.browser.lower() == "chrome":
         opts = ChromeOptions()
-        if cfg.headless: opts.add_argument("--headless=new")
+        if cfg.headless:
+            opts.add_argument("--headless=new")
         opts.add_argument("--window-size=1280,900")
         opts.add_argument("--disable-gpu")
+        opts.add_argument("--disable-software-rasterizer")
         opts.add_argument("--no-sandbox")
         opts.add_argument("--disable-dev-shm-usage")
+        opts.add_argument("--remote-debugging-port=9222")
         opts.add_argument(f"--lang={cfg.lang}")
         opts.add_argument(f"--user-agent={cfg.ua_chrome}")
         opts.add_experimental_option("excludeSwitches", ["enable-automation"])
         opts.add_experimental_option("useAutomationExtension", False)
         prefs = {
-                "credentials_enable_service": False,
-                "profile.password_manager_enabled": False,
-                "autofill.profile_enabled": False,
-                "autofill.credit_card_enabled": False,
-                "download.default_directory": cfg.download_dir,
-                "download.prompt_for_download": False,
-                "download.directory_upgrade": True,
-                "safebrowsing.enabled": True,
+            "credentials_enable_service": False,
+            "profile.password_manager_enabled": False,
+            "autofill.profile_enabled": False,
+            "autofill.credit_card_enabled": False,
+            "download.default_directory": cfg.download_dir,
+            "download.prompt_for_download": False,
+            "download.directory_upgrade": True,
+            "safebrowsing.enabled": True,
         }
         opts.add_experimental_option("prefs", prefs)
-        drv = webdriver.Chrome(options=opts)
+
+        # Allow explicit override of Chrome/Chromium binary
+        env_chrome_bin = os.environ.get("CHROME_BINARY")
+        if cfg.chrome_binary:
+            opts.binary_location = cfg.chrome_binary
+        elif env_chrome_bin:
+            opts.binary_location = env_chrome_bin
+
+        # -------- macOS branch --------
+        if system == "darwin":
+            # Prefer Homebrew paths; fallback to Selenium Manager
+            default_path = "/opt/homebrew/bin/chromedriver"
+            if not Path(default_path).exists():
+                default_path = "/usr/local/bin/chromedriver"
+            driver_path = cfg.driver_path or os.environ.get("CHROMEDRIVER") or default_path
+            if not Path(driver_path).exists():
+                # Fall back to Selenium Manager’s built-in resolution
+                logger.warning("⚠️ chromedriver not found at %s — relying on Selenium Manager", driver_path)
+                service = ChromeService()
+            else:
+                service = ChromeService(driver_path)
+
+            if not opts.binary_location:
+                # Standard Chrome app path
+                opts.binary_location = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+
+            drv = webdriver.Chrome(service=service, options=opts)
+
+        # -------- Raspberry Pi / Linux ARM64 --------
+        elif system == "linux" and ("aarch64" in machine or "arm" in machine or cfg.prefer_chromium_on_linux):
+            chromium_bin = opts.binary_location or "/usr/bin/chromium"
+            chromedriver_path = cfg.driver_path or os.environ.get("CHROMEDRIVER") or "/usr/bin/chromedriver"
+            if not Path(chromium_bin).exists():
+                raise FileNotFoundError(
+                    f"Chromium binary not found at {chromium_bin}. Install with:\n"
+                    "  sudo apt update && sudo apt install -y chromium chromium-driver"
+                )
+            if not Path(chromedriver_path).exists():
+                raise FileNotFoundError(
+                    f"ChromiumDriver not found at {chromedriver_path}. Install with:\n"
+                    "  sudo apt update && sudo apt install -y chromium-driver"
+                )
+            opts.binary_location = chromium_bin
+            service = ChromeService(chromedriver_path)
+            drv = webdriver.Chrome(service=service, options=opts)
+
+        # -------- Windows / Intel Linux fallback --------
+        else:
+            explicit_driver = cfg.driver_path or os.environ.get("CHROMEDRIVER")
+            service = ChromeService(explicit_driver) if explicit_driver else ChromeService()
+            drv = webdriver.Chrome(service=service, options=opts)
+
     else:
+        # Firefox path
         opts = FFOptions()
-        if cfg.headless: opts.add_argument("-headless")
+        if cfg.headless:
+            opts.add_argument("-headless")
+        if cfg.firefox_binary:
+            opts.binary_location = cfg.firefox_binary
         opts.set_preference("signon.rememberSignons", False)
         opts.set_preference("signon.autofillForms", False)
         opts.set_preference("signon.generation.enabled", False)
@@ -404,8 +484,19 @@ def build_driver(cfg: DriverConfig):
         opts.set_preference("javascript.enabled", True)
         opts.set_preference("browser.download.folderList", 2)
         opts.set_preference("browser.download.dir", cfg.download_dir)
-        opts.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        drv = webdriver.Firefox(options=opts)
+        opts.set_preference(
+            "browser.helperApps.neverAsk.saveToDisk",
+            "application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+        env_gecko = os.environ.get("GECKODRIVER")
+        if cfg.driver_path or env_gecko:
+            service = FFService(cfg.driver_path or env_gecko)
+        else:
+            service = FFService()
+
+        drv = webdriver.Firefox(service=service, options=opts)
+
     drv.set_page_load_timeout(cfg.page_load_timeout)
     return drv
 
@@ -586,9 +677,6 @@ def click_top_tab(driver, label_text: str, timeout=15, logger=None) -> bool:
     return ok
 
 
-
-
-
 def _js_click(driver, el):
     driver.execute_script("arguments[0].scrollIntoView({block:'center'});", el)
     driver.execute_script("arguments[0].click();", el)
@@ -603,12 +691,9 @@ def click_inner_tabpanel_tab(driver, tab_text: str, *, timeout: int = 20, logger
     driver.switch_to.default_content()
     wait = WebDriverWait(driver, timeout)
 
-    # 1) Find a visible GWT Tab header row on the page
-    #    It looks like: <div class="gwt-TabLayoutPanelTabs"> ... <div class="gwt-TabLayoutPanelTab"><div><div class="gwt-Label">Reports</div></div></div> ...
     tabs_row_xpath = "//div[contains(@class,'gwt-TabLayoutPanelTabs') and not(ancestor::*[@aria-hidden='true'])]"
     tabs_row = wait.until(EC.presence_of_element_located((By.XPATH, tabs_row_xpath)))
 
-    # 2) Find the label with the requested text under that row
     label_xpath = (
         f"{tabs_row_xpath}//div[contains(@class,'gwt-Label') and normalize-space(text())={repr(tab_text)}]"
     )
@@ -619,10 +704,8 @@ def click_inner_tabpanel_tab(driver, tab_text: str, *, timeout: int = 20, logger
             logger.error("❌ Could not find inner tab label with text '%s'", tab_text)
         return False
 
-    # 3) The clickable “tab” container is the nearest ancestor with class gwt-TabLayoutPanelTab
     tab_container = label_el.find_element(By.XPATH, "./ancestor::div[contains(@class,'gwt-TabLayoutPanelTab')]")
 
-    # 4) Click attempts: label → container → JS click
     clicked = False
     for candidate in (label_el, tab_container):
         try:
@@ -642,7 +725,6 @@ def click_inner_tabpanel_tab(driver, tab_text: str, *, timeout: int = 20, logger
             logger.error("❌ Failed to click inner tab '%s'", tab_text)
         return False
 
-    # 5) Wait for the tab to show as selected (class 'gwt-TabLayoutPanelTab-selected')
     try:
         wait.until(lambda d: "gwt-TabLayoutPanelTab-selected" in tab_container.get_attribute("class"))
     except Exception:
@@ -666,13 +748,9 @@ def wait_for_reports_panel(driver, *, timeout: int = 20, logger=None) -> bool:
     wait = WebDriverWait(driver, timeout)
 
     anchors = [
-        # Title 'Reports'
         "//div[contains(@class,'GKEPJM3CMUB') and normalize-space(text())='Reports' and not(ancestor::*[@aria-hidden='true'])]",
-        # 'Report by' label text
         "//span[contains(@class,'GKEPJM3CEWB') and contains(normalize-space(.),'Report') and not(ancestor::*[@aria-hidden='true'])]",
-        # A 'Format' label near a select
         "//span[contains(@class,'GKEPJM3CEWB') and normalize-space(.)='Format:' and not(ancestor::*[@aria-hidden='true'])]",
-        # 'Include Participants' label
         "//span[contains(@class,'GKEPJM3CEWB') and contains(normalize-space(.),'Include Participants') and not(ancestor::*[@aria-hidden='true'])]",
     ]
     try:
@@ -696,27 +774,23 @@ def scrape_groups_from_filter_dropdown(driver, timeout=15, logger=None):
 
     wait = WebDriverWait(driver, timeout)
 
-    # Ensure the Participants tab is active (it usually is by default, but be explicit & robust)
     try:
         click_inner_tabpanel_tab(driver, "Participants", timeout=timeout, logger=logger)
     except Exception:
         pass
     wait_for_overlay_to_clear(driver, timeout=timeout)
 
-    # Find the specific <select> that follows the "Filter Group:" label
     dropdown_xpath = (
         "(//span[normalize-space()='Filter Group:']"
         "/ancestor::table/following::select[contains(@class,'GKEPJM3CLLB')])[1]"
     )
     sel = wait.until(EC.element_to_be_clickable((By.XPATH, dropdown_xpath)))
 
-    # Click/focus to trigger lazy population
     try:
         sel.click()
     except Exception:
         driver.execute_script("arguments[0].click();", sel)
 
-    # Wait until options are actually present (lazy-loaded)
     def _options_present(drv):
         opts = sel.find_elements(By.XPATH, "./option")
         return opts if len(opts) > 0 else False
@@ -728,7 +802,6 @@ def scrape_groups_from_filter_dropdown(driver, timeout=15, logger=None):
             logger.warning("Filter Group dropdown did not populate with any <option> elements.")
         option_elems = []
 
-    # Collect names, skipping the "All Participants" default if present
     names = []
     seen = set()
     for opt in option_elems:
@@ -754,28 +827,24 @@ def scrape_database_group_list(driver, timeout=15, logger=None):
 
     wait = WebDriverWait(driver, timeout)
 
-    # Make sure the Groups tab is selected and the header is present
     try:
         click_inner_tabpanel_tab(driver, "Groups", timeout=timeout, logger=logger)
     except Exception:
         if logger:
             logger.warning("Could not click 'Groups' tab (might already be selected).")
 
-    # Wait for the "Groups" header text in the visible content
     groups_header_xpath = (
         "//div[contains(@class,'gwt-TabLayoutPanelContent') and not(ancestor::*[@aria-hidden='true'])]"
         "//div[contains(@class,'gwt-Label') and contains(@class,'GKEPJM3CMUB') and normalize-space(text())='Groups']"
     )
     wait.until(EC.presence_of_element_located((By.XPATH, groups_header_xpath)))
 
-    # Find the left-side list container in the same visible content section
     container_xpath = (
         "//div[contains(@class,'gwt-TabLayoutPanelContent') and not(ancestor::*[@aria-hidden='true'])]"
         "//div[contains(@class,'GKEPJM3CCEB')]"
     )
     container = wait.until(EC.presence_of_element_located((By.XPATH, container_xpath)))
 
-    # The groups are the divs with __idx attribute (visible text = group name)
     entry_xpath = ".//div[@__idx and normalize-space(string())]"
     elems = container.find_elements(By.XPATH, entry_xpath)
 
@@ -818,7 +887,6 @@ def click_database_group_by_name(
     container_xpath = "//div[contains(@class,'GKEPJM3CCEB') and not(ancestor::*[@aria-hidden='true'])]"
     wait.until(EC.presence_of_element_located((By.XPATH, container_xpath)))
 
-    # Find entry by exact text match
     entry_xpath = (
         f"{container_xpath}//div[@__idx and normalize-space(text())="
         f"normalize-space('{group_name}')]"
@@ -843,17 +911,14 @@ def wait_for_overlay_to_clear(driver, timeout=30):
     Safe to call after any tab click.
     """
     wait = WebDriverWait(driver, timeout)
-    # Glass overlay
     try:
         wait.until(EC.invisibility_of_element_located((By.CSS_SELECTOR, ".gwt-PopupPanelGlass")))
     except Exception:
         pass
-    # Spinner panel
     try:
         wait.until(EC.invisibility_of_element_located((By.CSS_SELECTOR, ".GKEPJM3CBUB")))
     except Exception:
         pass
-    # "Loading..." placeholder
     try:
         wait.until(EC.invisibility_of_element_located((By.XPATH, "//span[normalize-space()='Loading...']")))
     except Exception:
