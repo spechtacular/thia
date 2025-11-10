@@ -1,7 +1,6 @@
-# Use official slim Python image
 FROM python:3.12-slim
 
-# System packages for PostgreSQL, Redis, and static file handling
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
@@ -15,34 +14,32 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-
-# Create non-root user for Celery and app
+# Create non-root user
 RUN addgroup --system celerygroup && \
     adduser --system --ingroup celerygroup celeryuser
 
-# Set workdir
+# Set working directory
 WORKDIR /app
 
-# Set environment variables
+# Python environment settings
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-# Copy requirements and install
+# Install Python dependencies
 COPY requirements.txt /app/
 RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
-# Copy the project
+# Copy application source
 COPY . /app/
 
-# Ensure ownership for non-root execution
+# Set ownership
 RUN chown -R celeryuser:celerygroup /app
 
-# Set non-root user for container
+# Use non-root user
 USER celeryuser
 
-# Expose Django default port
+# Expose Django port
 EXPOSE 8000
 
-# Entrypoint can be overridden in docker-compose
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
-
+# Default entrypoint
+ENTRYPOINT ["/app/entrypoint.sh"]

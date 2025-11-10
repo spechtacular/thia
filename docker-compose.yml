@@ -1,5 +1,3 @@
-#version: '3.9'
-
 services:
   db:
     image: postgres:15
@@ -12,7 +10,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "6543:5432"  # Host:Container port
+      - "6543:5432"
     networks:
       - thia_net
 
@@ -30,9 +28,10 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: web
-    command: ./entrypoint.sh
     volumes:
       - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
     ports:
       - "8000:8000"
     env_file:
@@ -51,13 +50,13 @@ services:
     volumes:
       - .:/app
     depends_on:
-      - redis
       - db
+      - redis
     env_file:
       - .env
     networks:
       - thia_net
-    # user: celeryuser  # ⚠️ Uncomment only if user exists in Dockerfile
+    user: celeryuser
 
   celery-beat:
     build:
@@ -67,13 +66,13 @@ services:
     volumes:
       - .:/app
     depends_on:
-      - redis
       - db
+      - redis
     env_file:
       - .env
     networks:
       - thia_net
-    # user: celeryuser
+    user: celeryuser
 
   nginx:
     image: nginx:alpine
@@ -99,4 +98,3 @@ volumes:
 networks:
   thia_net:
     driver: bridge
-
