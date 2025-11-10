@@ -26,6 +26,9 @@ urlpatterns = [
     # ✅ Route for the video browsing app (folder viewer)
     path("video-browser/", include("videos.urls")),
 
+    # ✅ Routes for the volunteer portal
+    path('volunteer/', include('volunteer_portal.urls')),  # volunteer interface
+
     # Admin site (keep last is fine)
     path("admin/", admin.site.urls),
 ]

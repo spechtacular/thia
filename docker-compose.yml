@@ -1,28 +1,102 @@
+#version: '3.9'
+
 services:
   db:
-    image: postgres:16
+    image: postgres:15
+    container_name: db
+    restart: always
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${THIA_DB_PASSWORD}
     volumes:
-      - pgdata:/var/lib/postgresql/data
-    # bind Postgres only on your ZT IP (host)
+      - postgres_data:/var/lib/postgresql/data
     ports:
-      - "192.168.195.60:5432:5432"
+      - "6543:5432"  # Host:Container port
+    networks:
+      - thia_net
+
+  redis:
+    image: redis:7
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - thia_net
 
   web:
-    build: .
-    command: python manage.py runserver 0.0.0.0:8000
-    env_file: .env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: web
+    command: ./entrypoint.sh
     volumes:
       - .:/app
-    # bind Django only on your ZT IP (host)
     ports:
-      - "192.168.195.60:8000:8000"
+      - "8000:8000"
+    env_file:
+      - .env
     depends_on:
       - db
+      - redis
+    networks:
+      - thia_net
+
+  celery:
+    build:
+      context: .
+    container_name: celery
+    command: celery -A thia worker --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - db
+    env_file:
+      - .env
+    networks:
+      - thia_net
+    # user: celeryuser  # ⚠️ Uncomment only if user exists in Dockerfile
+
+  celery-beat:
+    build:
+      context: .
+    container_name: celery-beat
+    command: celery -A thia beat --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - db
+    env_file:
+      - .env
+    networks:
+      - thia_net
+    # user: celeryuser
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: always
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - static_volume:/app/static
+      - media_volume:/app/media
+    depends_on:
+      - web
+    networks:
+      - thia_net
 
 volumes:
-  pgdata:
+  postgres_data:
+  static_volume:
+  media_volume:
+
+networks:
+  thia_net:
+    driver: bridge
 

@@ -20,8 +20,9 @@ from dotenv import load_dotenv
 # App mode: server (default), api, or hybrid
 APP_MODE = os.getenv("APP_MODE", "server")
 
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
@@ -45,6 +46,8 @@ VIDEO_LIBRARY_URL = '/haunt_videos/'
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -55,7 +58,7 @@ SECRET_KEY = 'django-insecure-)-7_z97p)$d3^ry!ejlvjm$u204^gj5o($ei64*r(b-ceiqjbh
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "0") == "1"
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.195.59", "[::1]"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "web", "nginx", "192.168.195.59", "[::1]"]
 
 
 # Application definition
@@ -71,6 +74,7 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     'django_extensions',
     'haunt_ops',
+    'volunteer_portal',
 ]
 
 MIDDLEWARE = [
@@ -112,7 +116,7 @@ DATABASES = {
         'NAME': env('POSTGRES_DB'),
         'USER': env('POSTGRES_USER'),
         'PASSWORD': env('THIA_DB_PASSWORD'),
-        'HOST': 'localhost',
+        'HOST': 'db',
         'PORT': '5432',
     }
 }
@@ -225,7 +229,7 @@ REST_FRAMEWORK = {
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [ BASE_DIR / 'static', ]
-STATIC_ROOT = BASE_DIR / "staticfiles" 
+STATIC_ROOT = "/app/staticfiles" 
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
