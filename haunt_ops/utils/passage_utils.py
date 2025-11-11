@@ -1,5 +1,6 @@
 # haunt_ops/passage/passage_utils.py
 import re
+import os
 from contextlib import contextmanager
 import json
 import time as _pytime
@@ -12,12 +13,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver import Chrome, ChromeOptions
 
-try:
-    from webdriver_manager.chrome import ChromeDriverManager
-    from selenium.webdriver.chrome.service import Service
-    USE_WDM = True
-except Exception:
-    USE_WDM = False
+from selenium.webdriver.chrome.service import Service
 
 DEFAULT_TIMEOUT = 20
 
@@ -30,9 +26,14 @@ def build_driver(headless: bool = True) -> Chrome:
     opts.add_argument("--window-size=1920,1080")
     opts.add_argument("--disable-gpu")
     opts.add_argument("--blink-settings=imagesEnabled=false")
-    if USE_WDM:
-        return Chrome(service=Service(ChromeDriverManager().install()), options=opts)
-    return Chrome(options=opts)
+
+    chrome_binary = os.getenv("CHROME_BIN", "/usr/bin/chromium")
+    chromedriver_binary = os.getenv("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")
+
+    opts.binary_location = chrome_binary
+    service = Service(executable_path=chromedriver_binary)
+
+    return Chrome(service=service, options=opts)
 
 @contextmanager
 def chrome_session(headless: bool = True):

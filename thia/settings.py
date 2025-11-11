@@ -35,6 +35,13 @@ CELERYD_PREFETCH_MULTIPLIER = 1
 
 
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://localhost",
+    "https://127.0.0.1",
+    "https://192.168.195.59",
+    "http://192.168.195.59",
+]
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 

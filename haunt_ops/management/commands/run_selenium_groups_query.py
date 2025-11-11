@@ -109,7 +109,11 @@ class Command(BaseCommand):
             driver = build_driver(DriverConfig(
                 browser=cfg.browser,
                 headless=cfg.headless,
+                driver_path="/usr/bin/chromedriver",       # Debian default
+                chrome_binary="/usr/bin/chromium",         # Debian default
+                download_dir="/tmp"                        # make sure downloads work
             ))
+
 
             ok = login_iv(
                 driver,

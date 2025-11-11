@@ -20,6 +20,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from haunt_ops.management.commands.base_utils import BaseUtilsCommand
 from haunt_ops.utils.logging_utils import configure_rotating_logger
 
@@ -117,7 +118,9 @@ class Command(BaseUtilsCommand):
 
             opts.add_experimental_option("prefs", prefs)
 
-            driver = webdriver.Chrome(options=opts)
+            # Use hardcoded paths for container environment
+            service = Service("/usr/bin/chromedriver")
+            driver = webdriver.Chrome(service=service, options=opts)
 
             try:
                 # Login

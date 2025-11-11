@@ -12,6 +12,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import CommandError
@@ -92,8 +93,10 @@ class Command(BaseUtilsCommand):
         options.add_experimental_option("prefs", prefs)
 
         # initialize webdriver with options and preferences
-        driver = webdriver.Chrome(options=options)
-
+        # Use hardcoded paths for container environment
+        options.binary_location = "/usr/bin/chromium"
+        service = Service("/usr/bin/chromedriver")
+        driver = webdriver.Chrome(service=service, options=options)
 
         wait = WebDriverWait(driver, 30)
 

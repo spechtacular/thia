@@ -462,9 +462,20 @@ def build_driver(cfg: DriverConfig):
 
         # -------- Windows / Intel Linux fallback --------
         else:
-            explicit_driver = cfg.driver_path or os.environ.get("CHROMEDRIVER")
-            service = ChromeService(explicit_driver) if explicit_driver else ChromeService()
+            chromedriver_path = cfg.driver_path or os.environ.get("CHROMEDRIVER") or "/usr/bin/chromedriver"
+            if not Path(chromedriver_path).exists():
+                raise FileNotFoundError(
+                    f"Chromedriver not found at {chromedriver_path}. Install it with:\n"
+                    "  apt update && apt install -y chromium-driver"
+                )
+
+            if not opts.binary_location:
+                opts.binary_location = "/usr/bin/chromium"  # chromium is installed via apt
+
+            service = ChromeService(executable_path=chromedriver_path)
             drv = webdriver.Chrome(service=service, options=opts)
+            logger.info("✅ Chrome WebDriver initialized with binary=%s and driver=%s",
+                opts.binary_location, chromedriver_path)
 
     else:
         # Firefox path

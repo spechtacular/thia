@@ -27,6 +27,8 @@ from dataclasses import dataclass
 from django.core.management.base import BaseCommand, CommandError
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from django.conf import settings
 
 from selenium.webdriver.support import expected_conditions as EC
@@ -55,6 +57,9 @@ class CmdConfig:
     timeout: int
     browser: str
     log_pw_hash: bool
+    driver_path: str = "/usr/bin/chromedriver"
+    chrome_binary: str = "/usr/bin/chromium"
+    firefox_binary: str = "/usr/bin/firefox"
 
 
 class Command(BaseCommand):
@@ -153,7 +158,15 @@ class Command(BaseCommand):
             driver = build_driver(DriverConfig(
                 browser=cfg.browser,
                 headless=cfg.headless,
+                driver_path=cfg.driver_path,
+                chrome_binary=cfg.chrome_binary,
+                firefox_binary=cfg.firefox_binary,
+                download_dir="/tmp"
             ))
+
+            logger.info("✅ Using driver at %s", cfg.driver_path)
+            logger.info("✅ Using browser binary: %s", cfg.chrome_binary if cfg.browser == "chrome" else cfg.firefox_binary)
+
 
             ok = login_iv(
                 driver,
