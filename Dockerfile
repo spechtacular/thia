@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     libjpeg-dev \
     zlib1g-dev \
+    netcat-openbsd \
     git \
     && rm -rf /var/lib/apt/lists/*
 
@@ -44,8 +45,18 @@ RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 # Copy project
 COPY . /app/
 
-# Change ownership
-RUN chown -R celeryuser:celerygroup /app
+# ⚠️ DO NOT chown the entire /app, skip bind-mounted paths
+RUN chown -R celeryuser:celerygroup \
+    /app/haunt_ops \
+    /app/thia \
+    /app/manage.py \
+    /app/requirements.txt \
+    /app/entrypoint.sh \
+    /app/Makefile || true
+
+# Fix ownership for staticfiles and media before dropping privileges
+RUN mkdir -p /app/staticfiles /app/media && \
+    chown -R celeryuser:celerygroup /app/staticfiles /app/media
 
 # Set non-root user
 USER celeryuser

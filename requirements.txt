@@ -20,7 +20,6 @@ django-extensions==4.1
 django-filter==25.1
 djangorestframework==3.16.1
 greenlet==3.2.3
-gunicorn
 h11==0.16.0
 idna==3.10
 isort==6.0.1

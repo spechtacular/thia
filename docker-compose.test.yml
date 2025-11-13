@@ -1,0 +1,17 @@
+services:
+  web:
+    env_file:
+      - .env.test
+
+  celery:
+    env_file:
+      - .env.test
+
+  celery-beat:
+    env_file:
+      - .env.test
+
+  nginx:
+    env_file:
+      - .env.test
+

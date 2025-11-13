@@ -1,62 +1,37 @@
 import os
 from django.conf import settings
-from django.http import Http404
 from django.shortcuts import render
+
+VIDEO_ROOT = os.path.join(settings.MEDIA_ROOT, 'videos')
 
 
 def folder_list(request):
-    base_path = settings.VIDEO_LIBRARY_ROOT
-
-    ignore_list = {'__pycache__', '.DS_Store', '.git', '.svn'}
-    folders = []
-
-    for folder in os.listdir(base_path):
-        full_path = os.path.join(base_path, folder)
-        if not os.path.isdir(full_path):
-            continue
-        if folder in ignore_list or folder.startswith('.'):
-            continue
-        folders.append(folder)
-
-    # ✅ Sort: numbers first, then alphabetically
-    def sort_key(name):
-        try:
-            # Extract leading number if present
-            prefix = name.split()[0]  # or name.split('-')[0] depending on your format
-            return (0, int(prefix))
-        except (ValueError, IndexError):
-            return (1, name.lower())
-
-    folders = sorted(folders, key=sort_key)
-
+    folders = [
+        name for name in os.listdir(VIDEO_ROOT)
+        if os.path.isdir(os.path.join(VIDEO_ROOT, name))
+    ]
+ 
+    print("Folders:", folders)
     return render(request, 'videos/folder_list.html', {'folders': folders})
 
-
-
-def browse_folder(request, subpath):
-    folder_path = os.path.join(settings.VIDEO_LIBRARY_ROOT, subpath)
-
-    if not os.path.exists(folder_path) or not os.path.isdir(folder_path):
-        raise Http404("Folder does not exist")
-
+def browse_folder(request, folder_path):
+    abs_path = os.path.join(VIDEO_ROOT, folder_path)
     items = []
-    for item in os.listdir(folder_path):
-        full_path = os.path.join(folder_path, item)
 
-        is_dir = os.path.isdir(full_path)
-        is_video = item.lower().endswith('.mp4')
-        is_image = item.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))
-
+    for name in os.listdir(abs_path):
+        full_path = os.path.join(abs_path, name)
+        rel_path = os.path.join(folder_path, name)
         items.append({
-            'name': item,
-            'is_dir': is_dir,
-            'relative_path': os.path.join(subpath, item).replace("\\", "/"),
-            'is_video': is_video,
-            'is_image': is_image,
+            'name': name,
+            'relative_path': rel_path,
+            'is_dir': os.path.isdir(full_path),
+            'is_video': name.lower().endswith(('.mp4', '.mov', '.avi')),
+            'is_image': name.lower().endswith(('.jpg', '.jpeg', '.png', '.gif')),
         })
 
-    return render(request, 'videos/browse_folder.html', {
-        'items': items,
-        'current_path': subpath,
-        'video_base_url': settings.VIDEO_LIBRARY_URL,
-    })
+    context = {
+        "items": items,
+        "current_path": folder_path,
+        "video_base_url": settings.MEDIA_URL + "videos/",  # This is usually "/media/"
+    }
+    return render(request, "videos/browse_folder.html", context)

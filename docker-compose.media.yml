@@ -1,0 +1,10 @@
+services:
+  web:
+    volumes:
+      - ./media:/app/media
+      - ./thia/videos:/app/media/videos
+
+  nginx:
+    volumes:
+      - ./media:/app/media
+      - ./thia/videos:/app/media/videos

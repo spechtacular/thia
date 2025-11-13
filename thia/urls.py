@@ -24,7 +24,7 @@ urlpatterns = [
     path("", include("haunt_ops.urls")),
 
     # ✅ Route for the video browsing app (folder viewer)
-    path("video-browser/", include("videos.urls")),
+    path("videos/", include("videos.urls")),
 
     # ✅ Routes for the volunteer portal
     path('volunteer/', include('volunteer_portal.urls')),  # volunteer interface
@@ -33,9 +33,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
 ]
 
-# ✅ Serve actual .mp4 files from the 'videos' folder at '/media_videos/'
-urlpatterns += static(
-    settings.VIDEO_LIBRARY_URL,            # e.g. '/media_videos/'
-    document_root=settings.VIDEO_LIBRARY_ROOT  # e.g. BASE_DIR / 'videos'
-)
 
+# Serve media files in development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

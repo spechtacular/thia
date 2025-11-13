@@ -1,0 +1,21 @@
+services:
+  db:
+    volumes:
+      - ${PWD}/.pgdata/dev:/var/lib/postgresql/data
+
+  web:
+    env_file:
+      - .env.dev
+
+  celery:
+    env_file:
+      - .env.dev
+
+  celery-beat:
+    env_file:
+      - .env.dev
+
+  nginx:
+    env_file:
+      - .env.dev
+
