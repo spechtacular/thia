@@ -2,6 +2,7 @@
 
 - Secret project values are stored in a **.env** file in the project root directory, this file is not in the repo for security reasons.
 - **requirements.txt** : file contains the pip modules to be installed for the Django  project.
+- **.venv folder contains python configuration, it is created by the script **setup_venv.py**.
 - **setup_venv.py** : script will create a local file named **.venv** in the project root directory to be used for a local development environment.
 - This is the sequence of events used to clear and reload the local Django postgresql database. An internet connection is required to connect to the ivolunteer website.
    1. **clear_haunt_data.py** clears all project tables except for admin and test accounts, there is a --dry-run option to run the script without deleting any project data from postgresql.
@@ -70,8 +71,18 @@
 - [x] event_volunteer_id is used in link from event_volunteers_list page to event_prep page.
 - [x] fix event-volunteers page display of volunteer data
 - [x] fix tickets_purchased updates
+- [ ] Add support for media file access
+- [x] write scripts to modify camera video as needed 
+- [ ] Add separate portal for user access
+- [ ] Implement an API for mobile apps or customers to download data.
+- [ ] Evaluate meetup for code reuse in the ScareWare app
+- [ ] 
 
 - [ ] Breakup selenium code and create shared libraries for common functions
+- [ ] signup for email/sms provider
+- [ ] email API implemented
+- [ ] SMS API implemented
+- [ ] Add support for multiple environments. At least dev,test, and prod environments.
 - [ ] Add Docker support for easier deployment
 - [ ] migrate code to Linux mini computer
 - [ ] Add Selenium automation to create test events
