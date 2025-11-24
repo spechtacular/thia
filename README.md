@@ -9,7 +9,7 @@
       1. python manage.py clear_haunt_data
    2. After clearing the local project database a Django admin account must be created. This account is required to run the Django project base commands:
       1. In the project root directory type "python manage.py createsuperuser"
-      2. We use the SUPERUSER_ACCOUNT name in .env  as the username along with the password is stored in the .env file as SUPERUSER_PASSWORD.
+      2. We use the DJANGO_SUPERUSER_EMAIL name in .env  as the username along with the password is stored in the .env file as DJANGO_SUPERUSER_PASSWORD.
    3. User and Event Data must be queried from ivolunteer site and store in the local postgresql database tables.
       1. **run_selenium_groups_query.py** : this loads group labels from a project config file instead of scraping the iVolunteer web page. There are options to use a custom configuration file and a dry-run.
          1. python manage.py run_selenium_groups_query

@@ -69,8 +69,8 @@ init:
 from django.contrib.auth import get_user_model; \
 import os; \
 User = get_user_model(); \
-email = os.environ.get('SUPERUSER_ACCOUNT'); \
-password = os.environ.get('SUPERUSER_PASSWORD'); \
+email = os.environ.get('DJANGO_SUPERUSER_EMAIL'); \
+password = os.environ.get('DJANGO_SUPERUSER_PASSWORD'); \
 assert email and password, 'Missing superuser credentials'; \
 User.objects.filter(is_superuser=True).exists() or \
 User.objects.create_superuser(email=email, password=password)"
