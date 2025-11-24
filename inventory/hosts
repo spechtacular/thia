@@ -1,0 +1,5 @@
+[thia_hosts]
+localhost ansible_connection=local
+# raspberry pi specific hosts:
+#[thia_hosts]
+#raspberrypi.local ansible_user=pi ansible_ssh_private_key_file=~/.ssh/id_rsa

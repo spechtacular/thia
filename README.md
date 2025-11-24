@@ -301,15 +301,16 @@ make up-env ENV=dev
 - [ ] Add separate portal for user access
 - [ ] Implement an API for mobile apps or customers to download data.
 - [ ] Evaluate meetup for code reuse in the ScareWare app
-- [ ]
-
+- [ ] Evaluate email service providers and determine if we want to self host or pay for a provider.
 - [ ] Breakup selenium code and create shared libraries for common functions
 - [ ] signup for email/sms provider
 - [ ] email API implemented
 - [ ] SMS API implemented
 - [ ] Add support for multiple environments. At least dev,test, and prod environments.
 - [ ] Add Docker support for easier deployment
+- [ ] Use Makefile to start docker-compose tasks for multiple environments.
 - [ ] migrate code to Linux mini computer
+- [ ] Add ansible playbook to automate deployment of the project.
 - [ ] Add Selenium automation to create test events
 - [ ] Add automated testing
 - [ ] Add CI/CD
