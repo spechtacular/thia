@@ -22,6 +22,8 @@ venv/
 .env.development.local
 .env.test.local
 .env.production.local
+.cache_ggshield
+celerybeat-schedule
 
 # temporary media folders
 docker_media/
@@ -41,7 +43,7 @@ downloads/
 videos/**
 !videos/
 !videos/*.py
-!videos/*.html 
+!videos/*.html
 
 # Django migrations
 */migrations/*.py
@@ -107,3 +109,4 @@ webpack-stats.json  # generated for django-webpack-loader
 /frontend/build/
 /frontend/.env*
 /frontend/webpack-stats.json
+celerybeat-schedule

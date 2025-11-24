@@ -53,6 +53,207 @@
    5. **bulk_load_events_from_ivolunteer.py** : inserts or updates new report data from the converted csv report file into the postgresql event_volunteers table.
       1. python manage.py bulk_load_events_from_ivolunteer --csv path/to/replaced_users.csv
 
+Here’s our **comprehensive Makefile + Docker Compose + Django + haunt_ops CLI documentation**, formatted in **Markdown** for direct inclusion in your `README.md`.
+
+---
+
+# 🛠️ Makefile + Docker + Django Command Reference
+
+This project supports environment-specific Docker Compose setups (`dev`, `test`, `prod`) with unified commands through `make`. Use the `ENV` variable to target a specific environment.
+
+---
+
+## 🚀 Startup Commands
+
+### Start Environment
+
+```bash
+make up-env ENV=dev
+make up-env ENV=test
+make up-env ENV=prod
+```
+
+### Stop Environment
+
+```bash
+make down-env ENV=dev
+make down-env ENV=test
+make down-env ENV=prod
+```
+
+### Restart Environment
+
+```bash
+make down-env ENV=dev && make up-env ENV=dev
+```
+
+---
+
+## 🪵 Logs & Shell Access
+
+### View Logs
+
+```bash
+make logs-env ENV=dev
+```
+
+### Open Shell in `web` Container
+
+```bash
+make shell-env ENV=dev
+```
+
+---
+
+## ⚙️ Initialization
+
+### Initial Setup
+
+This creates the DB schema, collects static files, and optionally creates a superuser.
+
+```bash
+make init ENV=dev
+make init ENV=test
+make init ENV=prod
+```
+
+> ⚠️ Set credentials in your `.env.dev`, `.env.test`, or `.env.prod`:
+>
+> ```env
+> DJANGO_SUPERUSER_EMAIL=admin@example.com
+> DJANGO_SUPERUSER_PASSWORD=ChangeMeNow
+> ```
+
+---
+
+## 🐍 Django Commands
+
+Run any Django command inside the web container:
+
+```bash
+make django cmd="createsuperuser" ENV=dev
+make django cmd="migrate" ENV=test
+make django cmd="shell" ENV=prod
+```
+
+Example:
+
+```bash
+make django cmd="check" ENV=dev
+make django cmd="loaddata fixtures/something.json" ENV=test
+```
+
+List all available commands:
+
+```bash
+make django cmd="help" ENV=dev
+```
+
+---
+
+## 👻 haunt_ops Commands
+
+These are custom Django management commands under `haunt_ops/management/commands`.
+
+### 📥 Bulk Loaders
+
+```bash
+make django cmd="bulk_load_events_from_ivolunteer" ENV=dev
+make django cmd="bulk_load_users_from_ivolunteer" ENV=dev
+make django cmd="bulk_load_groups_from_config" ENV=dev
+```
+
+### 🧼 Cleanup & Reset
+
+```bash
+make django cmd="clear_haunt_data" ENV=dev
+make django cmd="rename_images_to_db_names" ENV=dev
+```
+
+### 🕷️ Selenium Queries
+
+```bash
+make django cmd="run_selenium_events_query" ENV=dev
+make django cmd="run_selenium_users_query" ENV=dev
+make django cmd="run_selenium_groups_query" ENV=dev
+make django cmd="run_selenium_passage_ticket_sales_query" ENV=dev
+make django cmd="run_selenium_update_signin_query" ENV=dev
+make django cmd="run_selenium_event_participation_query" ENV=dev
+```
+
+### 👤 User Utilities
+
+```bash
+make django cmd="update_user_profile_pic" ENV=dev
+```
+
+---
+
+## 🧱 Docker Utilities
+
+### Build Containers
+
+```bash
+make build
+```
+
+### Prune All Docker Data (⚠️ Destructive)
+
+```bash
+make prune
+```
+
+---
+
+## 📂 Media Preparation
+
+Sync media folders and start the stack:
+
+```bash
+make up-media
+```
+
+---
+
+## 📦 Environment-Specific `.env` Files
+
+Use per-environment env files to avoid hardcoding secrets.
+
+| File        | Purpose                       |
+| ----------- | ----------------------------- |
+| `.env`      | Shared defaults               |
+| `.env.dev`  | Development-specific settings |
+| `.env.test` | Test settings                 |
+| `.env.prod` | Production config             |
+
+Your `docker-compose.*.yml` files should include:
+
+```yaml
+env_file:
+  - .env
+  - .env.dev  # or .env.test / .env.prod
+```
+
+---
+
+## ⚙️ Django Settings Loader
+
+Make sure your `manage.py`, `wsgi.py`, and `asgi.py` use:
+
+```python
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", f"thia.settings.{os.environ.get('DJANGO_ENV', 'dev')}")
+```
+
+Then export `DJANGO_ENV` when running:
+
+```bash
+export DJANGO_ENV=dev
+make up-env ENV=dev
+```
+
+---
+
+
 ## Roadmap / TODO
 
 - [x] remove duplicate profile_view page in views.py
@@ -72,11 +273,11 @@
 - [x] fix event-volunteers page display of volunteer data
 - [x] fix tickets_purchased updates
 - [ ] Add support for media file access
-- [x] write scripts to modify camera video as needed 
+- [x] write scripts to modify camera video as needed
 - [ ] Add separate portal for user access
 - [ ] Implement an API for mobile apps or customers to download data.
 - [ ] Evaluate meetup for code reuse in the ScareWare app
-- [ ] 
+- [ ]
 
 - [ ] Breakup selenium code and create shared libraries for common functions
 - [ ] signup for email/sms provider

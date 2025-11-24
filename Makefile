@@ -1,91 +1,96 @@
-.PHONY: up up-media up-env down down-env restart logs-env build shell-env init-dev init-test migrate prune django
-# examples:
-# make up-env ENV=dev
-# make down-env ENV=prod
+.PHONY: up up-media up-env down down-env restart logs logs-env build shell shell-env init migrate prune django
 
-
-# Default compose args
-up:
-	@echo "🔼 Starting test containers without media/videos..."
-	docker-compose up --build -d
-
+# Default environment (if ENV= is not passed)
 ENV ?= test
 
-up-env:
-	@echo "Starting $(ENV) environment..."
-	docker-compose -f docker-compose.yml -f docker-compose.$(ENV).yml up --build -d
 
-down-env:
-	@echo "Stopping $(ENV) environment..."
-	docker-compose -f docker-compose.yml -f docker-compose.$(ENV).yml down --volumes
+# -----------------------------
+#   Base (legacy) commands
+# -----------------------------
 
-logs-env:
-	@echo "Logging $(ENV) environment..."
-	docker-compose -f docker-compose.yml -f docker-compose.$(ENV).yml logs -f
-
-shell-env:
-	@echo "Shell $(ENV) environment..."
-	docker-compose -f docker-compose.yml -f docker-compose.$(ENV).yml exec web /bin/bash
-
+up:
+	@echo "🔼 Starting TEST containers (default)..."
+	docker-compose up --build -d
 
 down:
 	@echo "Stopping containers..."
 	docker-compose down --volumes --remove-orphans
 
-
-# Start containers and prepare media
-up-media:
-	@echo "🔼 Preparing media and starting containers..."
-	./scripts/prepare_media.sh
-	docker-compose up --build
-
-# Restart stack cleanly
-restart: down up
-
-# Tail logs from all services
 logs:
 	@echo "Logging containers..."
 	docker-compose logs -f
 
-# Rebuild containers only
-build:
-	@echo "Building containers..."
-	docker-compose build
-
-# Open shell in the web container
 shell:
 	docker-compose exec web /bin/bash
 
-# Run initial setup (migrations, static files, superuser check)
-init-dev:
-	@echo "initializing Dev environment..."
-	docker-compose exec web python manage.py migrate --noinput
-	docker-compose exec web python manage.py collectstatic --noinput
-	docker-compose exec web python manage.py shell -c "\
-from django.contrib.auth import get_user_model; \
-User = get_user_model(); \
-User.objects.filter(is_superuser=True).exists() or \
-User.objects.create_superuser(email='zack@boo.com', password='NotHalloween')"
 
-init-test:
-	@echo "initializing init environment..."
-	docker-compose exec web python manage.py migrate --noinput
-	docker-compose exec web python manage.py collectstatic --noinput
-	docker-compose exec web python manage.py shell -c "\
-from django.contrib.auth import get_user_model; \
-User = get_user_model(); \
-User.objects.filter(is_superuser=True).exists() or \
-User.objects.create_superuser(email='zack@boo.com', password='NotHalloween')"
+# -----------------------------
+#   ENVIRONMENT-AWARE COMMANDS
+# -----------------------------
 
-# Apply migrations manually
+up-env:
+	@echo "🔼 Starting $(ENV) environment..."
+	docker-compose -f docker-compose.yml -f docker-compose.$(ENV).yml up --build -d
+
+down-env:
+	@echo "⛔ Stopping $(ENV) environment..."
+	docker-compose -f docker-compose.yml -f docker-compose.$(ENV).yml down --volumes --remove-orphans
+
+logs-env:
+	@echo "📜 Logs for $(ENV) environment..."
+	docker-compose -f docker-compose.yml -f docker-compose.$(ENV).yml logs -f
+
+shell-env:
+	@echo "💻 Shell into $(ENV) environment web container..."
+	docker-compose -f docker-compose.yml -f docker-compose.$(ENV).yml exec web /bin/bash
+
+
+# -----------------------------
+#   MEDIA VERSION
+# -----------------------------
+
+up-media:
+	@echo "🔼 Preparing media and starting containers..."
+	./scripts/prepare_media.sh
+	docker-compose up --build -d
+
+
+# -----------------------------
+#   INIT (ENV-AWARE)
+# -----------------------------
+
+# Run full Django initialization for selected environment
+# Usage: make init ENV=dev
+init:
+	@echo "⚙️ Initializing Django for $(ENV) environment..."
+	docker-compose -f docker-compose.yml -f docker-compose.$(ENV).yml exec web python manage.py migrate --noinput
+	docker-compose -f docker-compose.yml -f docker-compose.$(ENV).yml exec web python manage.py collectstatic --noinput
+	docker-compose -f docker-compose.yml -f docker-compose.$(ENV).yml exec web python manage.py shell -c "\
+from django.contrib.auth import get_user_model; \
+import os; \
+User = get_user_model(); \
+email = os.environ.get('SUPERUSER_ACCOUNT'); \
+password = os.environ.get('SUPERUSER_PASSWORD'); \
+assert email and password, 'Missing superuser credentials'; \
+User.objects.filter(is_superuser=True).exists() or \
+User.objects.create_superuser(email=email, password=password)"
+
+
+# -----------------------------
+#   MIGRATE / DJANGO CMDS
+# -----------------------------
+
 migrate:
-	docker-compose exec web python manage.py migrate
+	docker-compose -f docker-compose.yml -f docker-compose.$(ENV).yml exec web python manage.py migrate
 
-# Clean up Docker system objects and volumes
+# Usage: make django cmd="showmigrations" ENV=prod
+django:
+	docker-compose -f docker-compose.yml -f docker-compose.$(ENV).yml exec web python manage.py $(cmd)
+
+
+# -----------------------------
+#   SYSTEM CLEANUP
+# -----------------------------
 prune:
 	docker system prune -af --volumes
-
-# Run any Django management command: `make django cmd="createsuperuser"`
-django:
-	docker-compose exec web python manage.py $(cmd)
-
+	@echo "🧹 Docker system pruned."
