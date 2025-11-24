@@ -1,0 +1,176 @@
+---
+- name: Provision host for THIA project (Intel, ARM, macOS, Raspberry Pi)
+  hosts: thia_hosts
+  become: true
+
+  vars:
+    repo_url: "https://github.com/YOUR_USERNAME/thia.git"
+    project_path: "/opt/thia"
+    python_version: "3.12"
+    node_version: "18"
+    pip_packages:
+      - pip
+      - setuptools
+      - wheel
+      - virtualenv
+      - docker
+      - docker-compose
+    env_source_path: "./env_files/.env"
+    env_dest_path: "{{ project_path }}/.env"
+
+  tasks:
+
+  - name: Gather system facts
+    ansible.builtin.setup:
+      gather_subset:
+        - hardware
+        - network
+        - virtual
+    register: facts
+
+  - name: Ensure base packages are installed (Debian/Ubuntu/RPi)
+    apt:
+      update_cache: true
+      name:
+        - python3
+        - python3-pip
+        - python3-venv
+        - build-essential
+        - libpq-dev
+        - git
+        - curl
+        - redis-server
+        - ca-certificates
+        - gnupg
+        - lsb-release
+    when: ansible_facts['os_family'] == "Debian"
+
+  - name: Install Docker (Debian/Ubuntu/RPi)
+    shell: |
+      curl -fsSL https://get.docker.com | sh
+    args:
+      warn: false
+    when: ansible_facts['os_family'] == "Debian"
+
+  - name: Install Docker Compose plugin (V2)
+    shell: |
+      mkdir -p ~/.docker/cli-plugins/
+      curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o ~/.docker/cli-plugins/docker-compose
+      chmod +x ~/.docker/cli-plugins/docker-compose
+    args:
+      executable: /bin/bash
+    when:
+      - ansible_facts['os_family'] == "Debian"
+      - "'/usr/libexec/docker/cli-plugins/docker-compose' not in ansible_facts['cmdline']"
+
+  - name: Add current user to Docker group
+    user:
+      name: "{{ ansible_facts.user_id }}"
+      groups: docker
+      append: yes
+    when: ansible_facts['os_family'] == "Debian"
+
+  - name: Install Node.js (Debian/Ubuntu)
+    shell: |
+      curl -fsSL https://deb.nodesource.com/setup_{{ node_version }}.x | bash -
+      apt install -y nodejs
+    when: ansible_facts['os_family'] == "Debian"
+
+  - name: Install Python pip packages globally
+    pip:
+      name: "{{ pip_packages }}"
+      executable: pip3
+
+  - name: Clone THIA project
+    git:
+      repo: "{{ repo_url }}"
+      dest: "{{ project_path }}"
+      version: main
+      force: yes
+
+  - name: Ensure `.env` file is copied
+    copy:
+      src: "{{ env_source_path }}"
+      dest: "{{ env_dest_path }}"
+      mode: '0600'
+
+  - name: Create Python virtual environment
+    command: python3 -m venv {{ project_path }}/.venv
+    args:
+      creates: "{{ project_path }}/.venv"
+
+  - name: Install Python requirements
+    pip:
+      requirements: "{{ project_path }}/requirements.txt"
+      virtualenv: "{{ project_path }}/.venv"
+
+  - name: Set up systemd service for Django app
+    copy:
+      dest: /etc/systemd/system/thia.service
+      content: |
+        [Unit]
+        Description=THIA Django Service
+        After=network.target
+
+        [Service]
+        WorkingDirectory={{ project_path }}
+        EnvironmentFile={{ env_dest_path }}
+        ExecStart={{ project_path }}/.venv/bin/python manage.py runserver 0.0.0.0:8000
+        Restart=always
+        User={{ ansible_facts.user_id }}
+        Group=docker
+
+        [Install]
+        WantedBy=multi-user.target
+
+    notify:
+      - Reload systemd
+      - Enable THIA
+
+  - name: Start THIA service
+    systemd:
+      name: thia
+      state: started
+
+  # macOS setup
+  - name: Install Homebrew dependencies on macOS
+    homebrew:
+      name:
+        - python@{{ python_version }}
+        - docker
+        - docker-compose
+        - node
+        - redis
+        - git
+      state: present
+    when: ansible_facts['os_family'] == 'Darwin'
+
+  - name: Clone THIA project on macOS
+    git:
+      repo: "{{ repo_url }}"
+      dest: "{{ project_path }}"
+    when: ansible_facts['os_family'] == 'Darwin'
+
+  - name: Copy .env file on macOS
+    copy:
+      src: "{{ env_source_path }}"
+      dest: "{{ env_dest_path }}"
+    when: ansible_facts['os_family'] == 'Darwin'
+
+  - name: Create venv and install requirements on macOS
+    shell: |
+      python3 -m venv {{ project_path }}/.venv
+      source {{ project_path }}/.venv/bin/activate
+      pip install -r {{ project_path }}/requirements.txt
+    when: ansible_facts['os_family'] == 'Darwin'
+
+  handlers:
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable THIA
+      systemd:
+        name: thia
+        enabled: yes
+

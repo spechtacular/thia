@@ -254,6 +254,45 @@ make up-env ENV=dev
 ---
 
 
+---
+
+Here's a fully updated and extended Ansible playbook to provision a system for the thia project, with support for:
+
+## ✅ Intel/ARM chips (Ubuntu, Debian, macOS, Raspberry Pi)
+
+## 🐳 Docker, Docker Compose, and Compose plugin
+
+## 🐘 PostgreSQL client
+
+## 🧠 Redis
+
+## 🧪 Python (with venv)
+
+## 🛠️ Node.js (for React/static builds)
+
+## 🔁 .env file placement
+
+## 📦 git clone the thia repo
+
+## 🛎️ Optional systemd service for the Django app
+
+## 🍎 macOS support (via Homebrew)
+
+## 🐢 Raspberry Pi support (Debian ARM64)
+
+📝 Notes
+
+## 🚀 Run the Playbook: ansible-playbook -i inventory/hosts.ini install_thia_full.yml
+
+## ✅ The playbook installs system dependencies, clones the repo, copies .env, and configures Django as a service.
+
+## 🔐 .env file should be prepared ahead of time under env_files/.env.
+
+## 🧠 You may add docker-compose.override.yml logic or React build steps if needed.
+
+## 🐳 Systemd is optional — you can remove that block if you prefer running everything via docker-compose.
+
+
 ## Roadmap / TODO
 
 - [x] remove duplicate profile_view page in views.py
