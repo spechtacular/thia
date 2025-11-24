@@ -251,12 +251,10 @@ export DJANGO_ENV=dev
 make up-env ENV=dev
 ```
 
----
-
 
 ---
 
-## Here's a fully updated and extended Ansible playbook to provision a system for the thia project, with support for
+## fully updated and extended Ansible playbook to provision a system for the thia project, with support for
 
 - ✅ Intel/ARM chips (Ubuntu, Debian, macOS, Raspberry Pi)
 - 🐳 Docker, Docker Compose, and Compose plugin
