@@ -53,169 +53,57 @@
    5. **bulk_load_events_from_ivolunteer.py** : inserts or updates new report data from the converted csv report file into the postgresql event_volunteers table.
       1. python manage.py bulk_load_events_from_ivolunteer --csv path/to/replaced_users.csv
 
-Here’s our **comprehensive Makefile + Docker Compose + Django + haunt_ops CLI documentation**, formatted in **Markdown** for direct inclusion in your `README.md`.
+🛠️ Makefile Commands
 
----
+The following commands are available via the Makefile to manage environments, Docker, and Django inside the project.
 
-# 🛠️ Makefile + Docker + Django Command Reference
+🔧 Environment Utilities
+Command Description
+make help Show this help message
+make load-env Load .env.build into shell for Docker builds
+make check-env Validate and load .env.`ENV` environment file
 
-This project supports environment-specific Docker Compose setups (`dev`, `test`, `prod`) with unified commands through `make`. Use the `ENV` variable to target a specific environment.
+🐳 Docker Compose
+Command Description
+make up Start default (test) environment
+make up-env Start specified environment (e.g. ENV=dev)
+make up-env-media Start environment with media volumes
+make down Stop and remove default environment
+make down-env Stop and remove specified environment
+make restart Full restart of specified environment
+make restart-env Restart specified environment (simplified)
+make restart-env-media Restart environment with media volume
 
----
+📜 Logging & Shell Access
+Command Description
+make logs Tail logs for default (test) environment
+make logs-env Tail logs for specified environment
+make shell Shell into default web container
+make shell-env Shell into specified environment's web container
+⚙️ Django Management
+Command Description
+make init Run migrations, collectstatic, and create superuser
+make migrate Run Django migrations in specified environment
+make django cmd=... Run arbitrary Django command (e.g. cmd="check")
+🏗️ Build & Deployment
+Command Description
+make build Build Docker images for specified environment
+make buildx Multi-platform build and push via Docker Buildx
+make autotag Auto-generate production tag based on current date
+make buildx-prod Build and push production image with generated tag
+make login Log into Docker Hub using credentials in .env.build
+🧹 Cleanup
+Command Description
+make prune Clean all Docker resources and volumes
+🌍 Environment Control
 
-## 🚀 Startup Commands
+Use the ENV variable to specify which environment to target:
 
-### Start Environment
-
-```bash
 make up-env ENV=dev
-make up-env ENV=test
-make up-env ENV=prod
-```
-
-### Stop Environment
-
-```bash
-make down-env ENV=dev
-make down-env ENV=test
-make down-env ENV=prod
-```
-
-### Restart Environment
-
-```bash
-make down-env ENV=dev && make up-env ENV=dev
-```
-
----
-
-## 🪵 Logs & Shell Access
-
-### View Logs
-
-```bash
-make logs-env ENV=dev
-```
-
-### Open Shell in `web` Container
-
-```bash
-make shell-env ENV=dev
-```
-
----
-
-## ⚙️ Initialization
-
-### Initial Setup
-
-This creates the DB schema, collects static files, and optionally creates a superuser.
-
-```bash
-make init ENV=dev
-make init ENV=test
-make init ENV=prod
-```
-
-> ⚠️ Set credentials in your `.env.dev`, `.env.test`, or `.env.prod`:
->
-> ```env
-> DJANGO_SUPERUSER_EMAIL=admin@example.com
-> DJANGO_SUPERUSER_PASSWORD=ChangeMeNow
-> ```
-
----
-
-## 🐍 Django Commands
-
-Run any Django command inside the web container:
-
-```bash
-make django cmd="createsuperuser" ENV=dev
-make django cmd="migrate" ENV=test
-make django cmd="shell" ENV=prod
-```
-
-Example:
-
-```bash
+make shell-env ENV=prod
 make django cmd="check" ENV=dev
-make django cmd="loaddata fixtures/something.json" ENV=test
-```
 
-List all available commands:
-
-```bash
-make django cmd="help" ENV=dev
-```
-
----
-
-## 👻 haunt_ops Commands
-
-These are custom Django management commands under `haunt_ops/management/commands`.
-
-### 📥 Bulk Loaders
-
-```bash
-make django cmd="bulk_load_events_from_ivolunteer" ENV=dev
-make django cmd="bulk_load_users_from_ivolunteer" ENV=dev
-make django cmd="bulk_load_groups_from_config" ENV=dev
-```
-
-### 🧼 Cleanup & Reset
-
-```bash
-make django cmd="clear_haunt_data" ENV=dev
-make django cmd="rename_images_to_db_names" ENV=dev
-```
-
-### 🕷️ Selenium Queries
-
-```bash
-make django cmd="run_selenium_events_query" ENV=dev
-make django cmd="run_selenium_users_query" ENV=dev
-make django cmd="run_selenium_groups_query" ENV=dev
-make django cmd="run_selenium_passage_ticket_sales_query" ENV=dev
-make django cmd="run_selenium_update_signin_query" ENV=dev
-make django cmd="run_selenium_event_participation_query" ENV=dev
-```
-
-### 👤 User Utilities
-
-```bash
-make django cmd="update_user_profile_pic" ENV=dev
-```
-
----
-
-## 🧱 Docker Utilities
-
-### Build Containers
-
-```bash
-make build
-```
-
-### Prune All Docker Data (⚠️ Destructive)
-
-```bash
-make prune
-```
-
----
-
-## 📂 Media Preparation
-
-Sync media folders and start the stack:
-
-```bash
-make up-media
-```
-
----
-
-## 📦 Environment-Specific `.env` Files
+## 📦 Environment-Specific `.env*` Files
 
 Use per-environment env files to avoid hardcoding secrets.
 
@@ -226,31 +114,140 @@ Use per-environment env files to avoid hardcoding secrets.
 | `.env.test` | Test settings                 |
 | `.env.prod` | Production config             |
 
-Your `docker-compose.*.yml` files should include:
+📄 .env.* Environment Files
 
-```yaml
-env_file:
-  - .env
-  - .env.dev  # or .env.test / .env.prod
-```
+Each environment (e.g., dev, test, prod) has its own .env file that defines critical environment-specific settings. These files are automatically loaded based on the ENV value passed to make.
+
+🧪 Example Files
+
+.env.dev
+
+.env.test
+
+.env.prod
+
+.env.build (used only for Docker builds and tagging)
+
+🔐 Common Variables in .env.dev, .env.test, .env.prod
+Variable Description
+THIA_ENV Name of the current environment (dev, test, prod)
+DEBUG Django debug flag (True or False)
+DJANGO_SETTINGS_MODULE Python path to Django settings module
+GUNICORN_WORKERS Number of Gunicorn workers
+POSTGRES_DB Name of the PostgreSQL database
+POSTGRES_USER PostgreSQL username
+THIA_DB_PASSWORD PostgreSQL password (should not be checked into Git)
+POSTGRES_HOST Host address (commonly 127.0.0.1 or container name)
+POSTGRES_PORT Host port PostgreSQL maps to (must be unique per env)
+REDIS_PORT Redis container port (must be unique per env)
+WEB_PORT Django app port exposed on the host (e.g., 8001)
+NGINX_HTTP_PORT Nginx HTTP port on the host
+NGINX_HTTPS_PORT Nginx HTTPS port on the host
+DB_VOLUME Docker volume name for PostgreSQL data persistence
+STATIC_VOLUME Docker volume name for collected static files
+ENV_FILE Filename of the env file (e.g., .env.dev)
+NETWORK_NAME Docker network name specific to the environment
+PGDATA_DIR Local path for persistent Postgres data
+DJANGO_SUPERUSER_EMAIL Superuser email for automatic creation
+DJANGO_SUPERUSER_PASSWORD Superuser password
+
+🔧 Variables in .env.build
+
+This file is used for Docker multi-platform builds and contains:
+
+Variable Description
+DEFAULT_ENV Default environment used for builds (e.g., prod)
+IMAGE_NAMESPACE Docker image name or namespace (e.g., user/app)
+IMAGE Full image tag (e.g., user/app:prod-latest)
+
+✅ .env.build can be committed to Git, but do not commit .env.prod or sensitive .env files.
+
+🐳 Docker Compose Configuration Files
+
+These YAML files orchestrate different environments with isolated containers, ports, volumes, and networks.
+
+🧱 Base Compose File: docker-compose.yml
+
+Contains shared service definitions (e.g., web, db, redis, celery, nginx)
+
+Used across all environments
+
+Defines general defaults like ports, dependencies, volumes, and networks
+
+Includes the entrypoint.sh script for bootstrapping migrations and static files
+
+🧪 docker-compose.dev.yml
+
+Overrides base config for development
+
+Custom containers: web_dev, nginx_dev, etc.
+
+Custom host ports to avoid conflicts
+
+Mounts project code directly (for hot reloading if needed)
+
+Binds PostgreSQL data volume to $(PGDATA_DIR)
+
+ports:
+
+- "8001:8000"  # Django
+- "8081:80"    # Nginx HTTP
+- "4441:443"   # Nginx HTTPS
+
+🧪 docker-compose.test.yml
+
+Used for local or CI testing
+
+Uses isolated volume postgres_data_test
+
+Binds Redis to a unique host port (e.g., 6380)
+
+Custom host ports for web and nginx
+
+🚀 docker-compose.prod.yml
+
+Used for production-like deployments
+
+Uses different port bindings (e.g., 8003, 8083, etc.)
+
+Production-ready container separation
+
+Should use Docker volumes for persistent PostgreSQL data
+
+🎥 docker-compose.media.yml
+
+Optional layer that mounts large local media folders into web and nginx
+
+Used only with development environments
+
+Requires prepare_media.sh to resolve symlinks into ./docker_media/videos
+
+Example usage:
+
+make up-env-media ENV=dev
+
+🧠 Compose Strategy
+
+You can run multiple environments on the same machine (MacBook, dev host) because:
+
+All services are namespaced by container name or network
+
+Host ports are unique across environments
+
+Separate Docker networks are defined per environment (e.g. thia_net_dev, thia_net_test)
+
+📁 Compose Volume Summary
+
+## Volume Name Purpose
+
+- postgres_data_dev Persistent Postgres data (dev env)
+- postgres_data_test Isolated Postgres data (test env)
+- static_volume_dev Collected static files (dev env)
+- media_volume Media folder shared with web/nginx
+- docker_media/videos are Symlink-resolved media from scp source
 
 ---
-
-## ⚙️ Django Settings Loader
-
-Make sure your `manage.py`, `wsgi.py`, and `asgi.py` use:
-
-```python
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", f"thia.settings.{os.environ.get('DJANGO_ENV', 'dev')}")
-```
-
-Then export `DJANGO_ENV` when running:
-
-```bash
-export DJANGO_ENV=dev
-make up-env ENV=dev
-```
-
+📘 See the full [CLI Cheatsheet](./docs/CLI_CHEATSHEET.md) for all make, Docker, and Django commands.
 
 ---
 

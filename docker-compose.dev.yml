@@ -1,21 +1,52 @@
+
 services:
   db:
+    env_file:
+      - .env.dev
     volumes:
-      - ${PWD}/.pgdata/dev:/var/lib/postgresql/data
+      - ${PGDATA_DIR}:/var/lib/postgresql/data
+    ports:
+      - "6544:5432"  # ⚠️ different from prod/test
+    networks:
+      - thia_net_dev
 
   web:
     env_file:
       - .env.dev
+    ports:
+      - "8001:8000"  # ⚠️ different port than other envs
+    networks:
+      - thia_net_dev
+    volumes:
+      - static_volume_dev:/app/staticfiles
 
   celery:
     env_file:
       - .env.dev
+    networks:
+      - thia_net_dev
 
   celery-beat:
     env_file:
       - .env.dev
+    networks:
+      - thia_net_dev
 
   nginx:
     env_file:
       - .env.dev
+    ports:
+      - "8081:80"    # ⚠️ host port must be unique
+      - "4441:443"   # ⚠️ host port must be unique
+    networks:
+      - thia_net_dev
+    volumes:
+      - static_volume_dev:/app/staticfiles
 
+networks:
+  thia_net_dev:
+    driver: bridge
+
+volumes:
+  static_volume_dev:
+  postgres_data_dev:

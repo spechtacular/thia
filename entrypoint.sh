@@ -2,6 +2,10 @@
 
 set -e
 
+# Ensure the logs directory exists
+mkdir -p /app/thia/logs
+mkdir -p /app/thia/static  # ← Add this line
+
 echo "📦 Waiting for DB to be ready..."
 until nc -z db 5432; do
   echo "⏳ Waiting for PostgreSQL..."
@@ -33,4 +37,4 @@ else:
 EOF
 
 echo "🚀 Starting Gunicorn..."
-exec gunicorn thia.wsgi:application --bind 0.0.0.0:8000 --workers 3
+exec gunicorn thia.wsgi:application --bind 0.0.0.0:8000 --workers "$GUNICORN_WORKERS"

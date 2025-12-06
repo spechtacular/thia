@@ -24,6 +24,7 @@ venv/
 .env.production.local
 .cache_ggshield
 celerybeat-schedule
+.env.build
 
 # temporary media folders
 docker_media/

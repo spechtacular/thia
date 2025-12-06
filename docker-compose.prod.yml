@@ -1,21 +1,56 @@
+
 services:
   db:
+    env_file:
+      - .env.prod
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${THIA_DB_PASSWORD}
     volumes:
-      - ${PWD}/.pgdata/prod:/var/lib/postgresql/data
+      - ${PGDATA_DIR}:/var/lib/postgresql/data
+    ports:
+      - "6546:5432"  # 🔁 Different from dev/test
+    networks:
+      - thia_net_prod
 
   web:
     env_file:
       - .env.prod
+    ports:
+      - "8003:8000"  # 🔁 Different from dev/test
+    networks:
+      - thia_net_prod
+    volumes:
+      - static_volume_prod:/app/staticfiles
 
   celery:
     env_file:
       - .env.prod
+    networks:
+      - thia_net_prod
 
   celery-beat:
     env_file:
       - .env.prod
+    networks:
+      - thia_net_prod
 
   nginx:
     env_file:
       - .env.prod
+    ports:
+      - "8083:80"    # 🔁 Avoid port conflict with nginx in other envs
+      - "4443:443"
+    networks:
+      - thia_net_prod
+    volumes:
+      - static_volume_prod:/app/staticfiles
 
+networks:
+  thia_net_prod:
+    driver: bridge
+
+volumes:
+  static_volume_prod:
+  postgres_data_prod:

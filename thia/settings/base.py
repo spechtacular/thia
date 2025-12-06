@@ -14,7 +14,6 @@ import logging
 from pathlib import Path
 from datetime import datetime
 import environ
-from dotenv import load_dotenv
 
 
 # App mode: server (default), api, or hybrid
@@ -44,6 +43,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 VIDEO_LIBRARY_ROOT = os.path.join(BASE_DIR, 'videos')
 VIDEO_LIBRARY_URL = '/haunt_videos/'
@@ -170,7 +170,10 @@ USE_TZ = True
 TIME_ZONE = 'America/Los_Angeles'
 
 LOG_LEVEL = os.environ.get("LOG_LEVEL", logging.INFO)
-LOG_DIR = os.path.join(BASE_DIR, 'logs') # Replace BASE_DIR with your project's base directory
+
+# --- Ensure log directory always exists ---
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 LOG_FILENAME = os.path.join(
     LOG_DIR,

@@ -1,31 +1,31 @@
-# Base Python image
 FROM python:3.12-slim
 
-# Install system dependencies, including Chromium
-RUN apt-get update && apt-get install -y \
-    curl \
-    gnupg \
-    unzip \
-    wget \
-    chromium \
-    chromium-driver \
-    build-essential \
-    fonts-liberation \
-    libnss3 \
-    libxss1 \
-    libappindicator3-1 \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libgtk-3-0 \
-    libpq-dev \
-    gcc \
-    libssl-dev \
-    libffi-dev \
-    libjpeg-dev \
-    zlib1g-dev \
-    netcat-openbsd \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+# Install system dependencies
+# Install Chromium and matching ChromeDriver for ARM or x86
+RUN apt-get update && \
+    apt-get install -y curl unzip gnupg wget fonts-liberation libnss3 libxss1 \
+    libappindicator3-1 libasound2 libatk-bridge2.0-0 libgtk-3-0 libpq-dev \
+    gcc libssl-dev libffi-dev libjpeg-dev zlib1g-dev netcat-openbsd git \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install Chromium manually (pin version for stability)
+RUN ARCH=$(dpkg --print-architecture) && \
+    if [ "$ARCH" = "amd64" ]; then \
+        CHROME_URL="https://storage.googleapis.com/chrome-for-testing-public/114.0.5735.90/linux64/chrome-linux64.zip"; \
+        DRIVER_URL="https://storage.googleapis.com/chrome-for-testing-public/114.0.5735.90/linux64/chromedriver-linux64.zip"; \
+    else \
+        CHROME_URL="https://storage.googleapis.com/chrome-for-testing-public/114.0.5735.90/linux-arm64/chrome-linux-arm64.zip"; \
+        DRIVER_URL="https://storage.googleapis.com/chrome-for-testing-public/114.0.5735.90/linux-arm64/chromedriver-linux-arm64.zip"; \
+    fi && \
+    mkdir -p /opt/chrome && \
+    curl -sSL "$CHROME_URL" -o chrome.zip && \
+    unzip chrome.zip -d /opt/chrome && \
+    ln -s /opt/chrome/chrome-*/chrome /usr/bin/chromium && \
+    curl -sSL "$DRIVER_URL" -o chromedriver.zip && \
+    unzip chromedriver.zip -d /usr/local/bin && \
+    chmod +x /usr/local/bin/chromedriver && \
+    rm -f chrome.zip chromedriver.zip
+
 
 # Create non-root user
 RUN addgroup --system celerygroup && \
@@ -34,18 +34,20 @@ RUN addgroup --system celerygroup && \
 # Set workdir
 WORKDIR /app
 
-# Environment variables
+# Env vars
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
+ENV CHROME_BIN=/usr/bin/chromium
+ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
 
-# Install Python requirements
+# Install Python deps
 COPY requirements.txt /app/
 RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
-# Copy project
+# Copy app code
 COPY . /app/
 
-# ⚠️ DO NOT chown the entire /app, skip bind-mounted paths
+# Set ownership of necessary paths
 RUN chown -R celeryuser:celerygroup \
     /app/haunt_ops \
     /app/thia \
@@ -54,19 +56,16 @@ RUN chown -R celeryuser:celerygroup \
     /app/entrypoint.sh \
     /app/Makefile || true
 
-# Fix ownership for staticfiles and media before dropping privileges
-RUN mkdir -p /app/staticfiles /app/media && \
-    chown -R celeryuser:celerygroup /app/staticfiles /app/media
+# Pre-create writable directories
+RUN mkdir -p /app/staticfiles /app/media /app/thia/logs && \
+    chown -R celeryuser:celerygroup /app/staticfiles /app/media /app/thia/logs
 
-# Set non-root user
+# Switch to non-root
 USER celeryuser
-
-# Set Chrome binary env (needed for Selenium)
-ENV CHROME_BIN=/usr/bin/chromium
-ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
 
 # Expose Django port
 EXPOSE 8000
 
-# Default command
+# Default command (if you prefer running without overriding in docker-compose)
+# ENTRYPOINT ["./entrypoint.sh"]
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

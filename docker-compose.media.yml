@@ -1,10 +1,14 @@
+# docker-compose.media.yml
+# This file should be layered with base and env-specific files.
+# Requires: `media/` and `thia/videos/` folders to exist on the host before running.
+
 services:
   web:
     volumes:
-      - ./media:/app/media
-      - ./thia/videos:/app/media/videos
+      - ./media:/app/media:rw
+      - ./thia/videos:/app/media/videos:rw
 
   nginx:
     volumes:
-      - ./media:/app/media
-      - ./thia/videos:/app/media/videos
+      - ./media:/app/media:ro
+      - ./thia/videos:/app/media/videos:ro
