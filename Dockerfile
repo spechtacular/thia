@@ -31,6 +31,18 @@ RUN ARCH=$(dpkg --print-architecture) && \
 RUN addgroup --system celerygroup && \
     adduser --system --ingroup celerygroup celeryuser
 
+# Dockerfile
+
+ARG INSTALL_CHROMIUM=true
+
+RUN if [ "$INSTALL_CHROMIUM" = "true" ]; then \
+    apt-get update && apt-get install -y \
+    chromium \
+    chromium-driver \
+    ... && rm -rf /var/lib/apt/lists/*; \
+  fi
+
+
 # Set workdir
 WORKDIR /app
 

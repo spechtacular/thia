@@ -23,7 +23,7 @@ services:
       - ${NETWORK_NAME:-thia_net}
 
   web:
-    shm_size: '2gb' # Increase shared memory for video processing
+    shm_size: '2gb' 
     build:
       context: .
     command: ./entrypoint.sh

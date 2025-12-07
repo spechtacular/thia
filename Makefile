@@ -142,28 +142,41 @@ build: check-env
 	@set -o allexport; . $(ENV_FILE); set +o allexport; \
 	docker-compose -f docker-compose.yml -f docker-compose.$(ENV).yml build
 
-buildx: load-env
-	@echo "🐳 Building multi-arch image: $(IMAGE)"
+buildx-arm64: load-env
+	@echo "🐳 Building ARM64 image: $(IMAGE)"
 	docker buildx build \
-		--platform linux/amd64,linux/arm64 \
+		--platform linux/arm64 \
 		--push \
 		-t $(IMAGE) .
 
+buildx-amd64: load-env
+	@echo "🐳 Building AMD64 image: $(IMAGE)"
+	docker buildx build \
+		--platform linux/amd64 \
+		--push \
+		-t $(IMAGE) .
+
+
 autotag:
 	$(eval DATE_TAG := prod-$(shell date +%Y.%m.%d))
-	$(eval IMAGE := $(IMAGE_NAMESPACE):$(DATE_TAG))
-	@echo "🏷️  Generated production tag: $(IMAGE)"
+	@echo "🏷️  Generated production tag: $(IMAGE_NAMESPACE):$(DATE_TAG)"
+
 
 buildx-prod: autotag
+	$(eval DATE_TAG := prod-$(shell date +%Y.%m.%d))
+	$(eval IMAGE := $(IMAGE_NAMESPACE):$(DATE_TAG))
 	@echo "🚀 Building production image with tag: $(IMAGE)"
 	docker buildx build \
 		--platform linux/amd64,linux/arm64 \
 		--push \
 		-t $(IMAGE) .
 
+buildx-clean:
+	docker buildx prune -f
+
 login: load-env
 	@echo "🔐 Logging into Docker Hub..."
-	@docker login -u $(DOCKERHUB_USERNAME) -p $(DOCKERHUB_PASSWORD)
+	@echo "$${DOCKERHUB_PASSWORD}" | docker login -u "$${DOCKERHUB_USERNAME}" --password-stdin
 
 # -----------------------------
 #   Cleanup
