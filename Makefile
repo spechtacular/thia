@@ -4,7 +4,7 @@
   logs logs-env shell shell-env \
   init migrate django \
   prune build buildx buildx-prod autotag login \
-  check-env load-env
+  check-env load-env clean buildx-arm64 buildx-amd64 buildx-clean
 
 # -----------------------------
 #   Configuration
@@ -185,3 +185,16 @@ login: load-env
 prune:
 	@echo "🧹 Pruning Docker system..."
 	docker system prune -af --volumes
+
+
+clean:
+	@echo "🧨 WARNING: This will remove all containers, volumes, networks, and images for all environments (dev, test, prod)."
+	@read -p "❓ Are you sure you want to continue? [y/N] " CONFIRM && [ "$$CONFIRM" = "y" ] && \
+		echo "🧹 Cleaning up all environments..." && \
+		docker-compose -f docker-compose.yml -f docker-compose.dev.yml down -v --remove-orphans && \
+		docker-compose -f docker-compose.yml -f docker-compose.test.yml down -v --remove-orphans && \
+		docker-compose -f docker-compose.yml -f docker-compose.prod.yml down -v --remove-orphans && \
+		docker volume prune -f && \
+		docker network prune -f && \
+		echo "✅ All environments cleaned." || echo "❌ Cleanup cancelled."
+

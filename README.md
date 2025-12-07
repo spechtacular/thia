@@ -222,7 +222,7 @@ This allows dev, test, and prod to coexist on the same machine.
 
 ## 👻 Maintainer
 
-**Ted Specht** — _“Zack the Skeleton”_
+**Ted Specht** — _“Zack the Slacker”_
 📬 [zack@boo.com](mailto:zack@boo.com)
 
 ---

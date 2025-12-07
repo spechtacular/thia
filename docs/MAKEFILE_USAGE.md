@@ -1,97 +1,98 @@
-# 📘 Makefile Usage Guide
+# 🛠️ Makefile Usage
 
-This file documents the full capabilities of the Makefile used to manage environments, Docker, and Django operations for the `thia` project.
-
----
-
-## 🔧 Environment Setup
-
-| Target         | Description                                           |
-|----------------|-------------------------------------------------------|
-| `make load-env`       | Load `.env.build` into current shell            |
-| `make check-env`      | Ensure `.env.<ENV>` file exists and is valid   |
+This document explains how to use all available `make` targets to build, deploy, and manage the `thia` project across different environments.
 
 ---
 
-## 🚀 Docker Compose Commands
+## 📚 Table of Contents
 
-| Target                | Description                                      |
-|------------------------|--------------------------------------------------|
-| `make up`             | Start test environment (`.env.test`)             |
-| `make up-env ENV=dev`| Start environment with `.env.dev`                |
-| `make up-env-media ENV=dev` | Start dev with mounted media volume      |
-| `make down`           | Stop and remove default environment              |
-| `make down-env ENV=prod` | Stop specified environment                   |
-| `make restart-env ENV=dev` | Restart given environment                 |
-| `make restart-env-media ENV=dev` | Restart dev with media prep        |
+- [⚙️ Core Docker Compose Commands](#️-core-docker-compose-commands)
+- [📜 Logging and Shell Access](#-logging-and-shell-access)
+- [🐍 Django Operations](#-django-operations)
+- [🔧 Environment Management](#-environment-management)
+- [🏗️ Build & Deployment](#️-build--deployment)
+- [🧹 Cleanup](#-cleanup)
+- [🌍 ENV Usage Pattern](#-env-usage-pattern)
 
 ---
 
-## 🐍 Django Targets
+## ⚙️ Core Docker Compose Commands
 
-| Target                 | Description                                    |
-|------------------------|------------------------------------------------|
-| `make init ENV=dev`   | Migrate, collectstatic, create superuser       |
-| `make migrate ENV=prod`| Run Django DB migrations                      |
-| `make django cmd="..." ENV=env` | Run any Django management command   |
+| Command                 | Description                                                       |
+|------------------------|-------------------------------------------------------------------|
+| `make up`              | Start default (test) environment containers.                      |
+| `make up-env ENV=dev`  | Start specified environment containers.                           |
+| `make up-env-media ENV=dev` | Start environment and mount media folders (uses media compose file). |
+| `make down`            | Stop and remove default (test) environment.                       |
+| `make down-env ENV=dev`| Stop and remove specified environment.                            |
+| `make restart ENV=dev` | Restart the given environment using full down + up.              |
+| `make restart-env ENV=dev` | Stop and restart specified environment.                         |
+| `make restart-env-media ENV=dev` | Restart environment and re-prepare media.                |
 
 ---
 
-## 🛠 Build Commands
+## 📜 Logging and Shell Access
 
-| Target            | Description                                        |
-|-------------------|----------------------------------------------------|
-| `make build ENV=dev` | Build Docker images for specific env            |
-| `make buildx`     | Build multi-arch images with `buildx`              |
-| `make autotag`    | Auto-generate production image tag                 |
-| `make buildx-prod`| Build/push multi-arch prod image with tag          |
-| `make login`      | Log into DockerHub (env vars required)            |
+| Command                        | Description                                            |
+|-------------------------------|--------------------------------------------------------|
+| `make logs`                   | Tail logs for default environment.                     |
+| `make logs-env ENV=prod`      | Tail logs for specific environment.                    |
+| `make shell`                  | Open shell in default web container.                   |
+| `make shell-env ENV=dev`      | Open shell in web container for specific environment.  |
+
+---
+
+## 🐍 Django Operations
+
+| Command                                             | Description                                          |
+|----------------------------------------------------|------------------------------------------------------|
+| `make init ENV=dev`                                | Run migrations, collectstatic, and create superuser. |
+| `make migrate ENV=prod`                            | Apply migrations to specified environment.           |
+| `make django cmd="..." ENV=dev`                    | Run arbitrary Django management command.             |
+| Example: `make django cmd="check" ENV=dev`         | Runs `python manage.py check` inside container.      |
+| Example: `make django cmd="run_selenium_users_query" ENV=dev` | Custom Selenium scraping logic.            |
+
+---
+
+## 🔧 Environment Management
+
+| Command         | Description                                                  |
+|----------------|--------------------------------------------------------------|
+| `make check-env` | Check for the existence of the appropriate `.env` file.     |
+| `make load-env`  | Load variables from `.env.build` into the current shell.    |
+
+---
+
+## 🏗️ Build & Deployment
+
+| Command                  | Description                                                  |
+|--------------------------|--------------------------------------------------------------|
+| `make build ENV=dev`     | Build Docker images for the given environment.               |
+| `make buildx`            | *(Deprecated)* Use platform-specific build targets below.    |
+| `make buildx-arm64`      | Build and push image for ARM64 platform.                     |
+| `make buildx-amd64`      | Build and push image for AMD64 platform.                     |
+| `make buildx-prod`       | Build and push multi-platform production image with autotag. |
+| `make buildx-clean`      | Clean up Buildx builder cache and intermediate images.       |
+| `make autotag`           | Generate image tag using current date (e.g., `prod-2025.12.04`). |
+| `make login`             | Log into Docker Hub using credentials from `.env.build`.     |
 
 ---
 
 ## 🧹 Cleanup
 
-| Target     | Description                                |
-|------------|--------------------------------------------|
-| `make prune` | Remove all Docker containers/volumes/images |
+| Command   | Description                                                                 |
+|-----------|-----------------------------------------------------------------------------|
+| `make prune` | Force prune Docker system (containers, images, volumes).               |
+| `make clean` | ⚠️ DANGER: Stops and removes **all** containers, volumes, and networks for all environments. Prompts for confirmation. |
 
 ---
 
-## 🌍 ENV File Behavior
+## 🌍 ENV Usage Pattern
 
-| Variable          | Description                                     |
-|-------------------|-------------------------------------------------|
-| `ENV`             | Target environment (e.g., dev, test, prod)      |
-| `ENV_FILE`        | Automatically resolved to `.env.$(ENV)`         |
-
----
-
-## 🏷️ Auto Tagging
-
-When `make buildx-prod` is run, the image is tagged like so:
-
-```
-IMAGE=yournamespace:prod-2025.12.04
-```
-
----
-
-## 🔐 DockerHub Login
-
-| Variable              | Description                  |
-|------------------------|------------------------------|
-| `DOCKERHUB_USERNAME`  | DockerHub account name       |
-| `DOCKERHUB_PASSWORD`  | DockerHub account password   |
-
-These must be exported or stored securely before running `make login`.
-
----
-
-## ✅ Add Help Output
-
-To view Makefile help:
+Most commands support passing the `ENV` variable to target a specific environment.
 
 ```bash
-make help
-```
-
+make up-env ENV=dev
+make shell-env ENV=test
+make migrate ENV=prod
+make django cmd="run_selenium_users_query" ENV=dev
