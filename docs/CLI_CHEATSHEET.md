@@ -51,8 +51,6 @@ This file documents all available `make` targets for managing the thia project.
 | Example `make django cmd="run_selenium_users_query" ENV=dev` | scrape user data from ivolunteer db. |
 | Example `make django cmd="update_user_profile_pic" ENV=dev` | update user profile with user pic file name. |
 
-|----------------------------------------------------|------------------------------------------------------|
-
 ---
 
 ## 🔧 Environment Management
