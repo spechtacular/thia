@@ -39,17 +39,19 @@ This file documents all available `make` targets for managing the thia project.
 | `make django cmd="..." ENV=dev`                    | Run arbitrary Django management command.             |
 | Example: `make django cmd="check" ENV=dev`         | Runs `python manage.py check` inside container.      |
 | Example: `make django cmd="run_selenium_users_query" ENV=dev` | Custom Selenium scraping logic.            |
-| make django cmd="bulk_load_events_from_ivolunteer" ENV=dev | bulk load events from ivolunteer. |
-| make django cmd="bulk_load_groups_from_config" ENV=dev | bulk load groups from ivolunteer. |
-| make django cmd="clear_haunt_data" ENV=dev | clear user data from Postgresql. |
-| make django cmd="rename_images_to_db_names" ENV=dev | rename image file names to match names in db. |
-| make django cmd="run_selenium_event_participation_query" ENV=dev | scrape event participation from ivolunteer db. |
-| make django cmd="run_selenium_events_query" ENV=dev | scrape events from ivolunteer db. |
-| make django cmd="run_selenium_groups_query" ENV=dev | scrape groups from ivolunteer db. |
-| make django cmd="run_selenium_passage_ticket_sales_query" ENV=dev | scrape ticket sales data from gopassage db. |
-| make django cmd="run_selenium_update_signin_query" ENV=dev | test ivolunteer login. |
-| make django cmd="run_selenium_users_query" ENV=dev | scrape user data from ivolunteer db. |
-| make django cmd="update_user_profile_pic" ENV=dev | update user profile with user pic file name. |
+| Example `make django cmd="bulk_load_events_from_ivolunteer" ENV=dev` | bulk load events from ivolunteer. |
+| Example `make django cmd="bulk_load_groups_from_config" ENV=dev` | bulk load groups from ivolunteer. |
+| Example `make django cmd="clear_haunt_data" ENV=dev` | clear user data from Postgresql. |
+| Example `make django cmd="rename_images_to_db_names" ENV=dev` | rename image file names to match names in db. |
+| Example `make django cmd="run_selenium_event_participation_query" ENV=dev` | scrape event participation from ivolunteer db. |
+| Example `make django cmd="run_selenium_events_query" ENV=dev` | scrape events from ivolunteer db. |
+| Example `make django cmd="run_selenium_groups_query" ENV=dev` | scrape groups from ivolunteer db. |
+| Example `make django cmd="run_selenium_passage_ticket_sales_query" ENV=dev` | scrape ticket sales data from gopassage db. |
+| Example `make django cmd="run_selenium_update_signin_query" ENV=dev` | test ivolunteer login. |
+| Example `make django cmd="run_selenium_users_query" ENV=dev` | scrape user data from ivolunteer db. |
+| Example `make django cmd="update_user_profile_pic" ENV=dev` | update user profile with user pic file name. |
+
+|----------------------------------------------------|------------------------------------------------------|
 
 ---
 
