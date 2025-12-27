@@ -41,6 +41,7 @@ make up-env ENV=dev
 ```
 
 Includes:
+
 - Django app
 - PostgreSQL
 - Redis
@@ -66,6 +67,7 @@ make up-env-media ENV=dev
 ```
 
 Mounts your local `docker_media/videos` into the container, used for:
+
 - Image previews
 - Event replays
 - Profile pic labeling
@@ -124,10 +126,19 @@ make buildx
 ```
 
 Uses platforms:
+
 - `linux/amd64`
 - `linux/arm64`
 
 Pushes to DockerHub using the namespace and tag from `.env.build`.
+
+🔧 Notes
+
+You can override Chrome version by passing it at build time:
+docker build --build-arg CHROME_VERSION=120.0.6099.71 .
+
+You can skip installing Chrome (e.g. for backend-only builds):
+docker build --build-arg INSTALL_CHROMIUM=false .
 
 ---
 
@@ -227,6 +238,7 @@ make prune
 ```
 
 This will remove:
+
 - Containers
 - Images
 - Volumes
@@ -239,4 +251,3 @@ This will remove:
 - [`CLI_CHEATSHEET.md`](./CLI_CHEATSHEET.md)
 - [`MAKEFILE_USAGE.md`](./MAKEFILE_USAGE.md)
 - [`ANSIBLE_USAGE.md`](./ANSIBLE_USAGE.md)
-

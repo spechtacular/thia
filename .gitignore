@@ -74,6 +74,7 @@ Thumbs.db
 # Postgresql
 .psqlrc
 .pgdata
+*.sql
 
 # Docker
 .dockerignore
