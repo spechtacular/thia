@@ -1,5 +1,5 @@
 app_name: "thia"
-version: 1.0
+version: 1.1
 debug_mode: true
 
 database:
@@ -72,6 +72,60 @@ csv_header_name_mapping:
   "Waitlist": "waitlist"
   "Full Address": "full_address"
 
+json_field_name_mapping:
+  id: vid
+  firstName: first_name
+  lastName: last_name
+  email: email
+  address: address
+  city: city
+  stateProvince: state
+  postalCode: zipcode
+  primaryPhone: phone1
+  secondaryPhone: phone2
+  dob: date_of_birth
+  addedDate: start_date
+  lastActivity: last_activity
+  lastModified: last_modified
+  photoUrl: image_url
+  company: company
+  country: country
+  notes: notes
+  waiver: waiver
+  customFieldValues: custom_fields
+  groups: groups
+  Are you under 18 years of age: under_18
+  Would you be able to wear a character mask: wear_mask
+  How did you hear about us: referral_source
+  Haunt Interests: haunt_experience
+  E-mail Blocked: email_blocked
+  E-Mail Blocked: email_blocked
+  Phone Blocked: phone_verified
+  Emergency Contact (First Name, Last Name): ice_name
+  Emergency Contact  (First Name, Last Name): ice_name
+  Emergency Contact Relation: ice_relationship
+  Emergency Contact Phone Number: ice_phone
+  Allergies: allergies
+  Event(s): events
+  Member of Group(s): groups
+  Hours: hours
+  Points: points
+  Event: event_name
+  S.Time: start_time
+  E.Time: end_time
+  Task: task
+  Date: date
+  Slot Column: slot_column
+  Slot Row: slot_row
+  Signed In: signed_in
+  Conflict: conflict
+  Confirmed: confirmed
+  Waitlist: waitlist
+  Waiver: waiver
+  T-Shirt Size: tshirt_size
+
+
+
 
 
 
@@ -93,11 +147,14 @@ groups:
   "Photographer" : 1
   "Room Actors": 1
   "Scare Actor": 1
+  "Scare Actor Lead": 1
   "Social Media": 1
   "Threshold Guardian" : 1
   "Ticket Booth" : 1
   "Ticket Taker/Door Control" : 1
   "Zipline" : 1
+  "Community Outreach Coordinator" : 1
+
 
 
 

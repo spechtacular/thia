@@ -34,7 +34,7 @@ from django.conf import settings
 from selenium.webdriver.support import expected_conditions as EC
 from haunt_ops.utils.logging_utils import configure_rotating_logger
 from haunt_ops.models import Events
-from haunt_ops.utils.time_string_utils import convert_date_formats
+from haunt_ops.utils.time_string_utils import try_parse_us_date
 from haunt_ops.utils.iv_core import (
     DriverConfig,
     build_driver,
@@ -212,7 +212,7 @@ class Command(BaseCommand):
                 ev_status = (ev["status"] or "").strip()
                 logger.info("Event Name: %s, Start: %s, Status: %s", ev_name, ev_start_raw, ev_status)
 
-                parsed_event_date = convert_date_formats(ev_start_raw)
+                parsed_event_date = try_parse_us_date(ev_start_raw)
                 if not parsed_event_date:
                     logger.error("❌ Missing or unparseable start date for '%s': %r", ev_name, ev_start_raw)
                     continue

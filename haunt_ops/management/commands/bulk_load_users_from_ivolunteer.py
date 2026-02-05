@@ -1,247 +1,250 @@
-"""
-Command to load or update users from a CSV file.
-Uses the AppUser model.
-Allows for dry-run and variable logging level options.
-"""
+# bulk_load_users_from_ivolunteer.py
 
-import logging
-import csv
+
 import os
+import json
+import logging
+from pathlib import Path
 from datetime import datetime
+import pandas as pd
+import yaml
+from django.utils.timezone import get_current_timezone
 from django.core.management.base import BaseCommand, CommandError
-from django.utils import timezone
 from django.conf import settings
-from haunt_ops.models import AppUser
-from haunt_ops.models import Groups
-from haunt_ops.models import GroupVolunteers
+from django.db import DatabaseError
+
+from haunt_ops.services.sync_user import sync_user
 from haunt_ops.utils.logging_utils import configure_rotating_logger
 
-# pylint: disable=no-member
 
 LOG_LEVELS = {
     "DEBUG": logging.DEBUG, "INFO": logging.INFO,
     "WARNING": logging.WARNING, "ERROR": logging.ERROR, "CRITICAL": logging.CRITICAL
 }
 
+
 class Command(BaseCommand):
     """
-    start command
-        python manage.py bulk_load_users_from_ivolunteers --csv haunt_ops/download/replaced_users.csv
-    or with dry-run
-        python manage.py bulk_load_users_from_ivolunteers --csv haunt_ops/download/replaced_users.csv --dry-run
-    or with log-level
-        python manage.py bulk_load_users_from_ivolunteers --csv haunt_ops/download/replaced_users.csv --log-level DEBUG
+    Docstring for Command
+    :doc Author: Your Name
+    :doc Date: 2024-06-19
+    :doc Version: 1.0
+    :doc License: MIT
+    :var Supports: Description
+    :var Args: Description
+    :var Returns: Description
+    :var dict: Description
+    :vartype dict: Mapped
     """
-
-    help = "Insert or update ivolunteer users from a CSV file with optional dry-run feature."
+    help = "Insert or update iVolunteer users from a CSV or JSON file (with optional dry-run)."
 
     def add_arguments(self, parser):
-        parser.add_argument("--csv", type=str, help="Path to the CSV file.(Default download to haunt_ops/download/ folder).")
         parser.add_argument(
-            '--dry-run',
-            action="store_true",
-            help="Simulate updates without saving to database.",
+            "--file",
+            type=str,
+            required=True,
+            help="Path to the input file (CSV or JSON).",
         )
         parser.add_argument(
-            '--log-level','--log',
+            "--dry-run",
+            action="store_true",
+            help="Simulate updates without saving to the database.",
+        )
+        parser.add_argument(
+            "--log-level",
             dest="log_level",
             type=str,
-            default="DEBUG",
-            choices=list(LOG_LEVELS.keys()),
-            help="Set the log level (default: INFO)",
+            default="INFO",
+            choices=LOG_LEVELS.keys(),
+            help="Set the logging level (default: INFO).",
         )
 
-    def handle(self, *args, **kwargs):
-        file_path = kwargs["csv"]
-        if not file_path:
-            raise CommandError("--csv is required")
-        dry_run = kwargs['dry_run']
-        level_name = (kwargs['log_level'] or 'INFO').upper()
-        level = LOG_LEVELS[level_name]
+    def handle(self, *args, **options):
+        file_path = options["file"]
+        dry_run = options["dry_run"]
+        log_level = options["log_level"]
 
-        # 2) make sure log dir exists
+        if not os.path.exists(file_path):
+            raise CommandError(f"❌ File not found: {file_path}")
+
+        # Setup logging
         os.makedirs(settings.LOG_DIR, exist_ok=True)
-
-        # 3) configure your rotating logger (you already have this util)
         logger = configure_rotating_logger(
-            __file__, log_dir=settings.LOG_DIR, log_level=level)
+            __file__, log_dir=settings.LOG_DIR, log_level=LOG_LEVELS[log_level]
+        )
 
-        logger.debug("Options: %r", kwargs)
-
-        logger.info("loading users data from ivolunteer")
-
+        # Load column mapping
         try:
-            with open(file_path, newline="", encoding="utf-8") as csvfile:
-                reader = csv.DictReader(csvfile)
-                user_email = ""
-                total = 0
-                created_count = 0
-                updated_count = 0
-                message = ""
-                for row in reader:
-                    total += 1
-                    user_email = row["email"].strip()
-                    logger.debug("---processing user_email: %s", user_email)
-                    if not user_email:
-                        message = f"Skipping row {total}: missing email {user_email}."
-                        self.stdout.write(message)
-                        logging.warning(message)
-                        continue
+            with open("config/etl_config.yaml", encoding="utf-8") as f:
+                config = yaml.safe_load(f)
+                column_mapping = config.get("json_field_name_mapping", {})
+        except (FileNotFoundError, yaml.YAMLError) as e:
+            raise CommandError(f"❌ Failed to load YAML config: {e}") from e
 
-                    if dry_run:
-                        user_exists = AppUser.objects.filter(email=user_email).exists()
-                        action = "Would create" if not user_exists else "Would update"
-                        logger.info("%s user: %s", action, user_email)
+        logger.info("📂 Starting bulk user load.")
+        logger.info("File: %s", file_path)
+        logger.info("Dry run: %s", dry_run)
+
+        ext = Path(file_path).suffix.lower()
+        records = []
+        total = 0
+        created = 0
+        updated = 0
+        skipped = 0
+
+        if dry_run:
+            logger.info("🛑 Dry-run mode: no data was saved to the database.")
+        try:
+            if ext in [".xls", ".xlsx"]:
+                df = pd.read_excel(file_path, dtype=str)
+                df.rename(columns=column_mapping, inplace=True)
+                records = df.fillna("").to_dict(orient="records")
+
+            elif ext == ".csv":
+                df = pd.read_csv(file_path, dtype=str)
+                df.rename(columns=column_mapping, inplace=True)
+                records = df.fillna("").to_dict(orient="records")
+
+            elif ext == ".json":
+                with open(file_path, encoding="utf-8") as f:
+                    raw_records = json.load(f)
+                records = []
+                for r in raw_records:
+                    mapped = map_json_fields(r, column_mapping, logger=logger)
+                    if mapped:
+                        records.append(mapped)
                     else:
-                        original_bd = row["date_of_birth"].strip()
-                        if not original_bd:
-                            message = f"Skipping row {total}: missing date_of_birth for {user_email}."
-                            self.stdout.write(message)
-                            logging.warning(message)
-                            continue
-
-                        logger.debug("original birth date %s", original_bd)
-
-                        bd = original_bd.split(" ", 1)
-                        logger.debug("date_of_birth after split %s", bd[0])
+                        skipped += 1
 
 
-                        dt = row["start_date"].strip()
-                        if not dt:
-                            message = f"Skipping row {total}: missing start_date for {user_email}."
-                            self.stdout.write(message)
-                            logging.warning(message)
-                            continue
-                        logger.debug("original start_date %s", dt)
-                        naive_dt = datetime.strptime(dt, "%Y-%m-%d %H:%M:%S")
-                        logger.debug("naive_date_joined before tz added %s", dt)
+            else:
+                raise CommandError(f"Unsupported file extension: {ext}")
 
-                        aware_dt = timezone.make_aware(
-                            naive_dt, timezone=timezone.get_current_timezone()
-                        )
-                        logger.debug("aware_date_joined after tz added %s", aware_dt)
-
-
-                        wv = False
-                        logger.debug("waiver: %s", row["waiver"])
-                        if "i agree" in row["waiver"].strip().lower():
-                            wv = True
+            for idx, record in enumerate(records, start=1):
+                total += 1
+                try:
+                    created_flag = sync_user(record, logger=logger, dry_run=dry_run)
+                    if created_flag is not None:
+                        if created_flag:
+                            created += 1
                         else:
-                            wv = False
-                        logger.debug("waiver after test: %s", wv)
+                            updated += 1
+                    else:
+                        skipped += 1
+                except (DatabaseError, ValueError, KeyError) as e:
+                    logger.warning("⚠️ Error processing record %s: %s", idx, str(e))
+                    skipped += 1
+                except (RuntimeError, TypeError) as e:
+                    # Only catch exceptions not already handled above, log and re-raise
+                    logger.error("❌ Unexpected error processing record %s: %s",
+                                 idx, str(e), exc_info=True)
+                    raise
 
-                        eb = False
-                        if "true" in row["email_blocked"].strip().lower():
-                            eb = True
-                        else:
-                            eb = False
-                        logger.debug("email_blocked: %s", eb)
-
-                        wm = False
-                        if "1.0" in row["wear_mask"].strip():
-                            wm = True
-                        else:
-                            wm = False
-                        logger.debug("wear_mask: %s", wm)
-
-                        logger.debug("haunt_experience: %s", row["haunt_experience"])
-                        logger.debug("events: %s", row["events"])
-
-
-
-
-                        user, created = AppUser.objects.update_or_create(
-                            email=user_email,
-                            defaults={
-                                "first_name": row["first_name"].strip(),
-                                "last_name": row["last_name"].strip(),
-                                "username": user_email,
-                                "company": row["company"].strip(),
-                                "address": row["address"].strip(),
-                                "city": row["city"].strip(),
-                                "state": row["state"].strip(),
-                                "zipcode": row["zipcode"].strip(),
-                                "country": row["country"].strip(),
-                                "phone1": row["phone1"].strip(),
-                                "phone2": row["phone2"].strip(),
-                                "date_of_birth": bd[0],
-                                "password": bd[0],
-                                "date_joined": aware_dt,
-                                "waiver": wv,
-                                "referral_source": row["referral_source"].strip(),
-                                "wear_mask": wm,
-                                "tshirt_size": row["tshirt_size"].strip(),
-                                "ice_name": row["ice_name"].strip(),
-                                "ice_relationship": row["ice_relationship"].strip(),
-                                "ice_phone": row["ice_phone"].strip(),
-                                "allergies": row["allergies"].strip(),
-                                "email_blocked": eb,
-                            },
-                        )
-
-                        if created:
-                            created_count += 1
-                            action = "Created"
-                        else:
-                            updated_count += 1
-                            action = "Updated"
-                        message = f"{action} user: {user.id},{user.email}"
-
-                        # process haunt_experience and groups
-                        haunt_experience = row["haunt_experience"].split(",")
-                        for experience in haunt_experience:
-                            experience = experience.strip()
-                            if experience:
-                                gmsg = ""
-                                try:
-                                    # case insensitive lookup
-                                    group = Groups.objects.get(group_name__iexact=experience)
-                                    logging.info(
-                                        "Group ID: %d, Name: %s for user %s",
-                                        group.id,
-                                        group.group_name,
-                                        user_email,
-                                    )
-                                    gv, created = (
-                                        GroupVolunteers.objects.update_or_create(
-                                            group_id=group.id,
-                                            volunteer_id=user.id,
-                                            defaults={},
-                                        )
-                                    )
-                                    if created:
-                                        gmsg = (
-                                            f" | Added to group: {group.group_name} "
-                                            f"and created GroupVolunteers entry {gv.id}."
-                                        )
-                                    else:
-                                        gmsg = (
-                                            f" | Already in group: {group.group_name} "
-                                            f"and GroupVolunteers entry exists {gv.id}."
-                                        )
-
-                                except Groups.objects.model.DoesNotExist as exc:
-                                    gmsg = (
-                                        f"❌ No group found with name {experience} "
-                                        f"for user {user_email} : "
-                                        f"exc : {exc}"
-                                    )
-                                finally:
-                                    logging.info(gmsg)
-                        logging.info(message)
-            summary = (
-                f"✅Processed: {total} users, Created: {created_count} "
-                f"users, Updated: {updated_count} users"
-            )
-            logging.info(summary)
-            logger.info("✅CSV import of users complete.")
+            logger.info("✅ Sync complete. Total: %s | Created: %s | Updated: %s | Skipped: %s ",
+                        total, created, updated, skipped)
             if dry_run:
-                logger.info("✅Dry-run mode enabled: no users were saved.")
+                logger.info("ℹ️ Dry run mode: no changes were saved.")
 
-        except FileNotFoundError:
-            error_msg = f"❌File not found: {file_path}"
-            logging.error(error_msg)
+        except (pd.errors.ParserError, json.JSONDecodeError, ValueError, IOError) as e:
+            raise CommandError(f"❌ Failed to load records: {e}") from e
 
+
+def map_json_fields(record, mapping, logger=None):
+    """
+    Remap keys of a JSON record using mapping from etl_config.yaml.
+    Supports:
+      - Top-level key remapping
+      - Flattening customFieldValues into individual keys
+      - Joining group names into a single string
+
+    Args:
+        record (dict): Raw iVolunteer record from API
+        mapping (dict): Key remapping from etl_config.yaml
+        logger (Logger, optional): Logger instance for debug output
+
+    Returns:
+        dict: Mapped record with local column names
+
+
+    Remap keys from iVolunteer API JSON into local format using etl_config.yaml.
+    Also validates and converts fields like date_of_birth.
+    """
+    mapped = {}
+    missing_required_fields = []
+    raw_dob = None
+
+    if logger:
+        logger.debug("🔍 Mapping record ID: %s", record.get("id", "[no id]"))
+
+    for key, value in record.items():
+        # Simple mapping
+        if key in mapping:
+            local_key = mapping[key]
+            mapped[local_key] = value
+            if logger:
+                logger.debug("➡️ Mapped field: '%s' → '%s' = %r", key, local_key, value)
+
+            if local_key == "date_of_birth":
+                raw_dob = value  # Save for special handling below
+
+        elif key == "customFieldValues" and isinstance(value, list):
+            for item in value:
+                field_name = item.get("customField", {}).get("name")
+                raw_value = item.get("value", "")
+                if field_name:
+                    local_key = mapping.get(field_name, field_name)
+                    mapped[local_key] = raw_value
+                    if logger:
+                        logger.debug("🧩 Mapped customField: '%s' → '%s' = %r",
+                                     field_name, local_key, raw_value)
+
+        elif key == "groups":
+            if isinstance(value, list):
+                group_names = [g.get("name", "") for g in value if isinstance(g, dict)]
+                mapped["groups"] = ", ".join(filter(None, group_names))
+                if logger:
+                    logger.debug("👥 Mapped groups list → 'groups' = %r", mapped["groups"])
+            elif isinstance(value, str):
+                mapped["groups"] = value
+                if logger:
+                    logger.debug("👥 Used string 'groups' = %r", value)
+
+        else:
+            if logger:
+                logger.debug("❓ Unmapped field: %s = %r", key, value)
+
+    # ✅ Convert dob from timestamp if needed
+    if raw_dob is not None:
+        try:
+            if isinstance(raw_dob, int):  # From API timestamp
+                dt = datetime.fromtimestamp(raw_dob / 1000.0, tz=get_current_timezone())
+                mapped["date_of_birth"] = dt.isoformat(timespec="milliseconds")
+                if logger:
+                    logger.debug("🕐 Converted dob timestamp %s → date_of_birth = %s",
+                                 raw_dob, mapped["date_of_birth"])
+            elif isinstance(raw_dob, str) and raw_dob.isdigit():
+                dt = datetime.fromtimestamp(int(raw_dob) / 1000.0, tz=get_current_timezone())
+                mapped["date_of_birth"] = dt.isoformat(timespec="milliseconds")
+                if logger:
+                    logger.debug("🕐 Converted dob string timestamp %s → date_of_birth = %s",
+                                 raw_dob, mapped["date_of_birth"])
         except Exception as e:
-            error_msg = f"❌Error processing file: {str(e)}"
-            logging.error(error_msg)
+            if logger:
+                logger.warning("⚠️ Failed to convert dob timestamp %r: %s", raw_dob, e)
+            mapped["date_of_birth"] = None
+
+    # ✅ Validate required fields
+    required_fields = ["email", "first_name", "last_name", "date_of_birth"]
+    for field in required_fields:
+        if not mapped.get(field):
+            missing_required_fields.append(field)
+
+    if missing_required_fields:
+        if logger:
+            logger.warning("🚫 Skipping record: missing required fields %s", missing_required_fields)
+        return None  # Signal to caller to skip this record
+
+    if logger:
+        logger.debug("✅ Final mapped record: %s", mapped)
+
+    return mapped

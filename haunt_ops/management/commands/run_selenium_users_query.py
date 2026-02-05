@@ -4,15 +4,16 @@ It uses configuration data from a configuration file named ./config/selenium_con
 """
 
 import os
+import shutil
 import time
 import argparse
 import yaml
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import CommandError
@@ -55,7 +56,7 @@ class Command(BaseUtilsCommand):
         headless=kwargs.get("headless", True)
         log_level=kwargs.get("log", "INFO").upper()
 
-                 # Get a unique log file using __file__
+        # Get a unique log file using __file__
         logger = configure_rotating_logger(
             __file__, log_dir=settings.LOG_DIR, log_level=log_level
         )
@@ -71,7 +72,7 @@ class Command(BaseUtilsCommand):
         with open(config_file, encoding="UTF-8") as f:
             config = yaml.safe_load(f)
 
-        #  --- browser options ---
+        # --- Browser setup ---
         download_directory = config["browser_config"]["download_directory"]
         download_dir = os.path.join(settings.BASE_DIR, download_directory)
         os.makedirs(download_dir, exist_ok=True)
@@ -83,7 +84,7 @@ class Command(BaseUtilsCommand):
         if headless:
             options.add_argument("--headless=new")
 
-        # preferences used
+        # Set Chrome download preferences
         prefs = {
             "download.default_directory": download_dir,
             "download.prompt_for_download": False,
@@ -92,13 +93,25 @@ class Command(BaseUtilsCommand):
         }
         options.add_experimental_option("prefs", prefs)
 
-        # initialize webdriver with options and preferences
-        # Use hardcoded paths for container environment
-        options.binary_location = "/usr/bin/chromium"
-        service = Service("/usr/bin/chromedriver")
-        driver = webdriver.Chrome(service=service, options=options)
+        # Detect chromium binary
+        chrome_path = shutil.which("chromium")
+        if not chrome_path:
+            raise RuntimeError("❌ Chromium not found. Ensure it's installed and in your system PATH.")
+        options.binary_location = chrome_path
+
+        logger.debug("Chromium path: %s", chrome_path)
+
+        # Detect chromedriver binary
+        #chromedriver_path = shutil.which("chromedriver")
+        #if chromedriver_path:
+        #    logger.debug("Chromedriver path: %s", chromedriver_path)
+        #    driver = webdriver.Chrome(service=webdriver.chrome.service.Service(chromedriver_path), options=options)
+        #else:
+        #   logger.debug("Chromedriver not found in PATH. Letting Selenium Manager download it.")
+        driver = webdriver.Chrome(options=options)
 
         wait = WebDriverWait(driver, 30)
+
 
         try:
             logger.debug("🔐 Logging in...")
